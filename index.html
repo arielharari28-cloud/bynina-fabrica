@@ -758,6 +758,8 @@ window._saveProvTela=async(n)=>{await addDoc(collection(db,'proveedoresTela'),{n
 window._deleteProvTela=async(id)=>{await deleteDoc(doc(db,'proveedoresTela',id));};
 window._saveTela=async(n)=>{await addDoc(collection(db,'telas'),{nombre:n});};
 window._deleteTela=async(id)=>{await deleteDoc(doc(db,'telas',id));};
+window._saveColor=async(n)=>{await addDoc(collection(db,'colores'),{nombre:n});};
+window._deleteColor=async(id)=>{await deleteDoc(doc(db,'colores',id));};
 window._saveProvAvios=async(n)=>{await addDoc(collection(db,'proveedoresAvios'),{nombre:n});};
 window._deleteProvAvios=async(id)=>{await deleteDoc(doc(db,'proveedoresAvios',id));};
 setTimeout(()=>{document.getElementById('loading-overlay').style.display='none';window._appReady=true;initLogin();},1200);
@@ -1061,6 +1063,11 @@ function abrirNuevoCorte(){
   ['c-avios-si','c-avios-no'].forEach(id=>{const b=document.getElementById(id);if(b){b.style.background='var(--surface)';b.style.color='var(--text2)';b.style.borderColor='var(--border)';}});
   const avDesc=document.getElementById('c-avios-desc');if(avDesc){avDesc.style.display='none';delete avDesc.dataset.v;}
   document.getElementById('overlay-nuevo-corte').classList.add('open');document.body.style.overflow='hidden';
+}
+function toggleAviosChoice(v){
+  const si=document.getElementById('n-avios-si'),no=document.getElementById('n-avios-no'),inp=document.getElementById('n-avios');
+  if(v==='si'){si.style.cssText='flex:1;padding:10px;border-radius:var(--r);border:1.5px solid var(--accent);background:var(--accent);font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:#fff';no.style.cssText='flex:1;padding:10px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)';inp.style.display='block';inp.dataset.llevaAvios='si';}
+  else{no.style.cssText='flex:1;padding:10px;border-radius:var(--r);border:1.5px solid var(--green);background:var(--green);font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:#fff';si.style.cssText='flex:1;padding:10px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text2)';inp.style.display='none';inp.value='Sin avíos';inp.dataset.llevaAvios='no';}
 }
 function toggleAviosChoiceC(v){
   const si=document.getElementById('c-avios-si'),no=document.getElementById('c-avios-no'),inp=document.getElementById('c-avios-desc');
