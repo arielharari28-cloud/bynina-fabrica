@@ -2129,3 +2129,327 @@ function renderHome(){
       ${personCard('Emir','🚚',emir_items)}
     </div>`;
   }
+  cont.innerHTML=html;
+}
+
+function setFiltroMNav(f){
+  setNav('muestras');
+  setTimeout(()=>{const btn=document.querySelector(`#view-muestras .filtro[onclick="setFiltroM('${f}',this)"]`);if(btn)btn.click();},50);
+}
+
+// ── EDITAR MUESTRA ──
+function abrirEditM(){
+  if(!mActiva){
+    const titulo=document.getElementById('detm-nombre')?.textContent;
+    if(titulo)mActiva=window._muestras.find(x=>x.nombre===titulo)||null;
+  }
+  if(!mActiva)return;
+  const m=mActiva;
+  actualizarSelectTip();actualizarSelectProvTela();actualizarSelectProvAvios();
+  ['em-nombre','em-codigo','em-tela','em-proveedor-tela','em-color','em-avios','em-construccion'].forEach(id=>{
+    const field=id.replace('em-','').replace('-','_');
+    const map={'em-nombre':'nombre','em-codigo':'codigo','em-tela':'tela','em-proveedor-tela':'proveedorTela','em-color':'color','em-avios':'avios','em-construccion':'construccion'};
+    document.getElementById(id).value=m[map[id]]||'';
+  });
+  document.getElementById('em-sentido').value=m.sentido||'';
+  const tipSel=document.getElementById('em-tipologia');
+  if(tipSel)tipSel.value=m.tipologia||'';
+  document.getElementById('overlay-edit-m').classList.add('open');document.body.style.overflow='hidden';
+}
+function cerrarEditM(e){if(e.target===document.getElementById('overlay-edit-m'))cerrarEditMBtn();}
+function cerrarEditMBtn(){document.getElementById('overlay-edit-m').classList.remove('open');document.body.style.overflow='';}
+async function guardarEditM(){
+  if(!mActiva)return;
+  const cambios=[];
+  const fields=[['nombre','em-nombre'],['codigo','em-codigo'],['tela','em-tela'],['proveedorTela','em-proveedor-tela'],['color','em-color'],['sentido','em-sentido'],['tipologia','em-tipologia'],['avios','em-avios'],['construccion','em-construccion']];
+  fields.forEach(([k,id])=>{const v=document.getElementById(id)?.value||'';if((mActiva[k]||'')!==v){cambios.push(`${k}: "${mActiva[k]||''}" → "${v}"`);mActiva[k]=v;}});
+  if(!cambios.length){cerrarEditMBtn();return;}
+  if(!mActiva.updates)mActiva.updates=[];
+  mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'modificacion',texto:'✏️ Editado: '+cambios.join(' | '),fotos:[],fecha:new Date().toISOString()});
+  if(currentUser!=='Ariel')addNotif(`${currentUser} editó la muestra "${mActiva.nombre}": ${cambios.join(', ')}`);
+  await window._saveDoc('muestras',mActiva);
+  cerrarEditMBtn();mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();
+}
+async function borrarMuestra(){
+  if(!mActiva)return;
+  if(!confirm(`¿Borrar "${mActiva.nombre}"? Esta acción no se puede deshacer.`))return;
+  if(currentUser!=='Ariel')addNotif(`${currentUser} eliminó la muestra "${mActiva.nombre}"`);
+  const{id}=mActiva;
+  try{const{doc:docFn,deleteDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');await deleteDoc(docFn(window._db,'muestras',id));}catch(e){showSync('error','Error al borrar');return;}
+  cerrarEditMBtn();cerrarDetalleMBtn();
+}
+
+// ── EDITAR CORTE ──
+let editCorteCodigosList=[];
+function abrirEditC(){
+  // cActivo puede ser null si el click del botón cerró el overlay primero
+  // buscamos por el título del detalle abierto
+  if(!cActivo){
+    const titulo=document.getElementById('detc-nombre')?.textContent;
+    if(titulo)cActivo=window._cortes.find(x=>x.nombre===titulo)||null;
+  }
+  if(!cActivo)return;
+  const c=cActivo;
+  actualizarSelectTip();actualizarSelectProvTela();actualizarSelectTelas();actualizarSelectProvAvios();
+  document.getElementById('ec-nombre').value=c.nombre||'';
+  document.getElementById('ec-nro').value=c.nroCorte||'';
+  document.getElementById('ec-tela').value=c.tela||'';
+  document.getElementById('ec-proveedor-tela').value=c.proveedorTela||'';
+  document.getElementById('ec-sentido').value=c.sentido||'';
+  document.getElementById('ec-construccion').value=c.construccion||'';
+  document.getElementById('ec-ficha-link').value=c.fichaLink||'';
+  const tipSel=document.getElementById('ec-tipologia');if(tipSel)tipSel.value=c.tipologia||'';
+  editCorteCodigosList=[...(c.codigos||[])];
+  renderEditCorteCodigosList();
+  document.getElementById('overlay-edit-c').classList.add('open');document.body.style.overflow='hidden';
+}
+function cerrarEditC(e){if(e.target===document.getElementById('overlay-edit-c'))cerrarEditCBtn();}
+function cerrarEditCBtn(){document.getElementById('overlay-edit-c').classList.remove('open');document.body.style.overflow='';}
+function addCodigoEdit(){const inp=document.getElementById('ec-codigo-input');const v=inp.value.trim();if(!v)return;editCorteCodigosList.push(v);inp.value='';renderEditCorteCodigosList();}
+function removeCodigoEdit(i){editCorteCodigosList.splice(i,1);renderEditCorteCodigosList();}
+function renderEditCorteCodigosList(){document.getElementById('ec-codigos-list').innerHTML=editCorteCodigosList.map((c,i)=>`<div class="codigo-item"><span class="codigo-item-text">${c}</span><button class="codigo-item-del" onclick="removeCodigoEdit(${i})">×</button></div>`).join('');}
+async function guardarEditC(){
+  if(!cActivo)return;
+  const cambios=[];
+  const fields=[['nombre','ec-nombre'],['nroCorte','ec-nro'],['tela','ec-tela'],['proveedorTela','ec-proveedor-tela'],['sentido','ec-sentido'],['tipologia','ec-tipologia'],['construccion','ec-construccion'],['fichaLink','ec-ficha-link']];
+  fields.forEach(([k,id])=>{const v=document.getElementById(id)?.value||'';if((cActivo[k]||'')!==v){cambios.push(`${k}: "${cActivo[k]||''}" → "${v}"`);cActivo[k]=v;}});
+  const codStr=editCorteCodigosList.join(',');if((cActivo.codigos||[]).join(',')!==codStr){cambios.push('códigos actualizados');cActivo.codigos=editCorteCodigosList;}
+  if(!cambios.length){cerrarEditCBtn();return;}
+  if(!cActivo.updates)cActivo.updates=[];
+  cActivo.updates.push({id:Date.now()+'',autor:currentUser,tipo:'modificacion',texto:'✏️ Editado: '+cambios.join(' | '),fotos:[],fecha:new Date().toISOString()});
+  if(currentUser!=='Ariel')addNotif(`${currentUser} editó el corte "${cActivo.nombre}": ${cambios.join(', ')}`);
+  await window._saveDoc('cortes',cActivo);
+  cerrarEditCBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();
+}
+async function borrarCorte(){
+  if(!cActivo)return;
+  if(!confirm(`¿Borrar corte "${cActivo.nombre}"? Esta acción no se puede deshacer.`))return;
+  if(currentUser!=='Ariel')addNotif(`${currentUser} eliminó el corte "${cActivo.nombre}"`);
+  const{id}=cActivo;
+  try{const{doc:docFn,deleteDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');await deleteDoc(docFn(window._db,'cortes',id));}catch(e){showSync('error','Error al borrar');return;}
+  cerrarEditCBtn();cerrarDetalleCBtn();
+}
+
+// ── BORRAR UPDATE DEL HISTORIAL ──
+async function borrarUpdateM(uid){
+  if(!mActiva)return;
+  const upd=mActiva.updates.find(u=>u.id===uid);
+  if(!upd)return;
+  if(currentUser!=='Ariel')addNotif(`${currentUser} borró una nota en "${mActiva.nombre}": "${upd.texto||'(foto)'}"`);
+  mActiva.updates=mActiva.updates.filter(u=>u.id!==uid);
+  await window._saveDoc('muestras',mActiva);
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderTimelineM();
+}
+async function borrarUpdateC(uid){
+  if(!cActivo)return;
+  const upd=cActivo.updates.find(u=>u.id===uid);
+  if(!upd)return;
+  if(currentUser!=='Ariel')addNotif(`${currentUser} borró una nota en "${cActivo.nombre}": "${upd.texto||'(foto)'}"`);
+  cActivo.updates=cActivo.updates.filter(u=>u.id!==uid);
+  await window._saveDoc('cortes',cActivo);
+  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderTimelineC();
+}
+
+// ── EDICIÓN INLINE ARIEL ──
+let mDirty=false,cDirty=false,inlineFotasM=[],inlineFotasC=[];
+function markDirtyM(){mDirty=true;document.getElementById('detm-save-bar').classList.add('show');}
+function markDirtyC(){cDirty=true;document.getElementById('detc-save-bar').classList.add('show');}
+
+function addFotosInlineM(e){
+  if(!mActiva){const t=document.getElementById('detm-nombre')?.textContent;if(t)mActiva=window._muestras.find(x=>x.nombre===t)||null;}
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  let loaded=0;
+  files.forEach(f=>{const r=new FileReader();r.onload=ev=>{inlineFotasM.push(ev.target.result);loaded++;if(loaded===files.length)guardarInlineM();};r.readAsDataURL(f);});
+  e.target.value='';
+}
+function addFotosInlineC(e){
+  if(!cActivo){const t=document.getElementById('detc-nombre')?.textContent;if(t)cActivo=window._cortes.find(x=>x.nombre===t)||null;}
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  let loaded=0;
+  files.forEach(f=>{const r=new FileReader();r.onload=ev=>{inlineFotasC.push(ev.target.result);loaded++;if(loaded===files.length)guardarInlineC();};r.readAsDataURL(f);});
+  e.target.value='';
+}
+
+async function borrarFotoC(i){
+  if(!cActivo){const t=document.getElementById('detc-nombre')?.textContent;if(t)cActivo=window._cortes.find(x=>x.nombre===t)||null;}
+  if(!cActivo)return;
+  if(!confirm('¿Borrar esta foto?'))return;
+  if(!cActivo.fotos)cActivo.fotos=cActivo.foto?[cActivo.foto]:[];
+  cActivo.fotos.splice(i,1);
+  cActivo.foto=cActivo.fotos[0]||null;
+  await window._saveDoc('cortes',cActivo);
+  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;
+  renderDetalleC();
+}
+async function borrarFotoM(i){
+  if(!mActiva){const t=document.getElementById('detm-nombre')?.textContent;if(t)mActiva=window._muestras.find(x=>x.nombre===t)||null;}
+  if(!mActiva)return;
+  if(!confirm('¿Borrar esta foto?'))return;
+  if(!mActiva.fotos)mActiva.fotos=mActiva.foto?[mActiva.foto]:[];
+  mActiva.fotos.splice(i,1);
+  mActiva.foto=mActiva.fotos[0]||null;
+  await window._saveDoc('muestras',mActiva);
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;
+  renderDetalleM();
+}
+async function guardarInlineM(){
+  if(!mActiva)return;
+  const btn=document.querySelector('#detm-save-bar .save-inline-btn');btn.textContent='Guardando...';
+  const cambios=[];
+  const fields=[['nombre','iem-nombre'],['codigo','iem-codigo'],['tela','iem-tela'],['color','iem-color'],['avios','iem-avios'],['construccion','iem-construccion'],['tipologia','iem-tipologia'],['proveedorTela','iem-proveedor-tela'],['sentido','iem-sentido']];
+  fields.forEach(([k,id])=>{const el=document.getElementById(id);if(!el)return;const v=el.value||'';if((mActiva[k]||'')!==v){cambios.push(`${k}: "${mActiva[k]||''}" → "${v}"`);mActiva[k]=v;}});
+  // upload new fotos
+  if(inlineFotasM.length){
+    const urls=[];for(const d of inlineFotasM){try{const u=await window._uploadFoto(d);if(u)urls.push(u);}catch(e){urls.push(d);}}
+    if(!mActiva.fotos)mActiva.fotos=mActiva.foto?[mActiva.foto]:[];
+    mActiva.fotos=[...mActiva.fotos,...urls];
+    if(!mActiva.foto)mActiva.foto=mActiva.fotos[0];
+    cambios.push(`${urls.length} foto(s) agregada(s)`);
+  }
+  if(cambios.length){
+    if(!mActiva.updates)mActiva.updates=[];
+    mActiva.updates.push({id:Date.now()+'',autor:'Ariel',tipo:'modificacion',texto:'✏️ '+cambios.join(' | '),fotos:[],fecha:new Date().toISOString()});
+  }
+  await window._saveDoc('muestras',mActiva);
+  mDirty=false;inlineFotasM=[];
+  btn.textContent='Guardar';
+  document.getElementById('detm-save-bar').classList.remove('show');
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();
+}
+
+async function guardarInlineC(){
+  if(!cActivo)return;
+  const btn=document.querySelector('#detc-save-bar .save-inline-btn');btn.textContent='Guardando...';
+  const cambios=[];
+  const fields=[['nombre','iec-nombre'],['nroCorte','iec-nro'],['tela','iec-tela'],['construccion','iec-construccion'],['tipologia','iec-tipologia'],['proveedorTela','iec-proveedor-tela'],['sentido','iec-sentido']];
+  fields.forEach(([k,id])=>{const el=document.getElementById(id);if(!el)return;const v=el.value||'';if((cActivo[k]||'')!==v){cambios.push(`${k}: "${cActivo[k]||''}" → "${v}"`);cActivo[k]=v;}});
+  if(inlineFotasC.length){
+    const urls=[];for(const d of inlineFotasC){try{const u=await window._uploadFoto(d);if(u)urls.push(u);}catch(e){urls.push(d);}}
+    if(!cActivo.fotos)cActivo.fotos=cActivo.foto?[cActivo.foto]:[];
+    cActivo.fotos=[...cActivo.fotos,...urls];
+    if(!cActivo.foto)cActivo.foto=cActivo.fotos[0];
+    cambios.push(`${urls.length} foto(s) agregada(s)`);
+  }
+  if(cambios.length){
+    if(!cActivo.updates)cActivo.updates=[];
+    cActivo.updates.push({id:Date.now()+'',autor:'Ariel',tipo:'modificacion',texto:'✏️ '+cambios.join(' | '),fotos:[],fecha:new Date().toISOString()});
+  }
+  await window._saveDoc('cortes',cActivo);
+  cDirty=false;inlineFotasC=[];
+  btn.textContent='Guardar';
+  document.getElementById('detc-save-bar').classList.remove('show');
+  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();
+}
+
+// ── CAPAS Y TALLES ──
+let capasCorteId=null,capasTalles=[],capasColores=[];
+function abrirCapas(id){
+  capasCorteId=id;
+  const c=window._cortes.find(x=>x.id===id);
+  capasTalles=c&&c.capasTalles?JSON.parse(JSON.stringify(c.capasTalles)):[];
+  capasColores=c&&c.capasColores?JSON.parse(JSON.stringify(c.capasColores)):[];
+  renderCapasTalles();
+  renderCapasColores();
+  // populate colores datalist
+  const dl=document.getElementById('capas-colores-datalist');
+  if(dl)dl.innerHTML=(window._colores||[]).map(c=>`<option value="${c.nombre}">`).join('');
+  // clear inputs
+  ['capas-talle-input','capas-talle-cant','capas-color-input','capas-color-cant'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('overlay-capas').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function cerrarCapas(e){if(e.target===document.getElementById('overlay-capas'))cerrarCapasBtn();}
+function cerrarCapasBtn(){document.getElementById('overlay-capas').classList.remove('open');document.body.style.overflow='';}
+
+function addTalleCapas(){
+  const t=(document.getElementById('capas-talle-input').value.trim()||'').toUpperCase();
+  const cant=parseInt(document.getElementById('capas-talle-cant').value)||0;
+  if(!t||!cant){alert('Completá talle y cantidad');return;}
+  const idx=capasTalles.findIndex(x=>x.talle===t);
+  if(idx>=0)capasTalles[idx].cantidad=cant;else capasTalles.push({talle:t,cantidad:cant});
+  document.getElementById('capas-talle-input').value='';
+  document.getElementById('capas-talle-cant').value='';
+  renderCapasTalles();
+}
+function removeTalleCapas(i){capasTalles.splice(i,1);renderCapasTalles();}
+function renderCapasTalles(){
+  const cont=document.getElementById('capas-talles-list');
+  if(!cont)return;
+  cont.innerHTML=capasTalles.length
+    ?capasTalles.map((t,i)=>`<div class="codigo-item" style="margin-bottom:6px"><span class="codigo-item-text"><strong>${t.talle}</strong>: ${t.cantidad} prendas</span><button class="codigo-item-del" onclick="removeTalleCapas(${i})">×</button></div>`).join('')
+    :'<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin talles cargados.</div>';
+  // refresh colores to update curve preview
+  if(capasColores.length)renderCapasColores();
+}
+
+function addColorCapas(){
+  const col=document.getElementById('capas-color-input').value.trim();
+  const cant=parseInt(document.getElementById('capas-color-cant').value)||0;
+  if(!col||!cant){alert('Completá color y cantidad de capas');return;}
+  const idx=capasColores.findIndex(x=>x.color.toLowerCase()===col.toLowerCase());
+  if(idx>=0)capasColores[idx].capas=cant;else capasColores.push({color:col,capas:cant});
+  document.getElementById('capas-color-input').value='';
+  document.getElementById('capas-color-cant').value='';
+  renderCapasColores();
+}
+function removeColorCapas(i){capasColores.splice(i,1);renderCapasColores();}
+function calcCurva(capas){
+  // multiply capas × prendas per talle
+  return capasTalles.map(t=>({talle:t.talle,total:t.cantidad*capas}));
+}
+function renderCapasColores(){
+  const cont=document.getElementById('capas-colores-list');
+  const prev=document.getElementById('capas-preview');
+  if(!cont)return;
+  if(!capasColores.length){
+    cont.innerHTML='<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin colores cargados.</div>';
+    if(prev)prev.style.display='none';
+    return;
+  }
+  cont.innerHTML=capasColores.map((c,i)=>{
+    const curva=capasTalles.length?calcCurva(c.capas):[];
+    const curvaStr=curva.length?curva.map(t=>`${t.talle}:${t.total}`).join(' | '):'(cargá talles primero)';
+    return`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:700">${c.color} — ${c.capas} cap${c.capas>1?'as':'a'}</span>
+        <button class="codigo-item-del" onclick="removeColorCapas(${i})">×</button>
+      </div>
+      ${curva.length?`<div style="display:flex;gap:6px;flex-wrap:wrap">${curva.map(t=>`<span style="background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px">${t.talle}: ${t.total}</span>`).join('')}</div>`:`<div style="font-size:11px;color:var(--text3)">Cargá los talles primero para ver el desglose</div>`}
+    </div>`;
+  }).join('');
+  if(prev&&capasTalles.length&&capasColores.length){
+    const totalPrendas=capasTalles.reduce((s,t)=>s+t.cantidad,0);
+    const totalPorColor=capasColores.map(c=>({color:c.color,total:totalPrendas*c.capas}));
+    prev.style.display='block';
+    prev.innerHTML=`<strong>Total a cortar:</strong> ${totalPorColor.map(c=>`${c.color}: ${c.total} prendas`).join(' · ')}`;
+  }
+}
+
+async function guardarCapas(){
+  if(!capasCorteId){alert('Error: no hay corte activo');return;}
+  if(!capasTalles.length){alert('Cargá al menos un talle');return;}
+  if(!capasColores.length){alert('Cargá al menos un color con capas');return;}
+  const c=window._cortes.find(x=>x.id===capasCorteId);
+  if(!c){alert('Corte no encontrado');return;}
+  c.capasTalles=capasTalles;
+  c.capasColores=capasColores;
+  c.capasListas=true;
+  if(!c.updates)c.updates=[];
+  c.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',
+    texto:`✂️ Capas cargadas: ${capasColores.map(x=>x.color+' ('+x.capas+'c)').join(', ')} | Talles: ${capasTalles.map(x=>x.talle+':'+x.cantidad).join(', ')}`,
+    fotos:[],fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',c);
+  cerrarCapasBtn();
+  if(cActivo&&cActivo.id===capasCorteId){
+    cActivo=window._cortes.find(x=>x.id===capasCorteId)||cActivo;
+    renderDetalleC();
+  }
+}
+
+function openLightbox(src){if(!src)return;document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+</script>
+</body>
+</html>
