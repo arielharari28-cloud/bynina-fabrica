@@ -56,6 +56,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .est-revision{background:var(--purple-light);color:var(--purple)}
 .est-aprobada{background:var(--green-light);color:var(--green)}
 .est-pendiente{background:#F0EDE8;color:#5A5450}
+.est-pendiente-corte{background:#DCEEFF;color:#2563A8}
 .est-cortado{background:var(--blue-light);color:var(--blue)}
 .est-listo{background:var(--yellow-light);color:var(--yellow)}
 .est-en-taller{background:var(--purple-light);color:var(--purple)}
@@ -219,6 +220,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .estado-opt.active-revision{border-color:var(--purple);background:var(--purple-light);color:var(--purple);font-weight:700}
 .estado-opt.active-aprobada{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
 .estado-opt.active-pendiente{border-color:#8A7A6A;background:#F0EDE8;color:#5A5450;font-weight:700}
+.estado-opt.active-pendiente_corte{border-color:var(--blue);background:var(--blue-light);color:var(--blue);font-weight:700}
 .estado-opt.active-cortado{border-color:var(--blue);background:var(--blue-light);color:var(--blue);font-weight:700}
 .estado-opt.active-listo{border-color:var(--yellow);background:var(--yellow-light);color:var(--yellow);font-weight:700}
 .estado-opt.active-en_taller{border-color:var(--purple);background:var(--purple-light);color:var(--purple);font-weight:700}
@@ -364,7 +366,10 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
         <div style="margin-bottom:14px">
           <div class="stat-row">
             <div class="stat s-molderia"><div class="stat-num" id="d-molderia">0</div><div class="stat-lbl">En moldería</div></div>
-            <div class="stat s-ready"><div class="stat-num" id="d-ready">0</div><div class="stat-lbl">Lista p/ taller</div></div>
+            <div class="stat s-ready"><div class="stat-num" id="d-pend-corte">0</div><div class="stat-lbl">Pend. corte</div></div>
+            <div class="stat s-taller"><div class="stat-num" id="d-ready">0</div><div class="stat-lbl">Lista p/ taller</div></div>
+          </div>
+          <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:4px">
             <div class="stat s-taller"><div class="stat-num" id="d-taller">0</div><div class="stat-lbl">En taller</div></div>
           </div>
           <div class="stat-row2">
@@ -400,6 +405,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="filtros">
         <button class="filtro active" onclick="setFiltroM('todas',this)">Todas</button>
         <button class="filtro" onclick="setFiltroM('molderia',this)">Moldería</button>
+        <button class="filtro" onclick="setFiltroM('pendiente_corte',this)">Pend. corte</button>
         <button class="filtro" onclick="setFiltroM('taller_ready',this)">Lista p/ taller</button>
         <button class="filtro" onclick="setFiltroM('taller',this)">En taller</button>
         <button class="filtro" onclick="setFiltroM('prueba',this)">Probar</button>
@@ -526,6 +532,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="section-block-title">Estado</div>
       <div class="estado-list">
         <button class="estado-opt" onclick="cambiarEstadoM('molderia')"><span>✂️</span> En moldería</button>
+        <button class="estado-opt" onclick="cambiarEstadoM('pendiente_corte')"><span>⏳</span> Pendiente de corte</button>
         <button class="estado-opt" onclick="cambiarEstadoM('taller_ready')"><span>🟢</span> Lista para taller</button>
         <button class="estado-opt" onclick="cambiarEstadoM('taller')"><span>🧵</span> En taller</button>
         <button class="estado-opt" onclick="cambiarEstadoM('prueba')"><span>👀</span> Probar muestra</button>
@@ -801,9 +808,9 @@ function abrirNueva(){if(navActivo==='cortes')abrirNuevoCorte();else abrirNuevaM
 function setNahuelTab(t,btn){nahuelTab=t;document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('nahuel-muestras-lista').style.display=t==='muestras'?'block':'none';document.getElementById('nahuel-cortes-lista').style.display=t==='cortes'?'block':'none';}
 function renderNahuel(){renderNahuelMuestras();renderNahuelCortes();}
 function renderNahuelMuestras(){
-  const pend=window._muestras.filter(m=>!(m.checks&&m.checks.corte));
+  const pend=window._muestras.filter(m=>m.estado==='pendiente_corte');
   const cont=document.getElementById('nahuel-muestras-lista');
-  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Todo cortado</h3><p>No hay muestras pendientes.</p></div>';return;}
+  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Todo cortado</h3><p>No hay muestras pendientes de corte.</p></div>';return;}
   cont.innerHTML=pend.map(m=>`<div class="corte-card">
     <div class="corte-foto" onclick="abrirDetalleM('${m.id}')">${m.foto?`<img src="${m.foto}" alt="">`:'🧵'}</div>
     <div class="corte-info">
@@ -838,7 +845,7 @@ function renderNahuelCortes(){
     </div>
   </div>`).join('');
 }
-async function marcarCorteMById(id){const m=window._muestras.find(x=>x.id===id);if(!m)return;if(!m.checks)m.checks={};m.checks.corte=true;if(!m.updates)m.updates=[];m.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'corte',texto:'Muestra cortada ✓',foto:null,fecha:new Date().toISOString()});checkAutoEstadoM(m);await window._saveDoc('muestras',m);}
+async function marcarCorteMById(id){const m=window._muestras.find(x=>x.id===id);if(!m)return;if(!m.checks)m.checks={};m.checks.corte=true;m.estado='taller_ready';if(!m.updates)m.updates=[];m.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Muestra cortada ✓ → Lista para taller',foto:null,fecha:new Date().toISOString()});await window._saveDoc('muestras',m);}
 async function marcarCorteCById(id){
   const c=window._cortes.find(x=>x.id===id);if(!c)return;
   // capture capas reales if form is visible
@@ -925,9 +932,15 @@ function setGrupoM(g){grupoM=g;document.getElementById('grp-tip-btn').classList.
 function setGrupoC(g){grupoC=g;document.getElementById('grp-ctip-btn').classList.toggle('active',g==='tipologia');document.getElementById('grp-ctel-btn').classList.toggle('active',g==='tela');renderDashboard();}
 function renderDashboard(){
   if(dashTab==='muestras'){
-    const c={molderia:0,taller_ready:0,taller:0,prueba:0,revision:0,aprobada:0};
+    const c={molderia:0,pendiente_corte:0,taller_ready:0,taller:0,prueba:0,revision:0,aprobada:0};
     window._muestras.forEach(m=>{if(c[m.estado]!==undefined)c[m.estado]++;});
-    ['molderia','ready','taller','prueba','revision','aprobada'].forEach((k,i)=>document.getElementById('d-'+k).textContent=Object.values(c)[i]);
+    document.getElementById('d-molderia').textContent=c.molderia;
+    document.getElementById('d-pend-corte').textContent=c.pendiente_corte;
+    document.getElementById('d-ready').textContent=c.taller_ready;
+    document.getElementById('d-taller').textContent=c.taller;
+    document.getElementById('d-prueba').textContent=c.prueba;
+    document.getElementById('d-revision').textContent=c.revision;
+    document.getElementById('d-aprobada').textContent=c.aprobada;
     const byG={};window._muestras.forEach(m=>{const k=(grupoM==='tipologia'?m.tipologia:m.tela)||'Sin '+grupoM;if(!byG[k])byG[k]=[];byG[k].push(m);});
     document.getElementById('dash-muestras-grupos').innerHTML=!window._muestras.length?'<div style="font-size:13px;color:var(--text3)">Sin muestras.</div>':renderGroups(byG,'m');
   } else {
@@ -1189,7 +1202,7 @@ function renderDetalleM(){
   renderTimelineM();
 }
 async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.checks={};mActiva.checks[k]=!mActiva.checks[k];const labels={corte:'Corte de muestra',avios:'Avíos listos',ficha:'Ficha cargada'};if(!mActiva.updates)mActiva.updates=[];mActiva.updates.push({id:Date.now()+'',autor:currentUser||'—',tipo:'nota',texto:(mActiva.checks[k]?'✓ ':'✗ ')+labels[k],foto:null,fecha:new Date().toISOString()});checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();}
-function checkAutoEstadoM(m){const ch=m.checks||{};if(ch.corte&&ch.avios&&ch.ficha&&m.estado==='molderia'){m.estado='taller_ready';if(!m.updates)m.updates=[];m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:'Estado → Lista para taller',foto:null,fecha:new Date().toISOString()});}}
+function checkAutoEstadoM(m){/* auto-avance desactivado: Nahuel controla el paso a taller_ready */}
 async function cambiarEstadoM(nuevo){
   if(!mActiva)return;
   if(nuevo==='taller_ready'&&!(mActiva.checks&&mActiva.checks.corte)){
@@ -1423,7 +1436,7 @@ async function guardarAvio(){
 }
 
 // HELPERS
-function estadoDisplay(e){return{molderia:['est-molderia','En moldería'],taller_ready:['est-taller-ready','Lista p/ taller'],taller:['est-taller','En taller'],prueba:['est-prueba','Probar muestra'],revision:['est-revision','Aprobar muestra'],aprobada:['est-aprobada','Aprobada ✓']}[e]||['est-molderia',e];}
+function estadoDisplay(e){return{molderia:['est-molderia','En moldería'],pendiente_corte:['est-pendiente-corte','Pendiente de corte'],taller_ready:['est-taller-ready','Lista p/ taller'],taller:['est-taller','En taller'],prueba:['est-prueba','Probar muestra'],revision:['est-revision','Aprobar muestra'],aprobada:['est-aprobada','Aprobada ✓']}[e]||['est-molderia',e];}
 function estadoDisplayC(e){return{pendiente:['est-pendiente','Pendiente corte'],cortado:['est-cortado','Cortado'],listo:['est-listo','Listo p/ taller'],en_taller:['est-en-taller','En taller'],entregado:['est-entregado','Entregado ✓']}[e]||['est-pendiente',e];}
 function estadoNombreM(e){return estadoDisplay(e)[1];}
 function estadoNombreC(e){return estadoDisplayC(e)[1];}
@@ -1498,6 +1511,7 @@ function renderHome(){
     const cortesNecesitanAvios=window._cortes.filter(c=>c.llevaAvios&&!(c.aviosList&&c.aviosList.length)&&['pendiente','cortado'].includes(c.estado));
     const cortesSinCapas=window._cortes.filter(c=>c.estado==='pendiente'&&!c.capasListas);
     const cortesConCapas=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
+    const muestrasPendCorte=window._muestras.filter(m=>m.estado==='molderia');
     const hayPend=sinAvios.length||sinFicha.length||aviosPend.length||cortesSinCapas.length||cortesNecesitanAvios.length;
     html+=`<div class="home-section"><div class="home-section-title">Tus tareas</div>`;
     if(!hayPend){html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;}
