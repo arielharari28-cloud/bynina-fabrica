@@ -897,13 +897,36 @@ function renderListaUnificada(contId,soloVer){
     const fechaPedido=item.fecha?'📅 Pedido: '+fechaCorta(item.fecha):'';
     const fechaCort=item.fechaCortado?'✂️ Cortado: '+fechaCorta(item.fechaCortado):'';
     const done=item.cortado;
+
+    // Build expandable detail section
+    let detailHtml='';
+    if(item.tipo==='c'){
+      const c=window._cortes.find(x=>x.id===item.id);
+      if(c){
+        const capas=c.capasColores&&c.capasColores.length
+          ?c.capasColores.map(col=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--blue-light);border-radius:8px;padding:9px 12px;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:var(--blue)">${col.color}</span><span style="font-size:13px;font-weight:600;color:var(--blue);background:var(--surface);border-radius:20px;padding:3px 12px">${col.capas} capas</span></div>`).join('')
+          :'<div style="font-size:12px;color:var(--text3)">Sin capas cargadas todavía</div>';
+        const ficha=c.fichaLink?`<a href="${c.fichaLink}" target="_blank" style="display:flex;align-items:center;gap:6px;padding:9px 12px;background:var(--surface2);border-radius:8px;font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;margin-bottom:8px">📄 Ver ficha en Drive →</a>`:'';
+        const extra=[c.tela&&`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:4px"><span style="font-weight:600;color:var(--text2);min-width:70px">Tela</span><span>${c.tela}</span></div>`,c.sentido&&`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:4px"><span style="font-weight:600;color:var(--text2);min-width:70px">Sentido</span><span>${c.sentido}</span></div>`,c.construccion&&`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:4px"><span style="font-weight:600;color:var(--text2);min-width:70px">Construcción</span><span>${c.construccion}</span></div>`].filter(Boolean).join('');
+        detailHtml=`${ficha}${extra?`<div style="margin-bottom:10px">${extra}</div>`:''}${capas?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">✂️ Capas por color</div>${capas}`:''}`;
+      }
+    } else {
+      const m=window._muestras.find(x=>x.id===item.id);
+      if(m){
+        const rows=[m.tela&&['Tela',m.tela],m.sentido&&['Sentido',m.sentido],m.color&&['Color',m.color],m.construccion&&['Construcción',m.construccion],m.avios&&m.avios!=='Sin avíos'&&['Avíos',m.avios]].filter(Boolean);
+        detailHtml=rows.map(([l,v])=>`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:5px"><span style="font-weight:600;color:var(--text2);min-width:80px;flex-shrink:0">${l}</span><span>${v}</span></div>`).join('');
+        if(!detailHtml)detailHtml='<div style="font-size:12px;color:var(--text3)">Sin información adicional</div>';
+      }
+    }
+
     const btnHtml=soloVer?'':`<div class="work-card-actions">
       <button class="work-btn-marcar${done?' done':''}" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',${done})">
         ${done?'✅ Cortado':'✂️ Marcar como cortado'}
       </button>
     </div>`;
-    return`<div class="work-card${done?' completado':' en-proceso'}">
-      <div class="work-card-top">
+
+    return`<div class="work-card${done?' completado':' en-proceso'}" id="wcard-${item.tipo}-${item.id}">
+      <div class="work-card-top" onclick="toggleWorkDetail('${item.tipo}','${item.id}')" style="cursor:pointer">
         <span class="work-card-num${done?' done':''}">${i+1}</span>
         <div class="work-card-thumb">${item.foto?`<img src="${item.foto}">`:(item.tipo==='m'?'🧵':'✂️')}</div>
         <div class="work-card-body">
@@ -916,12 +939,24 @@ function renderListaUnificada(contId,soloVer){
             <span class="badge ${ecls}" style="font-size:9px;padding:2px 6px">${elbl}</span>
           </div>
         </div>
+        <span style="color:var(--text3);font-size:18px;flex-shrink:0" id="wchev-${item.tipo}-${item.id}">›</span>
+      </div>
+      <div id="wdetail-${item.tipo}-${item.id}" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border)">
+        <div style="padding-top:12px">${detailHtml}</div>
       </div>
       ${btnHtml}
     </div>`;
   }).join('');
 }
 
+function toggleWorkDetail(tipo,id){
+  const det=document.getElementById('wdetail-'+tipo+'-'+id);
+  const chev=document.getElementById('wchev-'+tipo+'-'+id);
+  if(!det)return;
+  const open=det.style.display==='none';
+  det.style.display=open?'block':'none';
+  if(chev)chev.style.transform=open?'rotate(90deg)':'';
+}
 function renderNahuel(){renderListaUnificada('nahuel-lista-unificada',false);}
 
 async function toggleCortadoUnificado(tipo,id,estabaHecho){
