@@ -18,6 +18,27 @@
   --red:#C0392B;--red-light:#FAE5E3;
   --r:10px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 14px rgba(0,0,0,.06);
 }
+
+.prio-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.prio-item{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:grab;user-select:none;transition:box-shadow .15s;border:1.5px solid transparent}
+.prio-item:active{cursor:grabbing}
+.prio-item.dragging{opacity:.4;border-color:var(--accent)}
+.prio-item.drag-over{border-color:var(--accent);background:var(--accent-light)}
+.prio-handle{color:var(--text3);font-size:18px;flex-shrink:0;touch-action:none}
+.prio-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prio-thumb{width:44px;height:44px;border-radius:7px;background:var(--surface2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px}
+.prio-thumb img{width:100%;height:100%;object-fit:cover}
+.prio-body{flex:1;min-width:0}
+.prio-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prio-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:2px}
+.prio-meta{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prio-tipo-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;flex-shrink:0}
+.prio-tipo-m{background:var(--accent-light);color:var(--accent)}
+.prio-tipo-c{background:var(--blue-light);color:var(--blue)}
+.prio-save-btn{width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px}
+.prio-save-btn:disabled{background:var(--border);color:var(--text3);cursor:not-allowed}
+.prio-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;margin-top:4px}
+
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
 .sync-bar{position:fixed;top:0;left:0;right:0;z-index:999;padding:6px 16px;font-size:12px;font-weight:600;text-align:center;display:none}
 .sync-bar.syncing{display:block;background:#1C1916;color:#fff}
@@ -340,6 +361,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
     <button class="nav-btn active" onclick="setNav('dashboard')">📊 Dashboard</button>
     <button class="nav-btn" onclick="setNav('muestras')">🧵 Muestras</button>
     <button class="nav-btn" onclick="setNav('cortes')">✂️ Cortes</button>
+    <button class="nav-btn" onclick="setNav('prioridades')" id="nav-prio" style="display:none">🔢 Prio</button>
     <button class="nav-btn" onclick="setNav('tipologias')">⚙️ Config</button>
   </nav>
   <main>
@@ -366,10 +388,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
         <div style="margin-bottom:14px">
           <div class="stat-row">
             <div class="stat s-molderia"><div class="stat-num" id="d-molderia">0</div><div class="stat-lbl">En moldería</div></div>
-            <div class="stat s-ready"><div class="stat-num" id="d-pend-corte">0</div><div class="stat-lbl">Pend. corte</div></div>
-            <div class="stat s-taller"><div class="stat-num" id="d-ready">0</div><div class="stat-lbl">Lista p/ taller</div></div>
-          </div>
-          <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:4px">
+            <div class="stat s-ready"><div class="stat-num" id="d-ready">0</div><div class="stat-lbl">Lista p/ taller</div></div>
             <div class="stat s-taller"><div class="stat-num" id="d-taller">0</div><div class="stat-lbl">En taller</div></div>
           </div>
           <div class="stat-row2">
@@ -424,6 +443,11 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
         <button class="filtro" onclick="setFiltroC('entregado',this)">Entregados</button>
       </div>
       <div id="lista-cortes"></div>
+    </div>
+    <div id="view-prioridades" style="display:none">
+      <div style="padding:4px 0 16px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px">Orden de prioridad</div><div style="font-size:13px;color:var(--text2)">Arrastrá para reordenar — Nahuel y Emir ven este orden</div></div>
+      <div class="prio-list" id="prio-list"></div>
+      <button class="prio-save-btn" id="prio-save-btn" onclick="guardarPrioridades()" disabled>Guardar orden</button>
     </div>
     <div id="view-tipologias" style="display:none">
       <div class="home-section">
@@ -769,10 +793,19 @@ window._saveColor=async(n)=>{await addDoc(collection(db,'colores'),{nombre:n});}
 window._deleteColor=async(id)=>{await deleteDoc(doc(db,'colores',id));};
 window._saveProvAvios=async(n)=>{await addDoc(collection(db,'proveedoresAvios'),{nombre:n});};
 window._deleteProvAvios=async(id)=>{await deleteDoc(doc(db,'proveedoresAvios',id));};
+onSnapshot(doc(db,'config','prioridades'),(snap)=>{
+  window._prioridades=snap.exists()?snap.data().orden||[]:[];
+  if(window._appReady&&navActivo==='prioridades')renderPrioridades();
+  if(window._appReady)renderAll();
+});
+window._savePrioridades=async(orden)=>{
+  const{doc:docFn,setDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  await setDoc(docFn(db,'config','prioridades'),{orden});
+};
 setTimeout(()=>{document.getElementById('loading-overlay').style.display='none';window._appReady=true;initLogin();},1200);
 </script>
 <script>
-window._muestras=[];window._cortes=[];window._tipologias=[];window._provTela=[];window._provAvios=[];window._telas=[];window._colores=[];window._appReady=false;
+window._muestras=[];window._cortes=[];window._tipologias=[];window._provTela=[];window._provAvios=[];window._telas=[];window._colores=[];window._prioridades=[];window._appReady=false;
 let currentUser=null,navActivo='dashboard',dashTab='muestras',grupoM='tipologia',grupoC='tipologia';
 let filtroM='todas',filtroC='todas',nahuelTab='muestras';
 let mActiva=null,cActivo=null;
@@ -798,19 +831,19 @@ function showApp(){
   document.getElementById('header-user').textContent=currentUser;
   if(currentUser==='Nahuel'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';setViewRaw('nahuel');renderNahuel();}
   else if(currentUser==='Emir'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';setViewRaw('emir');renderEmir();}
-  else{document.getElementById('main-nav').style.display='flex';if(currentUser==='Ariel'){document.getElementById('notif-bell').style.display='block';renderNotifBadge();}setNav('home');renderAll();}
+  else{document.getElementById('main-nav').style.display='flex';if(currentUser==='Ariel'){document.getElementById('notif-bell').style.display='block';renderNotifBadge();const pnav=document.getElementById('nav-prio');if(pnav)pnav.style.display='block';}setNav('home');renderAll();}
 }
 
-function setViewRaw(v){['nahuel','emir','home','dashboard','muestras','cortes','tipologias'].forEach(n=>{const el=document.getElementById('view-'+n);if(el)el.style.display=n===v?'block':'none';});}
+function setViewRaw(v){['nahuel','emir','home','dashboard','muestras','cortes','tipologias','prioridades'].forEach(n=>{const el=document.getElementById('view-'+n);if(el)el.style.display=n===v?'block':'none';});}
 function abrirNueva(){if(navActivo==='cortes')abrirNuevoCorte();else abrirNuevaMuestra();}
 
 // NAHUEL
 function setNahuelTab(t,btn){nahuelTab=t;document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('nahuel-muestras-lista').style.display=t==='muestras'?'block':'none';document.getElementById('nahuel-cortes-lista').style.display=t==='cortes'?'block':'none';}
 function renderNahuel(){renderNahuelMuestras();renderNahuelCortes();}
 function renderNahuelMuestras(){
-  const pend=window._muestras.filter(m=>m.estado==='pendiente_corte');
+  const pend=sortByPrio(window._muestras.filter(m=>m.estado==='pendiente_corte'),'m');
   const cont=document.getElementById('nahuel-muestras-lista');
-  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Todo cortado</h3><p>No hay muestras pendientes de corte.</p></div>';return;}
+  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Todo cortado</h3><p>No hay muestras pendientes.</p></div>';return;}
   cont.innerHTML=pend.map(m=>`<div class="corte-card">
     <div class="corte-foto" onclick="abrirDetalleM('${m.id}')">${m.foto?`<img src="${m.foto}" alt="">`:'🧵'}</div>
     <div class="corte-info">
@@ -827,7 +860,7 @@ function renderNahuelMuestras(){
   </div>`).join('');
 }
 function renderNahuelCortes(){
-  const pend=window._cortes.filter(c=>(c.estado==='pendiente'&&c.capasListas)||(c.estado==='listo'&&c.capasListas));
+  const pend=sortByPrio(window._cortes.filter(c=>(c.estado==='pendiente'&&c.capasListas)||(c.estado==='listo'&&c.capasListas)),'c');
   const cont=document.getElementById('nahuel-cortes-lista');
   if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Sin cortes pendientes</h3><p>No hay cortes para cortar ahora.</p></div>';return;}
   cont.innerHTML=pend.map(c=>`<div class="corte-card">
@@ -873,10 +906,9 @@ async function marcarCorteC(){if(!cActivo)return;await marcarCorteCById(cActivo.
 // EMIR
 function renderEmir(){
   const cont=document.getElementById('emir-lista');
-  const items=[
-    ...window._muestras.filter(m=>m.estado==='aprobada').map(m=>({...m,_tipo:'muestra'})),
-    ...window._cortes.filter(c=>['cortado','listo','en_taller'].includes(c.estado)).map(c=>({...c,_tipo:'corte'}))
-  ];
+  const _emirM=sortByPrio(window._muestras.filter(m=>m.estado==='aprobada'),'m').map(m=>({...m,_tipo:'muestra'}));
+  const _emirC=sortByPrio(window._cortes.filter(c=>['cortado','listo','en_taller'].includes(c.estado)),'c').map(c=>({...c,_tipo:'corte'}));
+  const items=[..._emirM,..._emirC];
   if(!items.length){cont.innerHTML='<div class="empty"><div class="empty-icon">📦</div><h3>Sin prendas para despachar</h3><p>Cuando haya cortes listos aparecen acá.</p></div>';return;}
   cont.innerHTML=items.map(item=>{
     const isM=item._tipo==='muestra';
@@ -932,15 +964,9 @@ function setGrupoM(g){grupoM=g;document.getElementById('grp-tip-btn').classList.
 function setGrupoC(g){grupoC=g;document.getElementById('grp-ctip-btn').classList.toggle('active',g==='tipologia');document.getElementById('grp-ctel-btn').classList.toggle('active',g==='tela');renderDashboard();}
 function renderDashboard(){
   if(dashTab==='muestras'){
-    const c={molderia:0,pendiente_corte:0,taller_ready:0,taller:0,prueba:0,revision:0,aprobada:0};
+    const c={molderia:0,taller_ready:0,taller:0,prueba:0,revision:0,aprobada:0};
     window._muestras.forEach(m=>{if(c[m.estado]!==undefined)c[m.estado]++;});
-    document.getElementById('d-molderia').textContent=c.molderia;
-    document.getElementById('d-pend-corte').textContent=c.pendiente_corte;
-    document.getElementById('d-ready').textContent=c.taller_ready;
-    document.getElementById('d-taller').textContent=c.taller;
-    document.getElementById('d-prueba').textContent=c.prueba;
-    document.getElementById('d-revision').textContent=c.revision;
-    document.getElementById('d-aprobada').textContent=c.aprobada;
+    ['molderia','ready','taller','prueba','revision','aprobada'].forEach((k,i)=>document.getElementById('d-'+k).textContent=Object.values(c)[i]);
     const byG={};window._muestras.forEach(m=>{const k=(grupoM==='tipologia'?m.tipologia:m.tela)||'Sin '+grupoM;if(!byG[k])byG[k]=[];byG[k].push(m);});
     document.getElementById('dash-muestras-grupos').innerHTML=!window._muestras.length?'<div style="font-size:13px;color:var(--text3)">Sin muestras.</div>':renderGroups(byG,'m');
   } else {
@@ -1202,7 +1228,7 @@ function renderDetalleM(){
   renderTimelineM();
 }
 async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.checks={};mActiva.checks[k]=!mActiva.checks[k];const labels={corte:'Corte de muestra',avios:'Avíos listos',ficha:'Ficha cargada'};if(!mActiva.updates)mActiva.updates=[];mActiva.updates.push({id:Date.now()+'',autor:currentUser||'—',tipo:'nota',texto:(mActiva.checks[k]?'✓ ':'✗ ')+labels[k],foto:null,fecha:new Date().toISOString()});checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();}
-function checkAutoEstadoM(m){/* auto-avance desactivado: Nahuel controla el paso a taller_ready */}
+function checkAutoEstadoM(m){/* auto-avance desactivado */}
 async function cambiarEstadoM(nuevo){
   if(!mActiva)return;
   if(nuevo==='taller_ready'&&!(mActiva.checks&&mActiva.checks.corte)){
@@ -1302,9 +1328,9 @@ function renderDetalleC(){
       capasEl.innerHTML=`<div class="section-block-title">✂️ Capas y talles ${hasCap?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--green-light);color:var(--green)">Cargadas</span>':'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--yellow-light);color:var(--yellow)">Pendiente</span>'}</div>
       ${hasCap?`<div style="margin-bottom:8px">${c.capasColores.map(col=>`<div style="background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px"><strong>${col.color}</strong> — ${col.capas} capas<br><span style="font-size:11px;color:var(--text2)">${(c.capasTalles||[]).map(t=>t.talle+': '+t.cantidad).join(' | ')}</span></div>`).join('')}</div>`:'<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin capas cargadas todavía.</div>'}
       <button class="btn btn-primary" onclick="abrirCapas('${c.id}')" style="padding:10px">${hasCap?'✏️ Editar capas':'+ Cargar capas y talles'}</button>`;
-    } else if(currentUser==='Nahuel'&&c.capasTalles&&c.capasTalles.length){
+    } else if(currentUser==='Nahuel'&&c.capasColores&&c.capasColores.length){
       capasEl.style.display='block';
-      capasEl.innerHTML=`<div class="section-block-title">✂️ Instrucciones de corte</div>${c.capasColores.map(col=>`<div style="background:var(--blue-light);border-radius:8px;padding:10px 14px;margin-bottom:8px"><div style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:4px">${col.color} — ${col.capas} capas</div><div style="display:flex;gap:8px;flex-wrap:wrap">${(c.capasTalles||[]).map(t=>`<span style="background:var(--surface);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${t.talle}: ${t.cantidad} prendas</span>`).join('')}</div></div>`).join('')}`;
+      capasEl.innerHTML=`<div class="section-block-title">✂️ Instrucciones de corte</div>${c.capasColores.map(col=>`<div style="background:var(--blue-light);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:700;color:var(--blue)">${col.color}</span><span style="font-size:13px;font-weight:600;color:var(--blue);background:var(--surface);border-radius:20px;padding:4px 12px">${col.capas} capas</span></div>`).join('')}`;
     } else {capasEl.style.display='none';}
   }
   if(canNotasC){
@@ -1451,6 +1477,73 @@ function fechaCorta(iso){
   if(diff<7)return`${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()]} ${hora}`;
   return d.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+' '+hora;
 }
+let prioDragSrc=null,prioOrderDirty=false,prioCurrentOrder=[];
+
+function buildPrioItems(){
+  const muestras=window._muestras.filter(m=>!['aprobada'].includes(m.estado)).map(m=>({id:m.id,tipo:'m',nombre:m.nombre,codigo:m.codigo||'',nro:'',tela:m.tela||'',tipologia:m.tipologia||'',estado:m.estado,foto:m.foto||null}));
+  const cortes=window._cortes.filter(c=>c.estado!=='entregado').map(c=>({id:c.id,tipo:'c',nombre:c.nombre,codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',nro:c.nroCorte||'',tela:c.tela||'',tipologia:c.tipologia||'',estado:c.estado,foto:c.foto||null}));
+  const all=[...muestras,...cortes];
+  const orden=window._prioridades||[];
+  const ordered=[];const remaining=[...all];
+  orden.forEach(key=>{const idx=remaining.findIndex(x=>x.tipo+'_'+x.id===key);if(idx>=0){ordered.push(remaining[idx]);remaining.splice(idx,1);}});
+  return[...ordered,...remaining];
+}
+
+function renderPrioridades(){
+  const items=buildPrioItems();
+  prioCurrentOrder=items.map(x=>x.tipo+'_'+x.id);
+  const cont=document.getElementById('prio-list');
+  if(!items.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Sin items activos</h3><p>Cuando haya muestras o cortes aparecen acá.</p></div>';return;}
+  cont.innerHTML=items.map((item,i)=>{
+    const[ecls,elbl]=item.tipo==='m'?estadoDisplay(item.estado):estadoDisplayC(item.estado);
+    const codStr=item.tipo==='c'?(item.nro?'#'+item.nro:'')+(item.codigo?' · '+item.codigo:''):(item.codigo||'');
+    const meta=[item.tipologia,item.tela].filter(Boolean).join(' · ');
+    return`<div class="prio-item" data-key="${item.tipo}_${item.id}" draggable="true"
+      ondragstart="prioDragStart(event,this)" ondragover="prioDragOver(event,this)" ondragleave="prioDragLeave(this)" ondrop="prioDrop(event,this)" ondragend="prioDragEnd()"
+      ontouchstart="prioTouchStart(event,this)" ontouchmove="prioTouchMove(event)" ontouchend="prioTouchEnd(event)">
+      <span class="prio-handle">⠿</span>
+      <span class="prio-num">${i+1}</span>
+      <div class="prio-thumb">${item.foto?`<img src="${item.foto}">`:(item.tipo==='m'?'🧵':'✂️')}</div>
+      <div class="prio-body">
+        <div class="prio-code">${codStr}</div>
+        <div class="prio-title">${item.nombre}</div>
+        <div class="prio-meta">${meta?meta+'  ·  ':''}<span class="badge ${ecls}" style="font-size:9px;padding:1px 5px">${elbl}</span></div>
+      </div>
+      <span class="prio-tipo-badge ${item.tipo==='m'?'prio-tipo-m':'prio-tipo-c'}">${item.tipo==='m'?'Muestra':'Corte'}</span>
+    </div>`;
+  }).join('');
+  prioOrderDirty=false;
+  document.getElementById('prio-save-btn').disabled=true;
+}
+
+function prioDragStart(e,el){prioDragSrc=el;e.dataTransfer.effectAllowed='move';setTimeout(()=>el.classList.add('dragging'),0);}
+function prioDragOver(e,el){e.preventDefault();e.dataTransfer.dropEffect='move';if(el!==prioDragSrc){document.querySelectorAll('.prio-item').forEach(i=>i.classList.remove('drag-over'));el.classList.add('drag-over');}}
+function prioDragLeave(el){el.classList.remove('drag-over');}
+function prioDrop(e,el){e.preventDefault();if(el===prioDragSrc)return;el.classList.remove('drag-over');const cont=document.getElementById('prio-list');const items=[...cont.querySelectorAll('.prio-item')];const srcIdx=items.indexOf(prioDragSrc);const tgtIdx=items.indexOf(el);if(srcIdx<tgtIdx)el.after(prioDragSrc);else el.before(prioDragSrc);prioMarkDirty();}
+function prioDragEnd(){document.querySelectorAll('.prio-item').forEach(i=>{i.classList.remove('dragging');i.classList.remove('drag-over');});prioRenumber();}
+
+let touchDragEl=null,touchClone=null,touchOffsetY=0;
+function prioTouchStart(e,el){touchDragEl=el;const t=e.touches[0];const r=el.getBoundingClientRect();touchOffsetY=t.clientY-r.top;touchClone=el.cloneNode(true);touchClone.style.cssText=`position:fixed;left:${r.left}px;width:${r.width}px;top:${r.top}px;z-index:9999;opacity:.85;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.18);`;document.body.appendChild(touchClone);el.style.opacity='.3';}
+function prioTouchMove(e){if(!touchDragEl)return;e.preventDefault();const t=e.touches[0];touchClone.style.top=(t.clientY-touchOffsetY)+'px';const items=[...document.querySelectorAll('.prio-item')].filter(i=>i!==touchDragEl);items.forEach(i=>i.classList.remove('drag-over'));const mid=t.clientY;items.forEach(i=>{const r=i.getBoundingClientRect();if(mid>r.top&&mid<r.bottom)i.classList.add('drag-over');});}
+function prioTouchEnd(e){if(!touchDragEl)return;if(touchClone)touchClone.remove();touchDragEl.style.opacity='1';const cont=document.getElementById('prio-list');const items=[...cont.querySelectorAll('.prio-item')].filter(i=>i!==touchDragEl);const target=items.find(i=>i.classList.contains('drag-over'));if(target){target.classList.remove('drag-over');const all=[...cont.querySelectorAll('.prio-item')];const srcIdx=all.indexOf(touchDragEl);const tgtIdx=all.indexOf(target);if(srcIdx<tgtIdx)target.after(touchDragEl);else target.before(touchDragEl);}document.querySelectorAll('.prio-item').forEach(i=>i.classList.remove('drag-over'));touchDragEl=null;touchClone=null;prioMarkDirty();prioRenumber();}
+
+function prioMarkDirty(){prioOrderDirty=true;document.getElementById('prio-save-btn').disabled=false;}
+function prioRenumber(){document.querySelectorAll('.prio-item').forEach((el,i)=>{const n=el.querySelector('.prio-num');if(n)n.textContent=i+1;});}
+
+async function guardarPrioridades(){
+  const items=[...document.querySelectorAll('.prio-item')];
+  const orden=items.map(el=>el.dataset.key);
+  const btn=document.getElementById('prio-save-btn');btn.textContent='Guardando...';btn.disabled=true;
+  try{await window._savePrioridades(orden);window._prioridades=orden;btn.textContent='✓ Guardado';setTimeout(()=>{btn.textContent='Guardar orden';},1500);}
+  catch(e){btn.textContent='Error — reintentar';btn.disabled=false;}
+}
+
+function sortByPrio(items,tipo){
+  const orden=window._prioridades||[];
+  if(!orden.length)return items;
+  return[...items].sort((a,b)=>{const ka=tipo+'_'+a.id,kb=tipo+'_'+b.id;const ia=orden.indexOf(ka),ib=orden.indexOf(kb);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return-1;return ia-ib;});
+}
+
 function renderAll(){
   if(currentUser==='Nahuel'){renderNahuel();return;}
   if(currentUser==='Emir'){renderEmir();return;}
@@ -1487,6 +1580,7 @@ function setNav(v){
   if(v==='muestras')renderListaMuestras();
   if(v==='cortes')renderListaCortes();
   if(v==='tipologias')renderTipologias();
+  if(v==='prioridades')renderPrioridades();
 }
 
 function renderHome(){
@@ -1511,7 +1605,6 @@ function renderHome(){
     const cortesNecesitanAvios=window._cortes.filter(c=>c.llevaAvios&&!(c.aviosList&&c.aviosList.length)&&['pendiente','cortado'].includes(c.estado));
     const cortesSinCapas=window._cortes.filter(c=>c.estado==='pendiente'&&!c.capasListas);
     const cortesConCapas=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
-    const muestrasPendCorte=window._muestras.filter(m=>m.estado==='molderia');
     const hayPend=sinAvios.length||sinFicha.length||aviosPend.length||cortesSinCapas.length||cortesNecesitanAvios.length;
     html+=`<div class="home-section"><div class="home-section-title">Tus tareas</div>`;
     if(!hayPend){html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;}
