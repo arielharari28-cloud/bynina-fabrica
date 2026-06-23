@@ -994,7 +994,10 @@ function mostrarCapasReales(id){
 async function confirmarCortadoConCapas(id){
   const c=window._cortes.find(x=>x.id===id);
   if(!c||!c.capasColores)return;
-  // Validate all inputs filled
+  // Validate avios complete
+  const aviosInc=(c.aviosList||[]).filter(a=>!a.nombre||!a.proveedor);
+  if(c.llevaAvios!==false&&aviosInc.length){alert('Completá el tipo y proveedor de todos los avíos antes de marcar como cortado');return;}
+  // Validate all capas inputs filled
   const capasReales=[];
   let valido=true;
   c.capasColores.forEach((col,ci)=>{
@@ -1028,6 +1031,10 @@ function renderNahuel(){renderListaUnificada('nahuel-lista-unificada',false);}
 async function toggleCortadoUnificado(tipo,id,estabaHecho){
   if(tipo==='m'){
     const m=window._muestras.find(x=>x.id===id);if(!m)return;
+    if(!estabaHecho){
+      const aviosInc=(m.aviosList||[]).filter(a=>!a.nombre||!a.proveedor);
+      if(m.llevaAvios!==false&&aviosInc.length){alert('Completá el tipo y proveedor de todos los avíos antes de marcar como cortado');return;}
+    }
     if(!m.checks)m.checks={};
     if(estabaHecho){
       m.checks.corte=false;delete m.fechaCortado;
@@ -1040,6 +1047,10 @@ async function toggleCortadoUnificado(tipo,id,estabaHecho){
     await window._saveDoc('muestras',m);
   } else {
     const c=window._cortes.find(x=>x.id===id);if(!c)return;
+    if(!estabaHecho){
+      const aviosInc=(c.aviosList||[]).filter(a=>!a.nombre||!a.proveedor);
+      if(c.llevaAvios!==false&&aviosInc.length){alert('Completá el tipo y proveedor de todos los avíos antes de marcar como cortado');return;}
+    }
     if(estabaHecho){
       c.estado='pendiente';delete c.fechaCortado;
     } else {
@@ -1644,8 +1655,12 @@ function renderAviosList(contId,avios){
   if(!avios.length){cont.innerHTML='<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin avíos cargados.</div>';return;}
   cont.innerHTML=avios.map((a,i)=>{
     const dem=calcDemora(a);
-    return`<div class="avio-card">
-      <div class="avio-card-header"><span class="avio-nombre">${a.nombre}</span><button class="avio-del" onclick="removeAvio('${isM?'m':'c'}',${i})">×</button></div>
+    const faltaNombre=!a.nombre||!a.nombre.trim();
+    const faltaProv=!a.proveedor||!a.proveedor.trim();
+    const alertHtml=(faltaNombre||faltaProv)?`<div style="background:var(--red-light);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--red);margin-bottom:6px">⚠️ Falta: ${[faltaNombre&&'tipo de avío',faltaProv&&'proveedor'].filter(Boolean).join(' y ')}</div>`:'';
+    return`<div class="avio-card" style="${(faltaNombre||faltaProv)?'border:1.5px solid var(--red);':'' }">
+      <div class="avio-card-header"><span class="avio-nombre">${a.nombre||'Sin nombre'}</span><div style="display:flex;gap:6px"><button class="avio-del" style="font-size:12px;color:var(--blue);background:var(--blue-light);border-radius:6px;padding:2px 8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600" onclick="editarAvio('${isM?'m':'c'}',${i})">✏️</button><button class="avio-del" onclick="removeAvio('${isM?'m':'c'}',${i})">×</button></div></div>
+      ${alertHtml}
       <div class="avio-meta">
         <div class="avio-meta-item"><span class="avio-meta-lbl">Proveedor</span><span class="avio-meta-val">${a.proveedor||'—'}</span></div>
         <div class="avio-meta-item"><span class="avio-meta-lbl">Cantidad</span><span class="avio-meta-val">${a.cantidad||'—'}</span></div>
@@ -1681,7 +1696,33 @@ async function marcarSinAviosC(){
   cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;
   renderDetalleC();
 }
-function abrirModalAvio(target){avioTarget=target;document.getElementById('avio-modal').classList.add('open');['av-nombre','av-proveedor','av-cantidad','av-precio','av-fecha-pedido','av-fecha-entrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('avio-sugerencia-box').classList.remove('show');}
+let avioEditIndex=null,avioEditTarget=null;
+
+function editarAvio(tipo,i){
+  avioEditIndex=i;
+  avioEditTarget=tipo;
+  const item=tipo==='m'?mActiva:cActivo;
+  if(!item)return;
+  const a=item.aviosList[i];
+  if(!a)return;
+  document.getElementById('av-nombre').value=a.nombre||'';
+  actualizarSelectProvAvios();
+  document.getElementById('av-proveedor').value=a.proveedor||'';
+  document.getElementById('av-cantidad').value=a.cantidad||'';
+  document.getElementById('av-precio').value=a.precio||'';
+  document.getElementById('av-fecha-pedido').value=a.fechaPedido||'';
+  document.getElementById('av-fecha-entrega').value=a.fechaEntrega||'';
+  // Change modal title and button
+  document.querySelector('.avio-modal-header span').textContent='Editar avío';
+  document.querySelector('#avio-modal .btn.btn-primary').textContent='Guardar cambios';
+  document.getElementById('avio-modal').classList.add('open');
+}
+
+function abrirModalAvio(target){
+  avioEditIndex=null;avioEditTarget=null;
+  document.querySelector('.avio-modal-header span').textContent='Agregar avío';
+  document.querySelector('#avio-modal .btn.btn-primary').textContent='Guardar avío';
+  avioTarget=target;avioTarget=target;document.getElementById('avio-modal').classList.add('open');['av-nombre','av-proveedor','av-cantidad','av-precio','av-fecha-pedido','av-fecha-entrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('avio-sugerencia-box').classList.remove('show');}
 function cerrarModalAvio(e){if(e.target===document.getElementById('avio-modal'))cerrarModalAvioBtn();}
 function cerrarModalAvioBtn(){document.getElementById('avio-modal').classList.remove('open');}
 function buscarSugerencia(){
@@ -1694,8 +1735,28 @@ function buscarSugerencia(){
 }
 function usarSugerencia(p){document.getElementById('av-proveedor').value=p;}
 async function guardarAvio(){
-  const nombre=document.getElementById('av-nombre').value.trim();if(!nombre){alert('Escribí el avío');return;}
-  const avio={nombre,proveedor:document.getElementById('av-proveedor').value.trim(),cantidad:document.getElementById('av-cantidad').value.trim(),precio:document.getElementById('av-precio').value.trim(),fechaPedido:document.getElementById('av-fecha-pedido').value,fechaEntrega:document.getElementById('av-fecha-entrega').value,llegada:null};
+  const nombre=document.getElementById('av-nombre').value.trim();
+  const proveedor=document.getElementById('av-proveedor').value.trim();
+  if(!nombre){alert('Escribí el tipo de avío');return;}
+  if(!proveedor){alert('Seleccioná o escribí el proveedor');return;}
+  const avio={nombre,proveedor,cantidad:document.getElementById('av-cantidad').value.trim(),precio:document.getElementById('av-precio').value.trim(),fechaPedido:document.getElementById('av-fecha-pedido').value,fechaEntrega:document.getElementById('av-fecha-entrega').value};
+
+  // EDIT MODE
+  if(avioEditIndex!==null){
+    const item=avioEditTarget==='m'?mActiva:cActivo;
+    if(!item)return;
+    const old=item.aviosList[avioEditIndex];
+    avio.llegada=old.llegada||null; // preserve llegada
+    item.aviosList[avioEditIndex]=avio;
+    const col=avioEditTarget==='m'?'muestras':'cortes';
+    await window._saveDoc(col,item);
+    cerrarModalAvioBtn();
+    renderAviosList(avioEditTarget==='m'?'detm-avios-list':'detc-avios-list',item.aviosList);
+    return;
+  }
+
+  // CREATE MODE
+  avio.llegada=null;
   if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
   else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();renderAviosList('detc-avios-list',cActivo.aviosList);}
 }
@@ -1867,32 +1928,79 @@ function renderHome(){
   let html=`<div style="padding:4px 0 20px"><div class="home-greeting">${saludo}, ${u} 👋</div><div class="home-sub">${new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}</div>`;
 
   if(u==='Peque'){
-    // avíos sin cargar en muestras aprobadas (excluir las que explícitamente no llevan)
-    const sinAvios=window._muestras.filter(m=>m.estado==='aprobada'&&!(m.aviosList&&m.aviosList.length)&&m.avios!=='Sin avíos');
-    // fichas sin cargar en muestras aprobadas O en cortes activos
-    const sinFichaM=window._muestras.filter(m=>m.estado==='aprobada'&&!(m.despacho&&m.despacho.fichaLink)&&!m.fichaLink).map(m=>({nombre:m.nombre,tipo:'muestra'}));
-    const sinFichaC=window._cortes.filter(c=>['pendiente','cortado','listo','en_taller'].includes(c.estado)&&!c.fichaLink).map(c=>({nombre:`Corte #${c.nroCorte||'—'} — ${c.nombre}`,tipo:'corte'}));
-    const sinFicha=[...sinFichaM,...sinFichaC];
-    // avíos pedidos pero sin llegar — en muestras Y cortes
-    const aviosPendM=window._muestras.flatMap(m=>(m.aviosList||[]).filter(a=>!a.llegada).map(a=>({...a,origen:m.nombre})));
-    const aviosPendC=window._cortes.flatMap(c=>(c.aviosList||[]).filter(a=>!a.llegada).map(a=>({...a,origen:`Corte #${c.nroCorte||'—'}`})));
-    const aviosPend=[...aviosPendM,...aviosPendC];
-    // cortes que llevan avíos pero no tienen ninguno cargado todavía
+    // ── Avíos pendientes por proveedor ──────────────────────────────────────
+    const aviosPendAll=[];
+    [...window._muestras,...window._cortes].forEach(item=>{
+      const nro=item.nroCorte?'Corte #'+item.nroCorte:(item.codigo?'Cód. '+item.codigo:item.nombre);
+      (item.aviosList||[]).filter(a=>!a.llegada).forEach(a=>{
+        aviosPendAll.push({nombre:a.nombre,proveedor:a.proveedor||'Sin proveedor',origen:nro,originName:item.nombre});
+      });
+    });
+    // Group by proveedor
+    const byProv={};
+    aviosPendAll.forEach(a=>{if(!byProv[a.proveedor])byProv[a.proveedor]=[];byProv[a.proveedor].push(a);});
+
+    // ── Avíos a pedir (cortes que llevan avíos sin ninguno cargado) ──────────
     const cortesNecesitanAvios=window._cortes.filter(c=>c.llevaAvios&&!(c.aviosList&&c.aviosList.length)&&['pendiente','cortado'].includes(c.estado));
-    const cortesSinCapas=window._cortes.filter(c=>c.estado==='pendiente'&&!c.capasListas);
-    const cortesConCapas=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
-    const hayPend=sinAvios.length||sinFicha.length||aviosPend.length||cortesSinCapas.length||cortesNecesitanAvios.length;
+
+    // ── Fichas sin cargar ────────────────────────────────────────────────────
+    const sinFichaM=window._muestras.filter(m=>m.estado==='aprobada'&&!(m.despacho&&m.despacho.fichaLink)&&!m.fichaLink);
+    const sinFichaC=window._cortes.filter(c=>['pendiente','cortado','listo','en_taller'].includes(c.estado)&&!c.fichaLink);
+    const sinFicha=[...sinFichaM.map(m=>m.nombre),...sinFichaC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre)];
+
     html+=`<div class="home-section"><div class="home-section-title">Tus tareas</div>`;
-    if(!hayPend){html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;}
-    if(sinFicha.length)html+=`<div class="home-task urgent"><div class="home-task-icon">📄</div><div class="home-task-body"><div class="home-task-title">Fichas sin cargar en Drive</div>${sinFicha.map(f=>`<div class="home-task-sub" style="margin-top:3px">• ${f.nombre}</div>`).join('')}<span class="home-task-badge" style="background:var(--red-light);color:var(--red);margin-top:6px">${sinFicha.length} pendientes</span></div></div>`;
-    if(sinAvios.length)html+=`<div class="home-task urgent" onclick="setNav('muestras')"><div class="home-task-icon">📦</div><div class="home-task-body"><div class="home-task-title">Avíos sin cargar</div>${sinAvios.map(m=>`<div class="home-task-sub" style="margin-top:3px">• ${m.nombre}</div>`).join('')}<span class="home-task-badge" style="background:var(--red-light);color:var(--red);margin-top:6px">${sinAvios.length} muestras</span></div></div>`;
-    if(aviosPend.length)html+=`<div class="home-task warn"><div class="home-task-icon">⏳</div><div class="home-task-body"><div class="home-task-title">Avíos pedidos sin llegar</div>${aviosPend.map(a=>`<div class="home-task-sub" style="margin-top:3px">• ${a.nombre} (${a.origen})</div>`).join('')}<span class="home-task-badge" style="background:var(--yellow-light);color:var(--yellow);margin-top:6px">${aviosPend.length} avíos</span></div></div>`;
-    if(cortesNecesitanAvios.length)html+=`<div class="home-task urgent" onclick="setNav('cortes')"><div class="home-task-icon">🚨</div><div class="home-task-body"><div class="home-task-title">Hay que pedir avíos</div>${cortesNecesitanAvios.map(c=>`<div class="home-task-sub" style="margin-top:3px">• Corte #${c.nroCorte||'—'} — ${c.nombre}${c.aviosDesc?' ('+c.aviosDesc+')':''}</div>`).join('')}<span class="home-task-badge" style="background:var(--red-light);color:var(--red);margin-top:6px">${cortesNecesitanAvios.length} cortes</span></div></div>`;
-    if(cortesSinCapas.length)html+=`<div class="home-task warn" onclick="setNav('cortes')"><div class="home-task-icon">⚠️</div><div class="home-task-body"><div class="home-task-title">Esperando capas de Ariel</div>${cortesSinCapas.map(c=>`<div class="home-task-sub" style="margin-top:3px">• Corte #${c.nroCorte||'—'} — ${c.nombre}</div>`).join('')}<span class="home-task-badge" style="background:var(--yellow-light);color:var(--yellow);margin-top:6px">${cortesSinCapas.length} cortes</span></div></div>`;
-    if(cortesConCapas.length)html+=`<div class="home-task ok" onclick="setNav('cortes')"><div class="home-task-icon">✂️</div><div class="home-task-body"><div class="home-task-title">Listos para enviar a Nahuel</div>${cortesConCapas.map(c=>`<div class="home-task-sub" style="margin-top:3px">• Corte #${c.nroCorte||'—'} — ${c.nombre}</div>`).join('')}<span class="home-task-badge" style="background:var(--green-light);color:var(--green);margin-top:6px">${cortesConCapas.length} cortes</span></div></div>`;
+
+    // Avíos por proveedor
+    if(Object.keys(byProv).length){
+      html+=`<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">📦 Avíos pendientes de llegar</div>
+        ${Object.entries(byProv).map(([prov,avios])=>`
+          <div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
+              <span style="font-size:13px;font-weight:700">${prov}</span>
+              <span style="font-size:11px;font-weight:600;background:var(--yellow-light);color:var(--yellow);padding:2px 8px;border-radius:20px">${avios.length} avío${avios.length>1?'s':''}</span>
+            </div>
+            <div style="padding:8px 14px">
+              ${avios.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:13px">${a.nombre}</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text3);font-family:'DM Mono',monospace">${a.origen}</span>
+              </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`;
+    }
+
+    // Avíos a pedir
+    if(cortesNecesitanAvios.length){
+      html+=`<div class="home-task urgent" onclick="setNav('cortes')">
+        <div class="home-task-icon">🚨</div>
+        <div class="home-task-body">
+          <div class="home-task-title">Hay que pedir avíos</div>
+          ${cortesNecesitanAvios.map(c=>`<div class="home-task-sub" style="margin-top:3px">• Corte #${c.nroCorte||'—'} — ${c.nombre}${c.aviosDesc?' ('+c.aviosDesc+')':''}</div>`).join('')}
+          <span class="home-task-badge" style="background:var(--red-light);color:var(--red);margin-top:6px">${cortesNecesitanAvios.length} corte${cortesNecesitanAvios.length>1?'s':''}</span>
+        </div>
+      </div>`;
+    }
+
+    // Fichas sin cargar
+    if(sinFicha.length){
+      html+=`<div class="home-task urgent">
+        <div class="home-task-icon">📄</div>
+        <div class="home-task-body">
+          <div class="home-task-title">Fichas sin cargar en Drive</div>
+          ${sinFicha.map(f=>`<div class="home-task-sub" style="margin-top:3px">• ${f}</div>`).join('')}
+          <span class="home-task-badge" style="background:var(--red-light);color:var(--red);margin-top:6px">${sinFicha.length} pendiente${sinFicha.length>1?'s':''}</span>
+        </div>
+      </div>`;
+    }
+
+    if(!aviosPendAll.length&&!cortesNecesitanAvios.length&&!sinFicha.length){
+      html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;
+    }
+
     html+=`</div>`;
   }
-  else if(u==='Nahuel'){
+    else if(u==='Nahuel'){
     const mPend=window._muestras.filter(m=>!(m.checks&&m.checks.corte));
     const cPend=window._cortes.filter(c=>c.estado==='pendiente');
     html+=`<div class="home-section"><div class="home-section-title">Tus tareas</div>`;
