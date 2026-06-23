@@ -39,6 +39,29 @@
 .prio-save-btn:disabled{background:var(--border);color:var(--text3);cursor:not-allowed}
 .prio-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;margin-top:4px}
 
+
+.work-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;border-left:4px solid var(--border)}
+.work-card.completado{border-left-color:var(--green);opacity:.75}
+.work-card.en-proceso{border-left-color:var(--accent)}
+.work-card-top{display:flex;gap:10px;padding:12px 14px;align-items:flex-start}
+.work-card-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.work-card-num.done{background:var(--green)}
+.work-card-thumb{width:48px;height:48px;border-radius:7px;background:var(--surface2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px}
+.work-card-thumb img{width:100%;height:100%;object-fit:cover}
+.work-card-body{flex:1;min-width:0}
+.work-card-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:2px}
+.work-card-nombre{font-size:14px;font-weight:700;margin-bottom:3px}
+.work-card-meta{font-size:12px;color:var(--text2);margin-bottom:6px}
+.work-card-fechas{display:flex;gap:8px;flex-wrap:wrap}
+.work-fecha-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--text2)}
+.work-fecha-pill.cortado{background:var(--green-light);color:var(--green)}
+.work-card-actions{padding:0 14px 12px;display:flex;gap:8px}
+.work-btn-marcar{flex:1;padding:10px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.work-btn-marcar.done{background:var(--green-light);color:var(--green);border:1.5px solid var(--green)}
+.work-tipo-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.work-tipo-m{background:var(--accent-light);color:var(--accent)}
+.work-tipo-c{background:var(--blue-light);color:var(--blue)}
+
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
 .sync-bar{position:fixed;top:0;left:0;right:0;z-index:999;padding:6px 16px;font-size:12px;font-weight:600;text-align:center;display:none}
 .sync-bar.syncing{display:block;background:#1C1916;color:#fff}
@@ -366,16 +389,13 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
   </nav>
   <main>
     <div id="view-nahuel" style="display:none">
-      <div class="view-header"><h2>Tus pendientes 📐</h2><p>Muestras y cortes que tenés que cortar</p></div>
-      <div class="view-tabs">
-        <button class="view-tab active" onclick="setNahuelTab('muestras',this)">🧵 Muestras</button>
-        <button class="view-tab" onclick="setNahuelTab('cortes',this)">✂️ Cortes</button>
-      </div>
-      <div id="nahuel-muestras-lista"></div>
-      <div id="nahuel-cortes-lista" style="display:none"></div>
+      <div class="view-header"><h2>Lista de trabajo 📐</h2><p>En el orden que fijó Ariel</p></div>
+      <div id="nahuel-lista-unificada"></div>
     </div>
     <div id="view-emir" style="display:none">
-      <div class="view-header"><h2>Despacho 🚚</h2><p>Lo que puede salir y lo que está bloqueado</p></div>
+      <div class="view-header" style="text-align:left;padding:4px 0 12px"><h2 style="font-size:17px">Lista de trabajo 🚚</h2><p style="font-size:13px;color:var(--text2)">En el orden que fijó Ariel</p></div>
+      <div id="emir-lista-unificada" style="margin-bottom:24px"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">Despacho</div>
       <div id="emir-lista"></div>
     </div>
     <div id="view-home" style="display:none"></div>
@@ -839,45 +859,99 @@ function abrirNueva(){if(navActivo==='cortes')abrirNuevoCorte();else abrirNuevaM
 
 // NAHUEL
 function setNahuelTab(t,btn){nahuelTab=t;document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('nahuel-muestras-lista').style.display=t==='muestras'?'block':'none';document.getElementById('nahuel-cortes-lista').style.display=t==='cortes'?'block':'none';}
-function renderNahuel(){renderNahuelMuestras();renderNahuelCortes();}
-function renderNahuelMuestras(){
-  const pend=sortByPrio(window._muestras.filter(m=>m.estado==='pendiente_corte'),'m');
-  const cont=document.getElementById('nahuel-muestras-lista');
-  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Todo cortado</h3><p>No hay muestras pendientes.</p></div>';return;}
-  cont.innerHTML=pend.map(m=>`<div class="corte-card">
-    <div class="corte-foto" onclick="abrirDetalleM('${m.id}')">${m.foto?`<img src="${m.foto}" alt="">`:'🧵'}</div>
-    <div class="corte-info">
-      <div class="corte-codigo">${m.tipologia||''}${m.codigo?' · '+m.codigo:''}</div>
-      <div class="corte-nombre">${m.nombre}</div>
-      <div class="corte-detalle">
-        ${m.tela?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Tela</span><span>${m.tela}</span></div>`:''}
-        ${m.sentido?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Sentido</span><span>${m.sentido}</span></div>`:''}
-        ${m.construccion?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Construcción</span><span>${m.construccion}</span></div>`:''}
-        ${m.avios?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Avíos</span><span>${m.avios}</span></div>`:''}
-      </div>
-      <button class="btn-accion btn-blue" onclick="marcarCorteMById('${m.id}')">✂️ Marcar muestra cortada</button>
-    </div>
-  </div>`).join('');
+function buildListaUnificada(){
+  // All items sorted by priority
+  const muestras=window._muestras.map(m=>({
+    id:m.id,tipo:'m',nombre:m.nombre,
+    codigo:m.codigo||'',tipologia:m.tipologia||'',tela:m.tela||'',
+    estado:m.estado,foto:m.foto||null,
+    fecha:m.fecha||null,
+    fechaCortado:m.fechaCortado||null,
+    cortado:!!(m.checks&&m.checks.corte)
+  }));
+  const cortes=window._cortes.map(c=>({
+    id:c.id,tipo:'c',nombre:c.nombre,
+    codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',
+    nro:c.nroCorte||'',tipologia:c.tipologia||'',tela:c.tela||'',
+    estado:c.estado,foto:c.foto||null,
+    fecha:c.fecha||null,
+    fechaCortado:c.fechaCortado||null,
+    cortado:c.estado==='cortado'||c.estado==='listo'||c.estado==='en_taller'||c.estado==='entregado'
+  }));
+  const all=[...muestras,...cortes];
+  const orden=window._prioridades||[];
+  if(!orden.length)return all;
+  const ordered=[];const remaining=[...all];
+  orden.forEach(key=>{const idx=remaining.findIndex(x=>x.tipo+'_'+x.id===key);if(idx>=0){ordered.push(remaining[idx]);remaining.splice(idx,1);}});
+  return[...ordered,...remaining];
 }
-function renderNahuelCortes(){
-  const pend=sortByPrio(window._cortes.filter(c=>(c.estado==='pendiente'&&c.capasListas)||(c.estado==='listo'&&c.capasListas)),'c');
-  const cont=document.getElementById('nahuel-cortes-lista');
-  if(!pend.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Sin cortes pendientes</h3><p>No hay cortes para cortar ahora.</p></div>';return;}
-  cont.innerHTML=pend.map(c=>`<div class="corte-card">
-    <div class="corte-foto" onclick="abrirDetalleC('${c.id}')">${c.foto?`<img src="${c.foto}" alt="">`:'✂️'}</div>
-    <div class="corte-info">
-      <div class="corte-codigo">Corte #${c.nroCorte||'—'}${c.codigos&&c.codigos.length?' · '+c.codigos.join(', '):''}</div>
-      <div class="corte-nombre">${c.nombre}</div>
-      <div class="corte-detalle">
-        ${c.tela?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Tela</span><span>${c.tela}</span></div>`:''}
-        ${c.sentido?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Sentido</span><span>${c.sentido}</span></div>`:''}
-        ${c.construccion?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Construcción</span><span>${c.construccion}</span></div>`:''}
-        ${c.fichaLink?`<div class="corte-detalle-row"><span class="corte-detalle-lbl">Ficha</span><a href="${c.fichaLink}" target="_blank" style="color:var(--blue)">Ver en Drive →</a></div>`:''}
+
+function renderListaUnificada(contId,soloVer){
+  const items=buildListaUnificada();
+  const cont=document.getElementById(contId);
+  if(!items.length){cont.innerHTML='<div class="empty"><div class="empty-icon">✅</div><h3>Sin items</h3><p>Cuando haya muestras o cortes aparecen acá.</p></div>';return;}
+  cont.innerHTML=items.map((item,i)=>{
+    const[ecls,elbl]=item.tipo==='m'?estadoDisplay(item.estado):estadoDisplayC(item.estado);
+    const codStr=item.tipo==='c'?(item.nro?'#'+item.nro:'')+(item.codigo?' · '+item.codigo:''):(item.codigo||'');
+    const meta=[item.tipologia,item.tela].filter(Boolean).join(' · ');
+    const fechaPedido=item.fecha?'📅 Pedido: '+fechaCorta(item.fecha):'';
+    const fechaCort=item.fechaCortado?'✂️ Cortado: '+fechaCorta(item.fechaCortado):'';
+    const done=item.cortado;
+    const btnHtml=soloVer?'':`<div class="work-card-actions">
+      <button class="work-btn-marcar${done?' done':''}" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',${done})">
+        ${done?'✅ Cortado':'✂️ Marcar como cortado'}
+      </button>
+    </div>`;
+    return`<div class="work-card${done?' completado':' en-proceso'}">
+      <div class="work-card-top">
+        <span class="work-card-num${done?' done':''}">${i+1}</span>
+        <div class="work-card-thumb">${item.foto?`<img src="${item.foto}">`:(item.tipo==='m'?'🧵':'✂️')}</div>
+        <div class="work-card-body">
+          <div class="work-card-code"><span class="work-tipo-pill ${item.tipo==='m'?'work-tipo-m':'work-tipo-c'}">${item.tipo==='m'?'Muestra':'Corte'}</span>${codStr?' '+codStr:''}</div>
+          <div class="work-card-nombre">${item.nombre}</div>
+          ${meta?`<div class="work-card-meta">${meta}</div>`:''}
+          <div class="work-card-fechas">
+            ${fechaPedido?`<span class="work-fecha-pill">${fechaPedido}</span>`:''}
+            ${fechaCort?`<span class="work-fecha-pill cortado">${fechaCort}</span>`:''}
+            <span class="badge ${ecls}" style="font-size:9px;padding:2px 6px">${elbl}</span>
+          </div>
+        </div>
       </div>
-      ${!c.capasListas?'<div style="background:var(--yellow-light);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:var(--yellow);margin-bottom:8px">⚠️ Esperando que Ariel cargue las capas y talles</div>':''}<button class="btn-accion btn-blue" onclick="marcarCorteCById('${c.id}')" ${!c.capasListas?'disabled style="opacity:.4;cursor:not-allowed"':''}>✂️ Marcar corte realizado</button>
-    </div>
-  </div>`).join('');
+      ${btnHtml}
+    </div>`;
+  }).join('');
 }
+
+function renderNahuel(){renderListaUnificada('nahuel-lista-unificada',false);}
+
+async function toggleCortadoUnificado(tipo,id,estabaHecho){
+  if(tipo==='m'){
+    const m=window._muestras.find(x=>x.id===id);if(!m)return;
+    if(!m.checks)m.checks={};
+    if(estabaHecho){
+      m.checks.corte=false;delete m.fechaCortado;
+      if(m.estado==='taller_ready')m.estado='pendiente_corte';
+    } else {
+      m.checks.corte=true;m.estado='taller_ready';m.fechaCortado=new Date().toISOString();
+    }
+    if(!m.updates)m.updates=[];
+    m.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:estabaHecho?'Desmarcado como cortado':'✂️ Muestra cortada → Lista para taller',foto:null,fecha:new Date().toISOString()});
+    await window._saveDoc('muestras',m);
+  } else {
+    const c=window._cortes.find(x=>x.id===id);if(!c)return;
+    if(estabaHecho){
+      c.estado='pendiente';delete c.fechaCortado;
+    } else {
+      c.estado='cortado';c.fechaCortado=new Date().toISOString();
+    }
+    if(!c.updates)c.updates=[];
+    c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:estabaHecho?'Desmarcado como cortado':'✂️ Corte realizado',fotos:[],fecha:new Date().toISOString()});
+    await window._saveDoc('cortes',c);
+  }
+  renderListaUnificada('nahuel-lista-unificada',false);
+  renderListaUnificada('emir-lista-unificada',true);
+}
+
 async function marcarCorteMById(id){const m=window._muestras.find(x=>x.id===id);if(!m)return;if(!m.checks)m.checks={};m.checks.corte=true;m.estado='taller_ready';if(!m.updates)m.updates=[];m.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Muestra cortada ✓ → Lista para taller',foto:null,fecha:new Date().toISOString()});await window._saveDoc('muestras',m);}
 async function marcarCorteCById(id){
   const c=window._cortes.find(x=>x.id===id);if(!c)return;
@@ -904,7 +978,8 @@ async function marcarCorteM(){if(!mActiva)return;await marcarCorteMById(mActiva.
 async function marcarCorteC(){if(!cActivo)return;await marcarCorteCById(cActivo.id);cActivo=window._cortes.find(x=>x.id===cActivo.id);if(cActivo)renderDetalleC();}
 
 // EMIR
-function renderEmir(){
+function renderEmir(){renderListaUnificada('emir-lista-unificada',true);_renderEmirDespacho();}
+function _renderEmirDespacho(){
   const cont=document.getElementById('emir-lista');
   const _emirM=sortByPrio(window._muestras.filter(m=>m.estado==='aprobada'),'m').map(m=>({...m,_tipo:'muestra'}));
   const _emirC=sortByPrio(window._cortes.filter(c=>['cortado','listo','en_taller'].includes(c.estado)),'c').map(c=>({...c,_tipo:'corte'}));
@@ -1567,8 +1642,8 @@ function limpiarNotifs(){const n=getNotifs().map(x=>({...x,leida:true}));saveNot
 // ── HOME / RESUMEN ──
 function setNav(v){
   navActivo=v;
-  ['nahuel','emir','home','dashboard','muestras','cortes','tipologias'].forEach(n=>{const el=document.getElementById('view-'+n);if(el)el.style.display=n===v?'block':'none';});
-  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['home','dashboard','muestras','cortes','tipologias'][i]===v));
+  ['nahuel','emir','home','dashboard','muestras','cortes','tipologias','prioridades'].forEach(n=>{const el=document.getElementById('view-'+n);if(el)el.style.display=n===v?'block':'none';});
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['home','dashboard','muestras','cortes','tipologias','prioridades'][i]===v));
   const canCreateMustra=['Peque','Ariel','Stef'].includes(currentUser);
   const canCreateCorte=['Peque','Ariel'].includes(currentUser);
   const showFab=(v==='muestras'&&canCreateMustra)||(v==='cortes'&&canCreateCorte);
