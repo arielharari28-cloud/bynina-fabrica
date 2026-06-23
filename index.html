@@ -594,6 +594,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="section-block-title">🧵 Avíos</div>
       <div id="detm-avios-list"></div>
       <button class="add-avio-btn" onclick="abrirModalAvio('muestra')">+ Agregar avío</button>
+      <button class="add-avio-btn" id="btn-sin-avios-m" onclick="marcarSinAviosM()" style="border-color:var(--green);color:var(--green);margin-top:4px">✓ Sin avíos</button>
     </div>
     <div id="detm-nahuel-sec" style="display:none;padding:14px 18px;border-bottom:1px solid var(--border)">
       <button class="btn-accion btn-blue" id="detm-btn-corte" onclick="marcarCorteM()">✂️ Marcar muestra cortada</button>
@@ -637,6 +638,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="section-block-title">🧵 Avíos</div>
       <div id="detc-avios-list"></div>
       <button class="add-avio-btn" onclick="abrirModalAvio('corte')">+ Agregar avío</button>
+      <button class="add-avio-btn" id="btn-sin-avios-c" onclick="marcarSinAviosC()" style="border-color:var(--green);color:var(--green);margin-top:4px">✓ Sin avíos</button>
     </div>
     <div class="section-block" id="detc-capas-sec" style="display:none;padding:14px 18px;border-bottom:1px solid var(--border)"></div>
     <div id="detc-nahuel-sec" style="display:none;padding:14px 18px;border-bottom:1px solid var(--border)">
@@ -766,12 +768,12 @@ window._uploadFoto=async(dataUrl)=>{
 onSnapshot(collection(db,'muestras'),(snap)=>{
   window._muestras=[];snap.forEach(d=>window._muestras.push({id:d.id,...d.data()}));
   window._muestras.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  if(window._appReady)window.renderAll();
+  if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'cortes'),(snap)=>{
   window._cortes=[];snap.forEach(d=>window._cortes.push({id:d.id,...d.data()}));
   window._cortes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  if(window._appReady)window.renderAll();
+  if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'tipologias'),(snap)=>{
   window._tipologias=[];snap.forEach(d=>window._tipologias.push({id:d.id,...d.data()}));
@@ -818,6 +820,18 @@ onSnapshot(doc(db,'config','prioridades'),(snap)=>{
   if(window._appReady&&navActivo==='prioridades')renderPrioridades();
   if(window._appReady)renderAll();
 });
+window._autoAgregarPrioTimeout=null;
+window.autoAgregarNuevosAPrioridades=async()=>{
+  // Debounce to avoid multiple calls on load
+  clearTimeout(window._autoAgregarPrioTimeout);
+  window._autoAgregarPrioTimeout=setTimeout(async()=>{
+    const orden=[...(window._prioridades||[])];
+    let changed=false;
+    window._muestras.forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    window._cortes.forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    if(changed){try{await window._savePrioridades(orden);window._prioridades=orden;}catch(e){}}
+  },800);
+};
 window._savePrioridades=async(orden)=>{
   const{doc:docFn,setDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   await setDoc(docFn(db,'config','prioridades'),{orden});
@@ -850,7 +864,7 @@ function showApp(){
   document.getElementById('screen-app').style.display='block';
   document.getElementById('header-user').textContent=currentUser;
   if(currentUser==='Nahuel'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';setViewRaw('nahuel');renderNahuel();}
-  else if(currentUser==='Emir'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';setViewRaw('emir');renderEmir();}
+  else if(currentUser==='Emir'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';document.getElementById('notif-bell').style.display='block';setViewRaw('emir');renderEmir();}
   else{document.getElementById('main-nav').style.display='flex';if(currentUser==='Ariel'){document.getElementById('notif-bell').style.display='block';renderNotifBadge();const pnav=document.getElementById('nav-prio');if(pnav)pnav.style.display='block';}setNav('home');renderAll();}
 }
 
@@ -919,11 +933,31 @@ function renderListaUnificada(contId,soloVer){
       }
     }
 
-    const btnHtml=soloVer?'':`<div class="work-card-actions">
-      <button class="work-btn-marcar${done?' done':''}" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',${done})">
-        ${done?'✅ Cortado':'✂️ Marcar como cortado'}
-      </button>
-    </div>`;
+    // For cortes with capas, show capas reales inputs before marking
+    let capasInputsHtml='';
+    if(item.tipo==='c'&&!done){
+      const c=window._cortes.find(x=>x.id===item.id);
+      if(c&&c.capasColores&&c.capasColores.length){
+        capasInputsHtml=`<div id="capas-reales-wrap-${item.id}" style="display:none;padding:0 14px 10px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding-top:12px;margin-bottom:8px">Capas reales por color</div>
+          ${c.capasColores.map((col,ci)=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="flex:1;font-size:13px;font-weight:600">${col.color}</span>
+            <span style="font-size:11px;color:var(--text3)">Plan: ${col.capas}</span>
+            <input type="number" id="cr-${item.id}-${ci}" placeholder="${col.capas}" min="0"
+              style="width:70px;padding:7px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;text-align:center"
+              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          </div>`).join('')}
+          <button class="work-btn-marcar" onclick="confirmarCortadoConCapas('${item.id}')" style="margin-top:4px">✂️ Confirmar cortado</button>
+        </div>`;
+      }
+    }
+    const btnHtml=soloVer?'':(done
+      ?`<div class="work-card-actions"><button class="work-btn-marcar done" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',true)">✅ Cortado</button></div>`
+      :(item.tipo==='c'&&window._cortes.find(x=>x.id===item.id)?.capasColores?.length
+        ?`<div class="work-card-actions"><button class="work-btn-marcar" onclick="mostrarCapasReales('${item.id}')">✂️ Marcar como cortado</button></div>`
+        :`<div class="work-card-actions"><button class="work-btn-marcar" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',false)">✂️ Marcar como cortado</button></div>`
+      )
+    );
 
     return`<div class="work-card${done?' completado':' en-proceso'}" id="wcard-${item.tipo}-${item.id}">
       <div class="work-card-top" onclick="toggleWorkDetail('${item.tipo}','${item.id}')" style="cursor:pointer">
@@ -944,9 +978,41 @@ function renderListaUnificada(contId,soloVer){
       <div id="wdetail-${item.tipo}-${item.id}" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border)">
         <div style="padding-top:12px">${detailHtml}</div>
       </div>
+      ${capasInputsHtml}
       ${btnHtml}
     </div>`;
   }).join('');
+}
+
+function mostrarCapasReales(id){
+  const wrap=document.getElementById('capas-reales-wrap-'+id);
+  if(!wrap)return;
+  const visible=wrap.style.display==='block';
+  wrap.style.display=visible?'none':'block';
+}
+
+async function confirmarCortadoConCapas(id){
+  const c=window._cortes.find(x=>x.id===id);
+  if(!c||!c.capasColores)return;
+  // Validate all inputs filled
+  const capasReales=[];
+  let valido=true;
+  c.capasColores.forEach((col,ci)=>{
+    const inp=document.getElementById('cr-'+id+'-'+ci);
+    const val=inp?parseInt(inp.value):NaN;
+    if(isNaN(val)||val<0){valido=false;if(inp)inp.style.borderColor='var(--red)';}
+    else capasReales.push({color:col.color,capas:val,planificadas:col.capas});
+  });
+  if(!valido){alert('Completá las capas reales de todos los colores');return;}
+  c.estado='cortado';
+  c.fechaCortado=new Date().toISOString();
+  c.capasReales=capasReales;
+  if(!c.updates)c.updates=[];
+  const capasTexto=capasReales.map(r=>r.color+': '+r.capas+(r.capas!==r.planificadas?' (plan:'+r.planificadas+')':'')).join(' | ');
+  c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'✂️ Corte realizado | Capas reales: '+capasTexto,fotos:[],fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',c);
+  renderListaUnificada('nahuel-lista-unificada',false);
+  renderListaUnificada('emir-lista-unificada',true);
 }
 
 function toggleWorkDetail(tipo,id){
@@ -1013,7 +1079,30 @@ async function marcarCorteM(){if(!mActiva)return;await marcarCorteMById(mActiva.
 async function marcarCorteC(){if(!cActivo)return;await marcarCorteCById(cActivo.id);cActivo=window._cortes.find(x=>x.id===cActivo.id);if(cActivo)renderDetalleC();}
 
 // EMIR
-function renderEmir(){renderListaUnificada('emir-lista-unificada',true);_renderEmirDespacho();}
+function renderEmir(){
+  renderListaUnificada('emir-lista-unificada',true);
+  _renderEmirDespacho();
+  _checkNuevosParaEmir();
+}
+function _checkNuevosParaEmir(){
+  if(currentUser!=='Emir')return;
+  const vistos=JSON.parse(localStorage.getItem('emir_vistos')||'[]');
+  const actuales=[
+    ...window._muestras.filter(m=>m.estado==='aprobada').map(m=>'m_'+m.id),
+    ...window._cortes.filter(c=>['cortado','listo','en_taller'].includes(c.estado)).map(c=>'c_'+c.id)
+  ];
+  const nuevos=actuales.filter(k=>!vistos.includes(k));
+  const bell=document.getElementById('notif-bell');
+  const badge=document.getElementById('notif-badge');
+  if(bell)bell.style.display='block';
+  if(badge){
+    if(nuevos.length>0){badge.textContent=nuevos.length;badge.style.display='flex';}
+    else{badge.style.display='none';}
+  }
+  // Mark all as seen
+  const merged=[...new Set([...vistos,...actuales])];
+  localStorage.setItem('emir_vistos',JSON.stringify(merged));
+}
 function _renderEmirDespacho(){
   const cont=document.getElementById('emir-lista');
   const _emirM=sortByPrio(window._muestras.filter(m=>m.estado==='aprobada'),'m').map(m=>({...m,_tipo:'muestra'}));
@@ -1036,7 +1125,7 @@ function _renderEmirDespacho(){
     const nro=isM?(d.nroCorte||'—'):(item.nroCorte||'—');
     const cods=isM?(d.codigos||[]):(item.codigos||[]);
     const chks=item.emirChecks||{};
-    const allChk=chks.corte&&chks.ficha&&chks.muestra&&chks.avios;
+    const allChk=chks.talle&&chks.ficha&&chks.muestra&&chks.avios;
     const eid=item.id,ecol=isM?'muestras':'cortes';
     if(desp){return `<div class="emir-card"><div class="emir-card-top"><div class="emir-thumb">${item.foto?`<img src="${item.foto}">`:'📦'}</div><div class="emir-info"><div class="emir-nombre">${item.nombre}</div><div class="emir-sub">Corte #${nro}${cods.length?' · '+cods.join(', '):''}</div><span class="badge est-entregado"><span class="badge-dot"></span>Despachado</span></div></div><div class="emir-done-tag">✅ ${desp.tallerista} — ${desp.fecha}</div></div>`;}
     return `<div class="emir-card">
@@ -1044,7 +1133,8 @@ function _renderEmirDespacho(){
       ${!puede?`<div class="emir-blocked"><div class="emir-blocked-title">⛔ Bloqueado</div>${bloq.map(b=>`<div class="emir-blocked-item">• ${b.txt} — reclamar a <strong>${b.quien}</strong></div>`).join('')}</div>`:''}
       ${fichaLink?`<div class="emir-ficha-link"><a href="${fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Ver ficha en Drive →</a></div>`:''}
       <div class="emir-checks"><div class="emir-checks-title">Checklist de despacho</div>
-        <div class="emir-check-row"><div class="emir-check-left"><span>✂️</span> Corte completo</div><button class="emir-check-toggle${chks.corte?' done':''}" onclick="toggleEmirCheck('${eid}','${ecol}','corte')">${chks.corte?'✓ Listo':'Marcar'}</button></div>
+        <div class="emir-check-row"><div class="emir-check-left"><span>🏭</span> Taller con talle disponible</div><button class="emir-check-toggle${chks.talle?' done':''}" onclick="toggleEmirCheck('${eid}','${ecol}','talle')">${chks.talle?'✓ Confirmado':'Verificar'}</button></div>
+        
         <div class="emir-check-row"><div class="emir-check-left"><span>📄</span> Ficha impresa</div><button class="emir-check-toggle${chks.ficha?' done':''}" onclick="toggleEmirCheck('${eid}','${ecol}','ficha')">${chks.ficha?'✓ Listo':'Marcar'}</button></div>
         <div class="emir-check-row"><div class="emir-check-left"><span>👗</span> Muestra física</div><button class="emir-check-toggle${chks.muestra?' done':''}" onclick="toggleEmirCheck('${eid}','${ecol}','muestra')">${chks.muestra?'✓ Listo':'Marcar'}</button></div>
         <div class="emir-check-row"><div class="emir-check-left"><span>📦</span> Avíos completos</div><button class="emir-check-toggle${chks.avios?' done':''}" onclick="toggleEmirCheck('${eid}','${ecol}','avios')">${chks.avios?'✓ Listo':'Marcar'}</button></div>
@@ -1166,6 +1256,12 @@ function actualizarSelectTelas(){const opts='<option value="">—</option>'+((wi
 function actualizarSelectColores(){const opts='<option value="">—</option>'+((window._colores||[]).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join(''));['n-color','em-color'].forEach(id=>{const sel=document.getElementById(id);if(sel)sel.innerHTML=opts;});}
 function actualizarSelectProvTela(){const opts='<option value="">—</option>'+((window._provTela||[]).map(p=>`<option value="${p.nombre}">${p.nombre}</option>`).join(''));['n-proveedor-tela','c-proveedor-tela','em-proveedor-tela','ec-proveedor-tela'].forEach(id=>{const sel=document.getElementById(id);if(sel)sel.innerHTML=opts;});}
 function actualizarSelectProvAvios(){const opts='<option value="">—</option>'+((window._provAvios||[]).map(p=>`<option value="${p.nombre}">${p.nombre}</option>`).join(''));const sel=document.getElementById('av-proveedor');if(sel)sel.innerHTML=opts;}
+
+async function agregarAlFinalPrioridades(tipo,id){
+  const key=tipo+'_'+id;
+  const orden=[...(window._prioridades||[])];
+  if(!orden.includes(key)){orden.push(key);try{await window._savePrioridades(orden);window._prioridades=orden;}catch(e){}}
+}
 
 // NUEVA MUESTRA
 function abrirNuevaMuestra(){
@@ -1312,6 +1408,19 @@ function renderDetalleM(){
   document.getElementById('detm-nahuel-sec').style.display=isN?'block':'none';
   document.getElementById('detm-despacho-sec').style.display=canDespachoM&&isAprobada?'block':'none';
   document.getElementById('detm-avios-sec').style.display=canDespachoM&&isAprobada?'block':'none';
+  const sinAviosBtn=document.getElementById('btn-sin-avios-m');
+  if(sinAviosBtn){
+    if(mActiva.llevaAvios===false||mActiva.avios==='Sin avíos'){
+      sinAviosBtn.textContent='✓ Sin avíos (marcado)';
+      sinAviosBtn.style.background='var(--green-light)';
+      sinAviosBtn.style.cursor='default';
+      sinAviosBtn.onclick=null;
+    } else {
+      sinAviosBtn.textContent='✓ Sin avíos';
+      sinAviosBtn.style.background='';
+      sinAviosBtn.onclick=()=>marcarSinAviosM();
+    }
+  }
   if(canChecks){
     const ch=m.checks||{};
     ['corte','avios','ficha'].forEach(k=>{const btn=document.getElementById('mchk-'+k);btn.textContent=ch[k]?'✓ Listo':'Pendiente';btn.classList.toggle('done',!!ch[k]);});
@@ -1552,6 +1661,26 @@ function renderAviosList(contId,avios){
 function fmtFecha(iso){if(!iso)return'—';const d=new Date(iso+'T00:00:00');return d.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});}
 async function removeAvio(tipo,i){if(tipo==='m'){if(!mActiva)return;mActiva.aviosList.splice(i,1);await window._saveDoc('muestras',mActiva);renderAviosList('detm-avios-list',mActiva.aviosList);}else{if(!cActivo)return;cActivo.aviosList.splice(i,1);await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
 async function toggleAvioLlegada(tipo,i){if(tipo==='m'){if(!mActiva)return;const a=mActiva.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');await window._saveDoc('muestras',mActiva);renderAviosList('detm-avios-list',mActiva.aviosList);}else{if(!cActivo)return;const a=cActivo.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
+async function marcarSinAviosM(){
+  if(!mActiva)return;
+  mActiva.llevaAvios=false;
+  mActiva.avios='Sin avíos';
+  if(!mActiva.updates)mActiva.updates=[];
+  mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',texto:'✓ Sin avíos',foto:null,fecha:new Date().toISOString()});
+  await window._saveDoc('muestras',mActiva);
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;
+  renderDetalleM();
+}
+async function marcarSinAviosC(){
+  if(!cActivo)return;
+  cActivo.llevaAvios=false;
+  cActivo.aviosDesc='Sin avíos';
+  if(!cActivo.updates)cActivo.updates=[];
+  cActivo.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',texto:'✓ Sin avíos',foto:null,fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',cActivo);
+  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;
+  renderDetalleC();
+}
 function abrirModalAvio(target){avioTarget=target;document.getElementById('avio-modal').classList.add('open');['av-nombre','av-proveedor','av-cantidad','av-precio','av-fecha-pedido','av-fecha-entrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('avio-sugerencia-box').classList.remove('show');}
 function cerrarModalAvio(e){if(e.target===document.getElementById('avio-modal'))cerrarModalAvioBtn();}
 function cerrarModalAvioBtn(){document.getElementById('avio-modal').classList.remove('open');}
@@ -1608,24 +1737,61 @@ function renderPrioridades(){
     const[ecls,elbl]=item.tipo==='m'?estadoDisplay(item.estado):estadoDisplayC(item.estado);
     const codStr=item.tipo==='c'?(item.nro?'#'+item.nro:'')+(item.codigo?' · '+item.codigo:''):(item.codigo||'');
     const meta=[item.tipologia,item.tela].filter(Boolean).join(' · ');
+
+    // Build expandable detail
+    let detailHtml='';
+    if(item.tipo==='c'){
+      const c=window._cortes.find(x=>x.id===item.id);
+      if(c){
+        const capas=c.capasColores&&c.capasColores.length
+          ?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Capas por color</div>'+c.capasColores.map(col=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--blue-light);border-radius:8px;padding:8px 12px;margin-bottom:5px"><span style="font-size:13px;font-weight:700;color:var(--blue)">${col.color}</span><span style="font-size:12px;font-weight:600;color:var(--blue);background:var(--surface);border-radius:20px;padding:2px 10px">${col.capas} capas</span></div>`).join('')
+          :'';
+        const ficha=c.fichaLink?`<a href="${c.fichaLink}" target="_blank" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;margin-bottom:8px">📄 Ver ficha →</a>`:'';
+        const rows=[c.tela&&['Tela',c.tela],c.sentido&&['Sentido',c.sentido],c.construccion&&['Construcción',c.construccion]].filter(Boolean).map(([l,v])=>`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:4px"><span style="font-weight:600;color:var(--text2);min-width:80px;flex-shrink:0">${l}</span><span>${v}</span></div>`).join('');
+        detailHtml=ficha+(rows?`<div style="margin-bottom:8px">${rows}</div>`:'')+capas;
+      }
+    } else {
+      const m=window._muestras.find(x=>x.id===item.id);
+      if(m){
+        const rows=[m.tela&&['Tela',m.tela],m.sentido&&['Sentido',m.sentido],m.color&&['Color',m.color],m.construccion&&['Construcción',m.construccion],m.avios&&m.avios!=='Sin avíos'&&['Avíos',m.avios]].filter(Boolean);
+        detailHtml=rows.map(([l,v])=>`<div style="display:flex;gap:6px;font-size:12px;margin-bottom:4px"><span style="font-weight:600;color:var(--text2);min-width:80px;flex-shrink:0">${l}</span><span>${v}</span></div>`).join('');
+        if(!detailHtml)detailHtml='<div style="font-size:12px;color:var(--text3)">Sin información adicional</div>';
+      }
+    }
+
     return`<div class="prio-item" data-key="${item.tipo}_${item.id}" draggable="true"
       ondragstart="prioDragStart(event,this)" ondragover="prioDragOver(event,this)" ondragleave="prioDragLeave(this)" ondrop="prioDrop(event,this)" ondragend="prioDragEnd()"
-      ontouchstart="prioTouchStart(event,this)" ontouchmove="prioTouchMove(event)" ontouchend="prioTouchEnd(event)">
-      <span class="prio-handle">⠿</span>
-      <span class="prio-num">${i+1}</span>
-      <div class="prio-thumb">${item.foto?`<img src="${item.foto}">`:(item.tipo==='m'?'🧵':'✂️')}</div>
-      <div class="prio-body">
-        <div class="prio-code">${codStr}</div>
-        <div class="prio-title">${item.nombre}</div>
-        <div class="prio-meta">${meta?meta+'  ·  ':''}<span class="badge ${ecls}" style="font-size:9px;padding:1px 5px">${elbl}</span></div>
+      ontouchstart="prioTouchStart(event,this)" ontouchmove="prioTouchMove(event)" ontouchend="prioTouchEnd(event)"
+      style="flex-direction:column;align-items:stretch;padding:0;cursor:default">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:grab" ondragstart="prioDragStart(event,this.closest('.prio-item'))">
+        <span class="prio-handle" style="touch-action:none">⠿</span>
+        <span class="prio-num">${i+1}</span>
+        <div class="prio-thumb">${item.foto?`<img src="${item.foto}">`:(item.tipo==='m'?'🧵':'✂️')}</div>
+        <div class="prio-body" onclick="togglePrioDetail('${item.tipo}','${item.id}')" style="cursor:pointer">
+          <div class="prio-code">${codStr}</div>
+          <div class="prio-title">${item.nombre}</div>
+          ${meta?`<div class="prio-meta">${meta} · <span class="badge ${ecls}" style="font-size:9px;padding:1px 5px">${elbl}</span></div>`:`<div class="prio-meta"><span class="badge ${ecls}" style="font-size:9px;padding:1px 5px">${elbl}</span></div>`}
+        </div>
+        <span class="prio-tipo-badge ${item.tipo==='m'?'prio-tipo-m':'prio-tipo-c'}" onclick="togglePrioDetail('${item.tipo}','${item.id}')" style="cursor:pointer">${item.tipo==='m'?'Muestra':'Corte'}</span>
+        <span id="pchev-${item.tipo}-${item.id}" style="color:var(--text3);font-size:18px;flex-shrink:0;transition:transform .2s;cursor:pointer" onclick="togglePrioDetail('${item.tipo}','${item.id}')">›</span>
       </div>
-      <span class="prio-tipo-badge ${item.tipo==='m'?'prio-tipo-m':'prio-tipo-c'}">${item.tipo==='m'?'Muestra':'Corte'}</span>
+      <div id="pdetail-${item.tipo}-${item.id}" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border)">
+        <div style="padding-top:10px">${detailHtml||'<div style="font-size:12px;color:var(--text3)">Sin información adicional</div>'}</div>
+      </div>
     </div>`;
   }).join('');
   prioOrderDirty=false;
   document.getElementById('prio-save-btn').disabled=true;
 }
 
+function togglePrioDetail(tipo,id){
+  const det=document.getElementById('pdetail-'+tipo+'-'+id);
+  const chev=document.getElementById('pchev-'+tipo+'-'+id);
+  if(!det)return;
+  const open=det.style.display==='none';
+  det.style.display=open?'block':'none';
+  if(chev)chev.style.transform=open?'rotate(90deg)':'rotate(0deg)';
+}
 function prioDragStart(e,el){prioDragSrc=el;e.dataTransfer.effectAllowed='move';setTimeout(()=>el.classList.add('dragging'),0);}
 function prioDragOver(e,el){e.preventDefault();e.dataTransfer.dropEffect='move';if(el!==prioDragSrc){document.querySelectorAll('.prio-item').forEach(i=>i.classList.remove('drag-over'));el.classList.add('drag-over');}}
 function prioDragLeave(el){el.classList.remove('drag-over');}
