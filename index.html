@@ -381,7 +381,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
   <header><h1>By Nina</h1><div class="header-right"><button class="notif-bell" id="notif-bell" onclick="abrirNotifs()" style="display:none">🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span></button><span class="header-user" id="header-user"></span><button class="header-logout" onclick="logout()">Cambiar</button></div></header>
   <nav id="main-nav" style="display:none">
     <button class="nav-btn" onclick="setNav('home')">🏠 Inicio</button>
-    <button class="nav-btn active" onclick="setNav('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn" onclick="setNav('dashboard')" style="display:none">📊 Dashboard</button>
     <button class="nav-btn" onclick="setNav('muestras')">🧵 Muestras</button>
     <button class="nav-btn" onclick="setNav('cortes')">✂️ Cortes</button>
     <button class="nav-btn" onclick="setNav('prioridades')" id="nav-prio" style="display:none">🔢 Prio</button>
@@ -840,7 +840,7 @@ setTimeout(()=>{document.getElementById('loading-overlay').style.display='none';
 </script>
 <script>
 window._muestras=[];window._cortes=[];window._tipologias=[];window._provTela=[];window._provAvios=[];window._telas=[];window._colores=[];window._prioridades=[];window._appReady=false;
-let currentUser=null,navActivo='dashboard',dashTab='muestras',grupoM='tipologia',grupoC='tipologia';
+let currentUser=null,navActivo='home',dashTab='muestras',grupoM='tipologia',grupoC='tipologia';
 let filtroM='todas',filtroC='todas',nahuelTab='muestras';
 let mActiva=null,cActivo=null;
 let updateQuienM=null,updateTipoM='nota',updateFotasDataM=[],nuevasFotasData=[];
@@ -865,7 +865,8 @@ function showApp(){
   document.getElementById('header-user').textContent=currentUser;
   if(currentUser==='Nahuel'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';setViewRaw('nahuel');renderNahuel();}
   else if(currentUser==='Emir'){document.getElementById('main-nav').style.display='none';document.getElementById('fab-nueva').style.display='none';document.getElementById('notif-bell').style.display='block';setViewRaw('emir');renderEmir();}
-  else{document.getElementById('main-nav').style.display='flex';if(currentUser==='Ariel'){document.getElementById('notif-bell').style.display='block';renderNotifBadge();const pnav=document.getElementById('nav-prio');if(pnav)pnav.style.display='block';}setNav('home');renderAll();}
+  else{document.getElementById('main-nav').style.display='flex';if(currentUser==='Ariel'){document.getElementById('notif-bell').style.display='block';renderNotifBadge();const pnav=document.getElementById('nav-prio');if(pnav)pnav.style.display='block';}
+    if(currentUser==='Peque'){const pnav=document.getElementById('nav-prio');if(pnav)pnav.style.display='block';}setNav('home');renderAll();}
 }
 
 function setViewRaw(v){['nahuel','emir','home','dashboard','muestras','cortes','tipologias','prioridades'].forEach(n=>{const el=document.getElementById('view-'+n);if(el)el.style.display=n===v?'block':'none';});}
@@ -1842,7 +1843,13 @@ function renderPrioridades(){
     </div>`;
   }).join('');
   prioOrderDirty=false;
-  document.getElementById('prio-save-btn').disabled=true;
+  const saveBtn=document.getElementById('prio-save-btn');
+  if(saveBtn)saveBtn.style.display=currentUser==='Ariel'?'flex':'none';
+  // Hide drag handles for non-Ariel
+  if(currentUser!=='Ariel'){
+    document.querySelectorAll('.prio-handle').forEach(h=>h.style.visibility='hidden');
+    document.querySelectorAll('.prio-item').forEach(el=>{el.draggable=false;el.ontouchstart=null;el.ontouchmove=null;el.ontouchend=null;el.ondragstart=null;});
+  }
 }
 
 function togglePrioDetail(tipo,id){
