@@ -2334,9 +2334,8 @@ function renderHome(){
       </div>`;
     }
 
-    // Muestras en camino al taller (todas las que no son aprobada/taller/prueba/revision)
-    const estadosPendTaller=['molderia','pendiente_corte','esp_avios','taller_ready','pendiente'];
-    const muestrasParaTaller=window._muestras.filter(m=>estadosPendTaller.includes(m.estado)||(!['aprobada','taller','prueba','revision'].includes(m.estado)));
+    // Muestras en camino al taller (excluye las que ya están en taller, para probar/aprobar, o aprobadas)
+    const muestrasParaTaller=window._muestras.filter(m=>!['taller','prueba','revision','aprobada'].includes(m.estado));
     if(muestrasParaTaller.length){
       html+=`<div style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">🚀 Muestras para sacar a taller</div>`;
