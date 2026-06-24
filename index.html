@@ -105,6 +105,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .est-listo{background:var(--yellow-light);color:var(--yellow)}
 .est-en-taller{background:var(--purple-light);color:var(--purple)}
 .est-entregado{background:var(--green-light);color:var(--green)}
+.est-encimado{background:#E8F0FE;color:#1A56DB}
 .dash-tabs{display:flex;gap:6px;margin-bottom:16px}
 .dash-tab{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;text-align:center;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
 .dash-tab.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
@@ -269,6 +270,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .estado-opt.active-listo{border-color:var(--yellow);background:var(--yellow-light);color:var(--yellow);font-weight:700}
 .estado-opt.active-en_taller{border-color:var(--purple);background:var(--purple-light);color:var(--purple);font-weight:700}
 .estado-opt.active-entregado{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
+.estado-opt.active-encimado{border-color:#1A56DB;background:#E8F0FE;color:#1A56DB;font-weight:700}
 .avio-card{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px}
 .avio-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .avio-nombre{font-size:13px;font-weight:600}
@@ -389,8 +391,13 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
   </nav>
   <main>
     <div id="view-nahuel" style="display:none">
-      <div class="view-header"><h2>Lista de trabajo 📐</h2><p>En el orden que fijó Ariel</p></div>
+      <div class="view-header" style="text-align:left;padding:4px 0 12px"><h2 style="font-size:17px">Lista de trabajo 📐</h2></div>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="view-tab active" id="ntab-pendiente" onclick="setNahuelTab2('pendiente',this)">⏳ Pendiente</button>
+        <button class="view-tab" id="ntab-realizado" onclick="setNahuelTab2('realizado',this)">✅ Realizado</button>
+      </div>
       <div id="nahuel-lista-unificada"></div>
+      <div id="nahuel-lista-realizado" style="display:none"></div>
     </div>
     <div id="view-emir" style="display:none">
       <div class="view-header" style="text-align:left;padding:4px 0 12px"><h2 style="font-size:17px">Lista de trabajo 🚚</h2><p style="font-size:13px;color:var(--text2)">En el orden que fijó Ariel</p></div>
@@ -457,6 +464,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="filtros">
         <button class="filtro active" onclick="setFiltroC('todas',this)">Todos</button>
         <button class="filtro" onclick="setFiltroC('pendiente',this)">Pendiente</button>
+        <button class="filtro" onclick="setFiltroC('encimado',this)">Encimado</button>
         <button class="filtro" onclick="setFiltroC('cortado',this)">Cortado</button>
         <button class="filtro" onclick="setFiltroC('listo',this)">Listo p/ taller</button>
         <button class="filtro" onclick="setFiltroC('en_taller',this)">En taller</button>
@@ -465,7 +473,12 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div id="lista-cortes"></div>
     </div>
     <div id="view-prioridades" style="display:none">
-      <div style="padding:4px 0 16px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px">Orden de prioridad</div><div style="font-size:13px;color:var(--text2)">Arrastrá para reordenar — Nahuel y Emir ven este orden</div></div>
+      <div style="padding:4px 0 12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px">Orden de prioridad</div><div style="font-size:13px;color:var(--text2)">Arrastrá para reordenar — Nahuel y Emir ven este orden</div></div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px" id="prio-filtros">
+        <button class="filtro active" id="pfiltro-todos" onclick="setPrioFiltro('todos',this)">Todos</button>
+        <button class="filtro" id="pfiltro-muestras" onclick="setPrioFiltro('muestras',this)">🧵 Muestras</button>
+        <button class="filtro" id="pfiltro-cortes" onclick="setPrioFiltro('cortes',this)">✂️ Cortes</button>
+      </div>
       <div class="prio-list" id="prio-list"></div>
       <button class="prio-save-btn" id="prio-save-btn" onclick="guardarPrioridades()" disabled>Guardar orden</button>
     </div>
@@ -623,6 +636,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="section-block-title">Estado del corte</div>
       <div class="estado-list">
         <button class="estado-opt" onclick="cambiarEstadoC('pendiente')"><span>⏳</span> Pendiente de corte</button>
+        <button class="estado-opt" onclick="cambiarEstadoC('encimado')"><span>📐</span> Encimado</button>
         <button class="estado-opt" onclick="cambiarEstadoC('cortado')"><span>✂️</span> Cortado</button>
         <button class="estado-opt" onclick="cambiarEstadoC('listo')"><span>🟢</span> Listo para taller</button>
         <button class="estado-opt" onclick="cambiarEstadoC('en_taller')"><span>🧵</span> En taller</button>
@@ -727,21 +741,29 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
     <div class="sheet-handle"></div>
     <div class="sheet-header"><span class="sheet-title">✂️ Capas y talles</span><button class="sheet-close" onclick="cerrarCapasBtn()">✕</button></div>
     <div class="sheet-body">
-      <div class="section-block-title" style="margin-bottom:8px">1. Curva de talles del corte</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Cuántas prendas hay por talle en este corte</div>
-      <div id="capas-talles-list"></div>
-      <div class="codigo-add-row" style="margin-bottom:16px">
-        <input type="text" id="capas-talle-input" placeholder="Talle (S, M, L...)" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
-        <input type="number" id="capas-talle-cant" placeholder="Prendas" style="width:80px;padding:9px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none" min="1">
-        <button class="codigo-add-btn" onclick="addTalleCapas()">+ Talle</button>
+      <!-- Talles row -->
+      <div style="margin-bottom:10px">
+        <div class="section-block-title" style="margin-bottom:8px">Talles</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="capas-talles-chips"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="capas-talle-input" placeholder="S, M, L, XL..." style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+          <button class="codigo-add-btn" onclick="addTalleCapas()">+ Talle</button>
+        </div>
       </div>
-      <div class="section-block-title" style="margin-bottom:8px">2. Capas por color</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Ponés el color y las capas — se multiplica automáticamente por la curva</div>
-      <div id="capas-colores-list"></div>
-      <div class="codigo-add-row" style="margin-bottom:8px">
-        <input type="text" id="capas-color-input" placeholder="Color..." list="capas-colores-datalist" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none"><datalist id="capas-colores-datalist"></datalist>
-        <input type="number" id="capas-color-cant" placeholder="Capas" style="width:80px;padding:9px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none" min="1">
-        <button class="codigo-add-btn" onclick="addColorCapas()">+ Color</button>
+      <!-- Colores row -->
+      <div style="margin-bottom:12px">
+        <div class="section-block-title" style="margin-bottom:8px">Colores</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="capas-colores-chips"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="capas-color-input" placeholder="Negro, Blanco..." list="capas-colores-datalist" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none"><datalist id="capas-colores-datalist"></datalist>
+          <button class="codigo-add-btn" onclick="addColorCapas()">+ Color</button>
+        </div>
+      </div>
+      <!-- Tabla capas -->
+      <div class="section-block-title" style="margin-bottom:8px">Capas por color × talle</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Completá cuántas capas de cada color en cada talle</div>
+      <div style="overflow-x:auto;margin-bottom:12px">
+        <table id="capas-tabla" style="width:100%;border-collapse:collapse;font-size:13px"></table>
       </div>
       <div id="capas-preview" style="display:none;background:var(--blue-light);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--blue)"></div>
       <button class="btn btn-primary" onclick="guardarCapas()">Guardar y notificar a Nahuel</button>
@@ -952,13 +974,32 @@ function renderListaUnificada(contId,soloVer){
         </div>`;
       }
     }
-    const btnHtml=soloVer?'':(done
-      ?`<div class="work-card-actions"><button class="work-btn-marcar done" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',true)">✅ Cortado</button></div>`
-      :(item.tipo==='c'&&window._cortes.find(x=>x.id===item.id)?.capasColores?.length
-        ?`<div class="work-card-actions"><button class="work-btn-marcar" onclick="mostrarCapasReales('${item.id}')">✂️ Marcar como cortado</button></div>`
-        :`<div class="work-card-actions"><button class="work-btn-marcar" onclick="toggleCortadoUnificado('${item.tipo}','${item.id}',false)">✂️ Marcar como cortado</button></div>`
-      )
-    );
+    let btnHtml='';
+    if(!soloVer){
+      if(item.tipo==='m'){
+        btnHtml=done
+          ?`<div class="work-card-actions"><button class="work-btn-marcar done" onclick="toggleCortadoUnificado('m','${item.id}',true)">✅ Cortada</button></div>`
+          :`<div class="work-card-actions"><button class="work-btn-marcar" onclick="toggleCortadoUnificado('m','${item.id}',false)">✂️ Marcar muestra cortada</button></div>`;
+      } else {
+        const corteItem=window._cortes.find(x=>x.id===item.id);
+        const estadoC=corteItem?corteItem.estado:'pendiente';
+        if(estadoC==='entregado'||estadoC==='en_taller'||estadoC==='listo'){
+          btnHtml=`<div class="work-card-actions"><button class="work-btn-marcar done" disabled>✅ Cortado</button></div>`;
+        } else if(estadoC==='cortado'){
+          btnHtml=`<div class="work-card-actions"><button class="work-btn-marcar done" onclick="desmarcarEncimadoC('${item.id}')">✅ Cortado — desmarcar</button></div>`;
+        } else if(estadoC==='encimado'){
+          btnHtml=`<div class="work-card-actions" style="gap:6px">
+            <button class="work-btn-marcar done" style="background:var(--blue-light);color:#1A56DB;border:1.5px solid #1A56DB" onclick="desmarcarEncimadoC('${item.id}')">📐 Encimado ↩</button>
+            ${corteItem?.capasColores?.length
+              ?`<button class="work-btn-marcar" onclick="mostrarCapasReales('${item.id}')">✂️ Cortado (Enzo)</button>`
+              :`<button class="work-btn-marcar" onclick="marcarCortadoDesdeEncimado('${item.id}')">✂️ Cortado (Enzo)</button>`}
+          </div>`;
+        } else {
+          // pendiente
+          btnHtml=`<div class="work-card-actions"><button class="work-btn-marcar" style="background:#1A56DB" onclick="marcarEncimadoC('${item.id}')">📐 Marcar encimado</button></div>`;
+        }
+      }
+    }
 
     return`<div class="work-card${done?' completado':' en-proceso'}" id="wcard-${item.tipo}-${item.id}">
       <div class="work-card-top" onclick="toggleWorkDetail('${item.tipo}','${item.id}')" style="cursor:pointer">
@@ -1027,8 +1068,105 @@ function toggleWorkDetail(tipo,id){
   det.style.display=open?'block':'none';
   if(chev)chev.style.transform=open?'rotate(90deg)':'';
 }
-function renderNahuel(){renderListaUnificada('nahuel-lista-unificada',false);}
+let nahuelTab2='pendiente';
+function setNahuelTab2(tab,btn){
+  nahuelTab2=tab;
+  document.querySelectorAll('#view-nahuel .view-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('nahuel-lista-unificada').style.display=tab==='pendiente'?'block':'none';
+  document.getElementById('nahuel-lista-realizado').style.display=tab==='realizado'?'block':'none';
+  if(tab==='realizado')renderNahuelRealizado();
+}
+function renderNahuelRealizado(){
+  const cont=document.getElementById('nahuel-lista-realizado');
+  // Collect completed items
+  const realizados=[];
+  window._muestras.forEach(m=>{
+    if(m.checks&&m.checks.corte&&m.fechaCortado){
+      realizados.push({tipo:'m',nombre:m.nombre,fecha:m.fechaCortado,codigo:m.codigo||'',total:null});
+    }
+  });
+  window._cortes.forEach(c=>{
+    if(['cortado','listo','en_taller','entregado'].includes(c.estado)&&c.fechaCortado){
+      // Total prendas = sum of capasReales * talles, or capasColores * talles
+      let total=0;
+      const talles=c.capasTalles||[];
+      const totalPorTalle=talles.reduce((s,t)=>s+t.cantidad,0);
+      if(c.capasReales&&c.capasReales.length){
+        total=c.capasReales.reduce((s,r)=>s+r.capas*totalPorTalle,0);
+      } else if(c.capasColores&&c.capasColores.length&&totalPorTalle){
+        total=c.capasColores.reduce((s,col)=>s+col.capas*totalPorTalle,0);
+      }
+      realizados.push({tipo:'c',nombre:c.nombre,fecha:c.fechaCortado,nro:c.nroCorte||'',total:total||null});
+    }
+  });
+  if(!realizados.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">📋</div><h3>Sin realizados</h3><p>Acá van a aparecer los cortes y muestras completados.</p></div>';
+    return;
+  }
+  // Group by day
+  const byDay={};
+  realizados.forEach(r=>{
+    const d=new Date(r.fecha);
+    const key=d.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+    if(!byDay[key])byDay[key]=[];
+    byDay[key].push(r);
+  });
+  // Sort days desc
+  const days=Object.entries(byDay).sort((a,b)=>new Date(b[1][0].fecha)-new Date(a[1][0].fecha));
+  cont.innerHTML=days.map(([day,items])=>`
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--border)">${day}</div>
+      ${items.map(item=>`
+        <div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${item.tipo==='m'?'var(--accent-light)':'var(--blue-light)'};color:${item.tipo==='m'?'var(--accent)':'var(--blue)'}">${item.tipo==='m'?'Muestra':'Corte'}</span>
+            <div>
+              <div style="font-size:13px;font-weight:600">${item.nombre}</div>
+              ${item.nro?`<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">#${item.nro}</div>`:''}
+            </div>
+          </div>
+          ${item.total?`<span style="font-size:13px;font-weight:700;color:var(--blue);background:var(--blue-light);padding:4px 10px;border-radius:20px">${item.total} prendas</span>`:''}
+        </div>`).join('')}
+    </div>`).join('');
+}
+function renderNahuel(){
+  renderListaUnificada('nahuel-lista-unificada',false);
+  if(nahuelTab2==='realizado')renderNahuelRealizado();
+}
 
+async function marcarEncimadoC(id){
+  const c=window._cortes.find(x=>x.id===id);if(!c)return;
+  const aviosInc=(c.aviosList||[]).filter(a=>!a.nombre||!a.proveedor);
+  if(c.llevaAvios!==false&&aviosInc.length){alert('Completá el tipo y proveedor de todos los avíos antes de encimar');return;}
+  c.estado='encimado';
+  c.fechaEncimado=new Date().toISOString();
+  if(!c.updates)c.updates=[];
+  c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Pendiente corte → Encimado',fotos:[],fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',c);
+  renderListaUnificada('nahuel-lista-unificada',false);
+  renderListaUnificada('emir-lista-unificada',true);
+}
+async function desmarcarEncimadoC(id){
+  const c=window._cortes.find(x=>x.id===id);if(!c)return;
+  c.estado='pendiente';
+  delete c.fechaEncimado;
+  if(!c.updates)c.updates=[];
+  c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Encimado → Pendiente corte',fotos:[],fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',c);
+  renderListaUnificada('nahuel-lista-unificada',false);
+  renderListaUnificada('emir-lista-unificada',true);
+}
+async function marcarCortadoDesdeEncimado(id){
+  const c=window._cortes.find(x=>x.id===id);if(!c)return;
+  c.estado='cortado';
+  c.fechaCortado=new Date().toISOString();
+  if(!c.updates)c.updates=[];
+  c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'corte',texto:'✂️ Cortado por Enzo',fotos:[],fecha:new Date().toISOString()});
+  await window._saveDoc('cortes',c);
+  renderListaUnificada('nahuel-lista-unificada',false);
+  renderListaUnificada('emir-lista-unificada',true);
+}
 async function toggleCortadoUnificado(tipo,id,estabaHecho){
   if(tipo==='m'){
     const m=window._muestras.find(x=>x.id===id);if(!m)return;
@@ -1139,7 +1277,7 @@ function _renderEmirDespacho(){
     const chks=item.emirChecks||{};
     const allChk=chks.talle&&chks.ficha&&chks.muestra&&chks.avios;
     const eid=item.id,ecol=isM?'muestras':'cortes';
-    if(desp){return `<div class="emir-card"><div class="emir-card-top"><div class="emir-thumb">${item.foto?`<img src="${item.foto}">`:'📦'}</div><div class="emir-info"><div class="emir-nombre">${item.nombre}</div><div class="emir-sub">Corte #${nro}${cods.length?' · '+cods.join(', '):''}</div><span class="badge est-entregado"><span class="badge-dot"></span>Despachado</span></div></div><div class="emir-done-tag">✅ ${desp.tallerista} — ${desp.fecha}</div></div>`;}
+    if(desp){return `<div class="emir-card"><div class="emir-card-top"><div class="emir-thumb">${item.foto?`<img src="${item.foto}">`:'📦'}</div><div class="emir-info"><div class="emir-nombre">${item.nombre}</div><div class="emir-sub">Corte #${nro}${cods.length?' · '+cods.join(', '):''}</div><span class="badge est-entregado"><span class="badge-dot"></span>Despachado</span></div></div><div class="emir-done-tag">✅ ${desp.tallerista} — ${desp.fecha}</div><div style="padding:8px 14px;border-top:1px solid var(--border)"><button onclick="anularDespacho('${eid}','${ecol}')" style="width:100%;padding:9px;border-radius:var(--r);border:1.5px solid var(--red);background:transparent;color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">↩ Anular despacho</button></div></div>`;}
     return `<div class="emir-card">
       <div class="emir-card-top"><div class="emir-thumb" onclick="openLightbox('${item.foto||''}')">${item.foto?`<img src="${item.foto}">`:'📦'}</div><div class="emir-info"><div class="emir-nombre">${item.nombre}</div><div class="emir-sub">Corte #${nro}${cods.length?' · '+cods.join(', '):''}</div><div class="emir-sub">${item.tela||''}</div></div></div>
       ${!puede?`<div class="emir-blocked"><div class="emir-blocked-title">⛔ Bloqueado</div>${bloq.map(b=>`<div class="emir-blocked-item">• ${b.txt} — reclamar a <strong>${b.quien}</strong></div>`).join('')}</div>`:''}
@@ -1158,6 +1296,19 @@ function _renderEmirDespacho(){
       </div>
     </div>`;
   }).join('');
+}
+async function anularDespacho(id,col){
+  if(!confirm('¿Anular este despacho? El corte vuelve a Listo p/ taller.'))return;
+  const arr=col==='muestras'?window._muestras:window._cortes;
+  const item=arr.find(x=>x.id===id);if(!item)return;
+  const desp=item.despachado;
+  item.despachado=null;
+  if(col==='cortes')item.estado='listo';
+  if(!item.updates)item.updates=[];
+  item.updates.push({id:Date.now()+'',autor:'Emir',tipo:'nota',texto:`↩ Despacho anulado — era: ${desp?.tallerista||'?'} ${desp?.fecha||''}`,foto:null,fecha:new Date().toISOString()});
+  addNotif(`Emir anuló el despacho de "${item.nombre}" (era: ${desp?.tallerista||'?'} — ${desp?.fecha||''})`);
+  await window._saveDoc(col,item);
+  renderEmir();
 }
 async function toggleEmirCheck(id,col,key){const arr=col==='muestras'?window._muestras:window._cortes;const item=arr.find(x=>x.id===id);if(!item)return;if(!item.emirChecks)item.emirChecks={};item.emirChecks[key]=!item.emirChecks[key];await window._saveDoc(col,item);renderEmir();}
 async function registrarDespacho(id,col){
@@ -1764,7 +1915,7 @@ async function guardarAvio(){
 
 // HELPERS
 function estadoDisplay(e){return{molderia:['est-molderia','En moldería'],pendiente_corte:['est-pendiente-corte','Pendiente de corte'],taller_ready:['est-taller-ready','Lista p/ taller'],taller:['est-taller','En taller'],prueba:['est-prueba','Probar muestra'],revision:['est-revision','Aprobar muestra'],aprobada:['est-aprobada','Aprobada ✓']}[e]||['est-molderia',e];}
-function estadoDisplayC(e){return{pendiente:['est-pendiente','Pendiente corte'],cortado:['est-cortado','Cortado'],listo:['est-listo','Listo p/ taller'],en_taller:['est-en-taller','En taller'],entregado:['est-entregado','Entregado ✓']}[e]||['est-pendiente',e];}
+function estadoDisplayC(e){return{pendiente:['est-pendiente','Pendiente corte'],encimado:['est-encimado','Encimado'],cortado:['est-cortado','Cortado'],listo:['est-listo','Listo p/ taller'],en_taller:['est-en-taller','En taller'],entregado:['est-entregado','Entregado ✓']}[e]||['est-pendiente',e];}
 function estadoNombreM(e){return estadoDisplay(e)[1];}
 function estadoNombreC(e){return estadoDisplayC(e)[1];}
 function labelTipo(t){return{nota:'📝 Nota',modificacion:'✏️ Mod.',foto:'📷 Foto',corte:'✂️ Corte',estado:'🔄 Estado',aprobacion:'✅ Aprobación',despacho:'🚚 Despacho'}[t]||t;}
@@ -1780,10 +1931,20 @@ function fechaCorta(iso){
 }
 let prioDragSrc=null,prioOrderDirty=false,prioCurrentOrder=[];
 
+let prioFiltroActivo='todos';
+function setPrioFiltro(f,btn){
+  prioFiltroActivo=f;
+  document.querySelectorAll('#prio-filtros .filtro').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPrioridades();
+}
 function buildPrioItems(){
-  const muestras=window._muestras.filter(m=>!['aprobada'].includes(m.estado)).map(m=>({id:m.id,tipo:'m',nombre:m.nombre,codigo:m.codigo||'',nro:'',tela:m.tela||'',tipologia:m.tipologia||'',estado:m.estado,foto:m.foto||null}));
-  const cortes=window._cortes.filter(c=>c.estado!=='entregado').map(c=>({id:c.id,tipo:'c',nombre:c.nombre,codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',nro:c.nroCorte||'',tela:c.tela||'',tipologia:c.tipologia||'',estado:c.estado,foto:c.foto||null}));
-  const all=[...muestras,...cortes];
+  let muestras=window._muestras.filter(m=>!['aprobada'].includes(m.estado)).map(m=>({id:m.id,tipo:'m',nombre:m.nombre,codigo:m.codigo||'',nro:'',tela:m.tela||'',tipologia:m.tipologia||'',estado:m.estado,foto:m.foto||null}));
+  let cortes=window._cortes.filter(c=>c.estado!=='entregado').map(c=>({id:c.id,tipo:'c',nombre:c.nombre,codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',nro:c.nroCorte||'',tela:c.tela||'',tipologia:c.tipologia||'',estado:c.estado,foto:c.foto||null}));
+  let all;
+  if(prioFiltroActivo==='muestras') all=[...muestras];
+  else if(prioFiltroActivo==='cortes') all=[...cortes];
+  else all=[...muestras,...cortes];
   const orden=window._prioridades||[];
   const ordered=[];const remaining=[...all];
   orden.forEach(key=>{const idx=remaining.findIndex(x=>x.tipo+'_'+x.id===key);if(idx>=0){ordered.push(remaining[idx]);remaining.splice(idx,1);}});
@@ -2008,7 +2169,41 @@ function renderHome(){
       </div>`;
     }
 
-    if(!aviosPendAll.length&&!cortesNecesitanAvios.length&&!sinFicha.length){
+    // Muestras listas para sacar a taller
+    const muestrasListasTaller=window._muestras.filter(m=>m.estado==='taller_ready');
+    if(muestrasListasTaller.length){
+      html+=muestrasListasTaller.map(m=>{
+        const aviosList=m.aviosList||[];
+        const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+        const aviosPend=aviosList.filter(a=>!a.llegada);
+        const fichaOk=!!(m.despacho&&m.despacho.fichaLink)||!!m.fichaLink;
+        const aviosOk=sinAvios||(aviosList.length>0&&aviosPend.length===0);
+        const puedeIr=fichaOk&&aviosOk;
+        return`<div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700">🚀 ${m.nombre}</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${puedeIr?'var(--green-light)':'var(--red-light)'};color:${puedeIr?'var(--green)':'var(--red)'}">${puedeIr?'✓ Lista':'⛔ Bloqueada'}</span>
+          </div>
+          <div style="padding:8px 14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:13px">📄 Ficha en Drive</span>
+              <span style="font-size:12px;font-weight:600;color:${fichaOk?'var(--green)':'var(--red)'}">${fichaOk?'✓ Lista':'⚠️ Falta'}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;${aviosList.length?'border-bottom:1px solid var(--border)':''}">
+              <span style="font-size:13px">📦 Avíos</span>
+              <span style="font-size:12px;font-weight:600;color:${aviosOk?'var(--green)':'var(--yellow)'}">${sinAvios?'✓ Sin avíos':aviosList.length===0?'⚠️ Sin cargar':aviosPend.length===0?'✓ Todos llegaron':'⏳ '+aviosPend.length+' pendiente'+(aviosPend.length>1?'s':'')}</span>
+            </div>
+            ${aviosList.length?aviosList.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 4px 12px;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--text2)">› ${a.nombre}${a.proveedor?' ('+a.proveedor+')':''}</span>
+              <span style="font-size:11px;font-weight:600;color:${a.llegada?'var(--green)':'var(--yellow)'}">${a.llegada?'✓':'⏳'}</span>
+            </div>`).join(''):''}
+          </div>
+          ${!puedeIr?`<div style="padding:8px 14px;background:var(--red-light);font-size:12px;font-weight:600;color:var(--red)">⛔ Completá los pendientes antes de sacarla a taller</div>`:''}
+        </div>`;
+      }).join('');
+    }
+
+    if(!aviosPendAll.length&&!cortesNecesitanAvios.length&&!sinFicha.length&&!muestrasListasTaller.length){
       html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;
     }
 
@@ -2237,8 +2432,29 @@ async function borrarUpdateM(uid){
   if(!upd)return;
   if(currentUser!=='Ariel')addNotif(`${currentUser} borró una nota en "${mActiva.nombre}": "${upd.texto||'(foto)'}"`);
   mActiva.updates=mActiva.updates.filter(u=>u.id!==uid);
+  // Revertir según tipo de update borrado
+  if(upd.tipo==='aprobacion'){
+    // Se borró una aprobación — volver a revisión
+    mActiva.estado='revision';
+  } else if(upd.tipo==='prueba'){
+    // Se borró una prueba — volver a taller
+    mActiva.estado='taller';
+  } else if(upd.tipo==='estado'){
+    const match=upd.texto&&upd.texto.match(/^(.+) → (.+)$/);
+    if(match){
+      const nombrePrev=match[1].trim();
+      const mapaEstados={'En moldería':'molderia','Pendiente de corte':'pendiente_corte','Lista p/ taller':'taller_ready','En taller':'taller','Probar muestra':'prueba','Aprobar muestra':'revision','Aprobada ✓':'aprobada'};
+      const estadoPrev=mapaEstados[nombrePrev];
+      if(estadoPrev)mActiva.estado=estadoPrev;
+    }
+  } else if(upd.tipo==='corte'){
+    // Nahuel marcó muestra como cortada — desmarcar
+    if(mActiva.checks)mActiva.checks.corte=false;
+    delete mActiva.fechaCortado;
+    if(mActiva.estado==='taller_ready')mActiva.estado='pendiente_corte';
+  }
   await window._saveDoc('muestras',mActiva);
-  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderTimelineM();
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();renderTimelineM();
 }
 async function borrarUpdateC(uid){
   if(!cActivo)return;
@@ -2246,8 +2462,26 @@ async function borrarUpdateC(uid){
   if(!upd)return;
   if(currentUser!=='Ariel')addNotif(`${currentUser} borró una nota en "${cActivo.nombre}": "${upd.texto||'(foto)'}"`);
   cActivo.updates=cActivo.updates.filter(u=>u.id!==uid);
+  // Revertir según tipo de update borrado
+  if(upd.tipo==='despacho'){
+    cActivo.despachado=null;
+    cActivo.estado='listo';
+  } else if(upd.tipo==='corte'){
+    // Nahuel marcó como cortado — desmarcar
+    cActivo.estado='pendiente';
+    delete cActivo.fechaCortado;
+    delete cActivo.capasReales;
+  } else if(upd.tipo==='estado'){
+    const match=upd.texto&&upd.texto.match(/^(.+) → (.+)$/);
+    if(match){
+      const nombrePrev=match[1].trim();
+      const mapaEstados={'Pendiente corte':'pendiente','Cortado':'cortado','Listo p/ taller':'listo','En taller':'en_taller','Entregado ✓':'entregado'};
+      const estadoPrev=mapaEstados[nombrePrev];
+      if(estadoPrev)cActivo.estado=estadoPrev;
+    }
+  }
   await window._saveDoc('cortes',cActivo);
-  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderTimelineC();
+  cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();renderTimelineC();
 }
 
 // ── EDICIÓN INLINE ARIEL ──
@@ -2344,19 +2578,31 @@ async function guardarInlineC(){
 }
 
 // ── CAPAS Y TALLES ──
-let capasCorteId=null,capasTalles=[],capasColores=[];
+let capasCorteId=null,capasTalles=[],capasColores=[],capasTablaData={};
+
 function abrirCapas(id){
   capasCorteId=id;
   const c=window._cortes.find(x=>x.id===id);
   capasTalles=c&&c.capasTalles?JSON.parse(JSON.stringify(c.capasTalles)):[];
-  capasColores=c&&c.capasColores?JSON.parse(JSON.stringify(c.capasColores)):[];
-  renderCapasTalles();
-  renderCapasColores();
-  // populate colores datalist
+  // Convert old capasColores format to new tablaData
+  capasColores=c&&c.capasColores?c.capasColores.map(x=>x.color):[];
+  capasTablaData={};
+  if(c&&c.capasTabla){
+    capasTablaData=JSON.parse(JSON.stringify(c.capasTabla));
+  } else if(c&&c.capasColores&&c.capasTalles){
+    // migrate old format: each color had one capas value applied to all talles
+    c.capasColores.forEach(col=>{
+      c.capasTalles.forEach(t=>{
+        if(!capasTablaData[col.color])capasTablaData[col.color]={};
+        capasTablaData[col.color][t.talle]=col.capas;
+      });
+    });
+  }
   const dl=document.getElementById('capas-colores-datalist');
   if(dl)dl.innerHTML=(window._colores||[]).map(c=>`<option value="${c.nombre}">`).join('');
-  // clear inputs
-  ['capas-talle-input','capas-talle-cant','capas-color-input','capas-color-cant'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['capas-talle-input','capas-color-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderCapasChips();
+  renderCapasTabla();
   document.getElementById('overlay-capas').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -2365,80 +2611,119 @@ function cerrarCapasBtn(){document.getElementById('overlay-capas').classList.rem
 
 function addTalleCapas(){
   const t=(document.getElementById('capas-talle-input').value.trim()||'').toUpperCase();
-  const cant=parseInt(document.getElementById('capas-talle-cant').value)||0;
-  if(!t||!cant){alert('Completá talle y cantidad');return;}
-  const idx=capasTalles.findIndex(x=>x.talle===t);
-  if(idx>=0)capasTalles[idx].cantidad=cant;else capasTalles.push({talle:t,cantidad:cant});
+  if(!t)return;
+  if(!capasTalles.find(x=>x.talle===t))capasTalles.push({talle:t,cantidad:1});
   document.getElementById('capas-talle-input').value='';
-  document.getElementById('capas-talle-cant').value='';
-  renderCapasTalles();
+  renderCapasChips();renderCapasTabla();
 }
-function removeTalleCapas(i){capasTalles.splice(i,1);renderCapasTalles();}
-function renderCapasTalles(){
-  const cont=document.getElementById('capas-talles-list');
-  if(!cont)return;
-  cont.innerHTML=capasTalles.length
-    ?capasTalles.map((t,i)=>`<div class="codigo-item" style="margin-bottom:6px"><span class="codigo-item-text"><strong>${t.talle}</strong>: ${t.cantidad} prendas</span><button class="codigo-item-del" onclick="removeTalleCapas(${i})">×</button></div>`).join('')
-    :'<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin talles cargados.</div>';
-  // refresh colores to update curve preview
-  if(capasColores.length)renderCapasColores();
+function removeTalleCapas(t){
+  capasTalles=capasTalles.filter(x=>x.talle!==t);
+  // clean tablaData
+  Object.keys(capasTablaData).forEach(col=>{delete capasTablaData[col][t];});
+  renderCapasChips();renderCapasTabla();
 }
-
 function addColorCapas(){
   const col=document.getElementById('capas-color-input').value.trim();
-  const cant=parseInt(document.getElementById('capas-color-cant').value)||0;
-  if(!col||!cant){alert('Completá color y cantidad de capas');return;}
-  const idx=capasColores.findIndex(x=>x.color.toLowerCase()===col.toLowerCase());
-  if(idx>=0)capasColores[idx].capas=cant;else capasColores.push({color:col,capas:cant});
+  if(!col)return;
+  if(!capasColores.includes(col))capasColores.push(col);
   document.getElementById('capas-color-input').value='';
-  document.getElementById('capas-color-cant').value='';
-  renderCapasColores();
+  renderCapasChips();renderCapasTabla();
 }
-function removeColorCapas(i){capasColores.splice(i,1);renderCapasColores();}
-function calcCurva(capas){
-  // multiply capas × prendas per talle
-  return capasTalles.map(t=>({talle:t.talle,total:t.cantidad*capas}));
+function removeColorCapas(col){
+  capasColores=capasColores.filter(c=>c!==col);
+  delete capasTablaData[col];
+  renderCapasChips();renderCapasTabla();
 }
-function renderCapasColores(){
-  const cont=document.getElementById('capas-colores-list');
+function renderCapasChips(){
+  const tc=document.getElementById('capas-talles-chips');
+  if(tc)tc.innerHTML=capasTalles.map(t=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600">${t.talle}<button onclick="removeTalleCapas('${t.talle}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:0">×</button></span>`).join('');
+  const cc=document.getElementById('capas-colores-chips');
+  if(cc)cc.innerHTML=capasColores.map(col=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600">${col}<button onclick="removeColorCapas('${col}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:0">×</button></span>`).join('');
+}
+function renderCapasTabla(){
+  const tabla=document.getElementById('capas-tabla');
   const prev=document.getElementById('capas-preview');
-  if(!cont)return;
-  if(!capasColores.length){
-    cont.innerHTML='<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Sin colores cargados.</div>';
+  if(!tabla)return;
+  if(!capasTalles.length||!capasColores.length){
+    tabla.innerHTML=`<tr><td style="padding:12px;color:var(--text3);font-size:13px">Agregá talles y colores para ver la tabla</td></tr>`;
     if(prev)prev.style.display='none';
     return;
   }
-  cont.innerHTML=capasColores.map((c,i)=>{
-    const curva=capasTalles.length?calcCurva(c.capas):[];
-    const curvaStr=curva.length?curva.map(t=>`${t.talle}:${t.total}`).join(' | '):'(cargá talles primero)';
-    return`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:13px;font-weight:700">${c.color} — ${c.capas} cap${c.capas>1?'as':'a'}</span>
-        <button class="codigo-item-del" onclick="removeColorCapas(${i})">×</button>
-      </div>
-      ${curva.length?`<div style="display:flex;gap:6px;flex-wrap:wrap">${curva.map(t=>`<span style="background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px">${t.talle}: ${t.total}</span>`).join('')}</div>`:`<div style="font-size:11px;color:var(--text3)">Cargá los talles primero para ver el desglose</div>`}
-    </div>`;
-  }).join('');
-  if(prev&&capasTalles.length&&capasColores.length){
-    const totalPrendas=capasTalles.reduce((s,t)=>s+t.cantidad,0);
-    const totalPorColor=capasColores.map(c=>({color:c.color,total:totalPrendas*c.capas}));
-    prev.style.display='block';
-    prev.innerHTML=`<strong>Total a cortar:</strong> ${totalPorColor.map(c=>`${c.color}: ${c.total} prendas`).join(' · ')}`;
-  }
+  // Header row
+  let html=`<thead><tr>
+    <th style="text-align:left;padding:8px 10px;background:var(--surface2);border-radius:6px 0 0 0;font-size:12px;font-weight:700;color:var(--text2)">Color</th>
+    ${capasTalles.map(t=>`<th style="text-align:center;padding:8px 10px;background:var(--surface2);font-size:12px;font-weight:700;color:var(--text2)">${t.talle}</th>`).join('')}
+    <th style="text-align:center;padding:8px 10px;background:var(--surface2);border-radius:0 6px 0 0;font-size:12px;font-weight:700;color:var(--text3)">Total</th>
+  </tr></thead><tbody>`;
+  capasColores.forEach((col,ci)=>{
+    if(!capasTablaData[col])capasTablaData[col]={};
+    let rowTotal=0;
+    const celdas=capasTalles.map(t=>{
+      const val=capasTablaData[col][t.talle]||0;
+      rowTotal+=val*t.cantidad;
+      return`<td style="padding:6px;text-align:center"><input type="number" min="0" value="${capasTablaData[col][t.talle]||''}" placeholder="0"
+        style="width:56px;padding:7px 4px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;outline:none"
+        oninput="capasTablaData['${col}']['${t.talle}']=parseInt(this.value)||0;actualizarTotales()"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></td>`;
+    }).join('');
+    html+=`<tr>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600;white-space:nowrap">${col}</td>
+      ${celdas}
+      <td style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--blue)" id="rowtotal-${ci}">${rowTotal||'—'}</td>
+    </tr>`;
+  });
+  // Footer totals row
+  html+=`<tfoot><tr>
+    <td style="padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3)">Total</td>
+    ${capasTalles.map((t,ti)=>`<td style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--text2)" id="coltotal-${ti}">—</td>`).join('')}
+    <td style="padding:8px 10px;text-align:center;font-size:13px;font-weight:700;color:var(--accent)" id="grandtotal">—</td>
+  </tr></tfoot></tbody>`;
+  tabla.innerHTML=html;
+  actualizarTotales();
+  if(prev)prev.style.display='none';
 }
+function actualizarTotales(){
+  let grand=0;
+  capasColores.forEach((col,ci)=>{
+    let rowT=0;
+    capasTalles.forEach(t=>{rowT+=(capasTablaData[col]&&capasTablaData[col][t.talle]||0)*t.cantidad;});
+    grand+=rowT;
+    const el=document.getElementById('rowtotal-'+ci);
+    if(el)el.textContent=rowT||'—';
+  });
+  capasTalles.forEach((t,ti)=>{
+    let colT=0;
+    capasColores.forEach(col=>{colT+=(capasTablaData[col]&&capasTablaData[col][t.talle]||0)*t.cantidad;});
+    const el=document.getElementById('coltotal-'+ti);
+    if(el)el.textContent=colT||'—';
+  });
+  const gt=document.getElementById('grandtotal');
+  if(gt)gt.textContent=grand?grand+' prendas':'—';
+}
+function calcCurva(capas){return capasTalles.map(t=>({talle:t.talle,total:t.cantidad*capas}));}
+function renderCapasTalles(){}
+function renderCapasColores(){}
+function removeColorCapasOld(i){}
 
 async function guardarCapas(){
   if(!capasCorteId){alert('Error: no hay corte activo');return;}
   if(!capasTalles.length){alert('Cargá al menos un talle');return;}
-  if(!capasColores.length){alert('Cargá al menos un color con capas');return;}
+  if(!capasColores.length){alert('Cargá al menos un color');return;}
   const c=window._cortes.find(x=>x.id===capasCorteId);
   if(!c){alert('Corte no encontrado');return;}
+  // Build capasColores array compatible with old format (for Nahuel work card)
+  const capasColoresArr=capasColores.map(col=>({
+    color:col,
+    capas:capasTalles.reduce((max,t)=>Math.max(max,capasTablaData[col]&&capasTablaData[col][t.talle]||0),0)
+  }));
+  const totalPrendas=capasColores.reduce((s,col)=>s+capasTalles.reduce((ss,t)=>ss+(capasTablaData[col]&&capasTablaData[col][t.talle]||0)*t.cantidad,0),0);
   c.capasTalles=capasTalles;
-  c.capasColores=capasColores;
+  c.capasColores=capasColoresArr;
+  c.capasTabla=capasTablaData;
   c.capasListas=true;
   if(!c.updates)c.updates=[];
   c.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',
-    texto:`✂️ Capas cargadas: ${capasColores.map(x=>x.color+' ('+x.capas+'c)').join(', ')} | Talles: ${capasTalles.map(x=>x.talle+':'+x.cantidad).join(', ')}`,
+    texto:`✂️ Capas cargadas: ${capasColores.join(', ')} | Talles: ${capasTalles.map(x=>x.talle).join(', ')} | Total: ${totalPrendas} prendas`,
     fotos:[],fecha:new Date().toISOString()});
   await window._saveDoc('cortes',c);
   cerrarCapasBtn();
