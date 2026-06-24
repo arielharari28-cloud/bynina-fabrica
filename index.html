@@ -2419,11 +2419,11 @@ function renderHome(){
     ].filter(Boolean);
 
     // NAHUEL
-    const nahuelM=window._muestras.filter(m=>m.estado==='pendiente_corte');
-    const nahuelC=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
+    const nahuelM=window._muestras.filter(m=>['molderia','pendiente_corte','esp_avios'].includes(m.estado));
+    const nahuelC=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado));
     const nahuel_items=[
-      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre),color:'var(--accent)',bg:'var(--accent-light)'},
-      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre),color:'var(--blue)',bg:'var(--blue-light)'},
+      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre+' ['+estadoNombreM(m.estado)+']'),color:'var(--accent)',bg:'var(--accent-light)'},
+      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre+' ['+estadoNombreC(c.estado)+']'),color:'var(--blue)',bg:'var(--blue-light)'},
     ].filter(Boolean);
 
     // EMIR
