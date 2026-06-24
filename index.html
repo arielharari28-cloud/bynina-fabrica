@@ -2335,8 +2335,8 @@ function renderHome(){
     }
 
     // Muestras en camino al taller (todas las que no son aprobada/taller/prueba/revision)
-    const estadosPendTaller=['molderia','pendiente_corte','esp_avios','taller_ready'];
-    const muestrasParaTaller=window._muestras.filter(m=>estadosPendTaller.includes(m.estado));
+    const estadosPendTaller=['molderia','pendiente_corte','esp_avios','taller_ready','pendiente'];
+    const muestrasParaTaller=window._muestras.filter(m=>estadosPendTaller.includes(m.estado)||(!['aprobada','taller','prueba','revision'].includes(m.estado)));
     if(muestrasParaTaller.length){
       html+=`<div style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">🚀 Muestras para sacar a taller</div>`;
@@ -2442,9 +2442,9 @@ function renderHome(){
     const cortesNecesitanAvios=window._cortes.filter(c=>c.llevaAvios&&!(c.aviosList&&c.aviosList.length)&&['pendiente','cortado'].includes(c.estado));
     const sinFichaC=window._cortes.filter(c=>['pendiente','cortado','listo','en_taller'].includes(c.estado)&&!c.fichaLink);
     const sinFichaM=window._muestras.filter(m=>m.estado==='aprobada'&&!(m.despacho&&m.despacho.fichaLink)&&!m.fichaLink);
-    const muestrasParaTaller=window._muestras.filter(m=>m.estado==='taller_ready');
+    const muestrasParaTaller=window._muestras.filter(m=>['molderia','pendiente_corte','esp_avios','taller_ready'].includes(m.estado));
     const peque_items=[
-      muestrasParaTaller.length&&{label:`🚀 Sacar a taller`,sub:muestrasParaTaller.map(m=>m.nombre),color:'var(--blue)',bg:'var(--blue-light)'},
+      muestrasParaTaller.length&&{label:`🚀 Muestras para taller`,sub:muestrasParaTaller.map(m=>m.nombre+' ('+estadoDisplay(m.estado)[1]+')'),color:'var(--blue)',bg:'var(--blue-light)'},
       ...Object.entries(byProv).map(([prov,avios])=>({label:`📦 ${prov}`,sub:avios.map(a=>`${a.nombre} — ${a.origen}`),color:'var(--yellow)',bg:'var(--yellow-light)'})),
       cortesNecesitanAvios.length&&{label:`🚨 Hay que pedir avíos`,sub:cortesNecesitanAvios.map(c=>`Corte #${c.nroCorte||'—'} — ${c.nombre}`),color:'var(--red)',bg:'var(--red-light)'},
       (sinFichaC.length+sinFichaM.length)>0&&{label:`📄 Fichas sin cargar`,sub:[...sinFichaM.map(m=>m.nombre),...sinFichaC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre)],color:'var(--red)',bg:'var(--red-light)'},
