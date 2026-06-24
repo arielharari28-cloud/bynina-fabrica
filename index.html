@@ -1569,7 +1569,7 @@ function renderDetalleM(){
   const isN=currentUser==='Nahuel',isE=currentUser==='Emir';
   const canEditData=['Peque','Ariel','Stef'].includes(currentUser);
   document.getElementById('detm-edit-btn').style.display=canEditData?'block':'none';
-  const canEstadoM=['Peque','Ariel','Stef'].includes(currentUser);
+  const canEstadoM=currentUser==='Ariel';
   const canChecks=['Peque','Ariel'].includes(currentUser);
   const canNotas=['Peque','Ariel','Stef'].includes(currentUser);
   const canDespachoM=['Peque','Ariel'].includes(currentUser);
@@ -1588,6 +1588,12 @@ function renderDetalleM(){
     if(fichaInp)fichaInp.value=m.fichaLink||'';
     const fichaShow=document.getElementById('detm-ficha-link-show');
     if(fichaShow)fichaShow.innerHTML=m.fichaLink?`<a href="${m.fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Abrir ficha →</a>`:'';
+    // If ficha cleared and state was taller_ready, revert
+    if(!m.fichaLink&&m.estado==='taller_ready'&&currentUser!=='Ariel'){
+      m.estado='pendiente_corte';
+      if(!m.updates)m.updates=[];
+      m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:'Lista para taller → Pendiente de corte (ficha eliminada)',foto:null,fecha:new Date().toISOString()});
+    }
   }
   const sinAviosBtn=document.getElementById('btn-sin-avios-m');
   if(sinAviosBtn){
@@ -1622,10 +1628,20 @@ function renderDetalleM(){
   if(canEstadoM){
     document.querySelectorAll('#overlay-detalle-m .estado-opt').forEach(b=>{b.className='estado-opt';b.disabled=false;b.style.opacity='1';b.style.cursor='pointer';});
     const ao=document.querySelector(`#overlay-detalle-m .estado-opt[onclick="cambiarEstadoM('${m.estado}')"]`);if(ao)ao.classList.add('active-'+m.estado);
-    // bloquear "lista para taller" si Nahuel no cortó
-    if(!(m.checks&&m.checks.corte)){
+    // bloquear "lista para taller" si los checks no están completos
+    {
+      const corteOk=!!(m.checks&&m.checks.corte);
+      const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+      const aviosList=m.aviosList||[];
+      const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
+      const fichaOk=!!m.fichaLink;
+      const todosOk=corteOk&&aviosOk&&fichaOk;
       const btnReady=document.querySelector("#overlay-detalle-m .estado-opt[onclick=\"cambiarEstadoM('taller_ready')\"]");
-      if(btnReady){btnReady.disabled=true;btnReady.style.opacity='.4';btnReady.style.cursor='not-allowed';btnReady.title='Nahuel aún no marcó la muestra como cortada';}
+      if(btnReady&&!todosOk){
+        btnReady.disabled=true;btnReady.style.opacity='.4';btnReady.style.cursor='not-allowed';
+        const falta=[!corteOk&&'muestra sin cortar',!fichaOk&&'falta ficha',!aviosOk&&'avíos incompletos'].filter(Boolean).join(', ');
+        btnReady.title='No se puede: '+falta;
+      }
     }
   }
   if(canDespachoM&&isAprobada){const d=m.despacho||{};document.getElementById('detm-nro-corte').value=d.nroCorte||'';document.getElementById('detm-ficha-link').value=d.fichaLink||'';renderCodigosM(d.codigos||[]);renderAviosList('detm-avios-list',m.aviosList||[]);}
@@ -1640,11 +1656,32 @@ async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.che
   // Auto-check ficha if fichaLink present
   if(mActiva.fichaLink)mActiva.checks.ficha=true;
   checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();}
-function checkAutoEstadoM(m){/* auto-avance desactivado */}
+function checkAutoEstadoM(m){
+  if(currentUser==='Ariel')return; // Ariel maneja manualmente
+  const corteOk=!!(m.checks&&m.checks.corte);
+  const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+  const aviosList=m.aviosList||[];
+  const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
+  const fichaOk=!!m.fichaLink;
+  // Si todos los checks están ok y el estado es anterior a taller_ready, avanzar
+  if(corteOk&&aviosOk&&fichaOk&&['molderia','pendiente_corte'].includes(m.estado)){
+    const prev=m.estado;
+    m.estado='taller_ready';
+    if(!m.updates)m.updates=[];
+    m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:estadoNombreM(prev)+' → Lista para taller (automático)',foto:null,fecha:new Date().toISOString()});
+  }
+}
 async function cambiarEstadoM(nuevo){
   if(!mActiva)return;
-  if(nuevo==='taller_ready'&&!(mActiva.checks&&mActiva.checks.corte)){
-    alert('Nahuel todavía no marcó la muestra como cortada.');return;
+  if(nuevo==='taller_ready'){
+    const corteOk=!!(mActiva.checks&&mActiva.checks.corte);
+    const sinAvios=mActiva.llevaAvios===false||mActiva.avios==='Sin avíos';
+    const aviosList=mActiva.aviosList||[];
+    const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
+    const fichaOk=!!mActiva.fichaLink;
+    if(!corteOk){alert('Nahuel todavía no marcó la muestra como cortada.');return;}
+    if(!fichaOk){alert('Falta cargar la ficha en Drive.');return;}
+    if(!aviosOk){alert('Los avíos no están completos. Cargalos o marcá "Sin avíos".');return;}
   }
   const prev=mActiva.estado;mActiva.estado=nuevo;if(!mActiva.updates)mActiva.updates=[];mActiva.updates.push({id:Date.now()+'',autor:currentUser||'—',tipo:'estado',texto:estadoNombreM(prev)+' → '+estadoNombreM(nuevo),foto:null,fecha:new Date().toISOString()});await window._saveDoc('muestras',mActiva);mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();}
 function renderCodigosM(cods){document.getElementById('detm-codigos-list').innerHTML=cods.map((c,i)=>`<div class="codigo-item"><span class="codigo-item-text">${c}</span><button class="codigo-item-del" onclick="removeCodigoM(${i})">×</button></div>`).join('');}
@@ -1655,6 +1692,7 @@ async function saveFichaM(){
   mActiva.fichaLink=document.getElementById('detm-ficha-link-standalone').value.trim();
   if(!mActiva.checks)mActiva.checks={};
   if(mActiva.fichaLink)mActiva.checks.ficha=true;
+  checkAutoEstadoM(mActiva);
   await window._saveDoc('muestras',mActiva);
   const show=document.getElementById('detm-ficha-link-show');
   if(show)show.innerHTML=mActiva.fichaLink?`<a href="${mActiva.fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Abrir ficha →</a>`:'';
@@ -1871,9 +1909,11 @@ async function toggleAvioLlegada(tipo,i){if(tipo==='m'){if(!mActiva)return;const
   const todosLlegaron=mActiva.aviosList.every(av=>av.llegada);
   if(!mActiva.checks)mActiva.checks={};
   mActiva.checks.avios=todosLlegaron;
+  checkAutoEstadoM(mActiva);
   await window._saveDoc('muestras',mActiva);renderAviosList('detm-avios-list',mActiva.aviosList);
   // refresh checks UI
   const btn=document.getElementById('mchk-avios');if(btn){btn.textContent=todosLlegaron?'✓ Listo':'Pendiente';btn.classList.toggle('done',todosLlegaron);}
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();
   }else{if(!cActivo)return;const a=cActivo.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
 async function marcarSinAviosM(){
   if(!mActiva)return;
@@ -1883,6 +1923,7 @@ async function marcarSinAviosM(){
   mActiva.checks.avios=true;  // auto-check avios
   if(!mActiva.updates)mActiva.updates=[];
   mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',texto:'✓ Sin avíos',foto:null,fecha:new Date().toISOString()});
+  checkAutoEstadoM(mActiva);
   await window._saveDoc('muestras',mActiva);
   mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;
   renderDetalleM();
