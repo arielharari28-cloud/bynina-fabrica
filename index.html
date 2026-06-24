@@ -1656,7 +1656,8 @@ function renderDetalleM(){
       }
     }
   }
-  if(canDespachoM&&isAprobada){const d=m.despacho||{};document.getElementById('detm-nro-corte').value=d.nroCorte||'';document.getElementById('detm-ficha-link').value=d.fichaLink||'';renderCodigosM(d.codigos||[]);renderAviosList('detm-avios-list',m.aviosList||[]);}
+  if(canDespachoM&&isAprobada){const d=m.despacho||{};document.getElementById('detm-nro-corte').value=d.nroCorte||'';document.getElementById('detm-ficha-link').value=d.fichaLink||'';renderCodigosM(d.codigos||[]);}
+  if(canDespachoM){renderAviosList('detm-avios-list',m.aviosList||[]);}
   if(canNotas){
     const qs=currentUser==='Ariel'?['Ariel','Peque','Stef']:currentUser==='Stef'?['Stef']:['Peque'];
     document.getElementById('detm-quien').innerHTML=qs.map(q=>`<button class="quien-btn${updateQuienM===q?' active':''}" onclick="selectQuienM('${q}',this)">${q}</button>`).join('');
