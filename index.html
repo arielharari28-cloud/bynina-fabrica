@@ -858,8 +858,11 @@ window.autoAgregarNuevosAPrioridades=async()=>{
   window._autoAgregarPrioTimeout=setTimeout(async()=>{
     const orden=[...(window._prioridades||[])];
     let changed=false;
-    window._muestras.forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
-    window._cortes.forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    // Solo agregar items pendientes de corte
+    const muestrasActivas=window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado));
+    const cortesActivos=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado));
+    muestrasActivas.forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    cortesActivos.forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
     if(changed){try{await window._savePrioridades(orden);window._prioridades=orden;}catch(e){}}
   },800);
 };
