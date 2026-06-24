@@ -597,6 +597,11 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
         <button class="estado-opt" onclick="cambiarEstadoM('aprobada')"><span>✅</span> Aprobada</button>
       </div>
     </div>
+    <div class="section-block" id="detm-ficha-sec" style="display:none">
+      <div class="section-block-title">📄 Ficha</div>
+      <input type="text" id="detm-ficha-link-standalone" placeholder="https://drive.google.com/..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px" onchange="saveFichaM()">
+      <div id="detm-ficha-link-show"></div>
+    </div>
     <div class="section-block" id="detm-despacho-sec" style="display:none">
       <div class="section-block-title">📦 Despacho a taller</div>
       <div style="margin-bottom:10px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">N° de Corte</label><input type="text" id="detm-nro-corte" placeholder="Ej: 1145" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none" onchange="saveDespachoM()"></div>
@@ -1489,7 +1494,7 @@ function toggleAviosChoiceC(v){
 function cerrarNuevoCorteBtn(){document.getElementById('overlay-nuevo-corte').classList.remove('open');document.body.style.overflow='';}
 function onVinculoChange(){
   const val=document.getElementById('c-muestra-vinculo').value;
-  if(val){const m=window._muestras.find(x=>x.id===val);if(m){corteVinculoFoto=m.foto||null;document.getElementById('c-nombre').value=m.nombre||'';document.getElementById('c-tela').value=m.tela||'';document.getElementById('c-proveedor-tela').value=m.proveedorTela||'';document.getElementById('c-sentido').value=m.sentido||'';document.getElementById('c-construccion').value=m.construccion||'';document.getElementById('c-tipologia').value=m.tipologia||'';if(m.foto){const img=document.getElementById('corte-foto-preview');img.src=m.foto;img.style.display='block';document.getElementById('c-foto-text').textContent='Foto heredada de la muestra';}}}
+  if(val){const m=window._muestras.find(x=>x.id===val);if(m){corteVinculoFoto=m.foto||null;document.getElementById('c-nombre').value=m.nombre||'';document.getElementById('c-tela').value=m.tela||'';document.getElementById('c-proveedor-tela').value=m.proveedorTela||'';document.getElementById('c-sentido').value=m.sentido||'';document.getElementById('c-construccion').value=m.construccion||'';document.getElementById('c-tipologia').value=m.tipologia||'';if(m.foto){const img=document.getElementById('corte-foto-preview');img.src=m.foto;img.style.display='block';document.getElementById('c-foto-text').textContent='Foto heredada de la muestra';}if(m.fichaLink){document.getElementById('c-ficha-link').value=m.fichaLink;}}}
   else{corteVinculoFoto=null;}
 }
 function previewFotoCorte(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{corteFotoData=ev.target.result;const img=document.getElementById('corte-foto-preview');img.src=corteFotoData;img.style.display='block';};r.readAsDataURL(f);}
@@ -1575,6 +1580,15 @@ function renderDetalleM(){
   document.getElementById('detm-nahuel-sec').style.display=isN?'block':'none';
   document.getElementById('detm-despacho-sec').style.display=canDespachoM&&isAprobada?'block':'none';
   document.getElementById('detm-avios-sec').style.display=canDespachoM&&isAprobada?'block':'none';
+  // Ficha section - visible para Peque y Ariel siempre
+  const fichaSecM=document.getElementById('detm-ficha-sec');
+  if(fichaSecM){
+    fichaSecM.style.display=canDespachoM?'block':'none';
+    const fichaInp=document.getElementById('detm-ficha-link-standalone');
+    if(fichaInp)fichaInp.value=m.fichaLink||'';
+    const fichaShow=document.getElementById('detm-ficha-link-show');
+    if(fichaShow)fichaShow.innerHTML=m.fichaLink?`<a href="${m.fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Abrir ficha →</a>`:'';
+  }
   const sinAviosBtn=document.getElementById('btn-sin-avios-m');
   if(sinAviosBtn){
     if(mActiva.llevaAvios===false||mActiva.avios==='Sin avíos'){
@@ -1624,6 +1638,13 @@ async function cambiarEstadoM(nuevo){
 function renderCodigosM(cods){document.getElementById('detm-codigos-list').innerHTML=cods.map((c,i)=>`<div class="codigo-item"><span class="codigo-item-text">${c}</span><button class="codigo-item-del" onclick="removeCodigoM(${i})">×</button></div>`).join('');}
 function addCodigoM(){const inp=document.getElementById('detm-codigo-add');const v=inp.value.trim();if(!v)return;if(!mActiva.despacho)mActiva.despacho={};if(!mActiva.despacho.codigos)mActiva.despacho.codigos=[];mActiva.despacho.codigos.push(v);inp.value='';renderCodigosM(mActiva.despacho.codigos);saveDespachoM();}
 function removeCodigoM(i){mActiva.despacho.codigos.splice(i,1);renderCodigosM(mActiva.despacho.codigos);saveDespachoM();}
+async function saveFichaM(){
+  if(!mActiva)return;
+  mActiva.fichaLink=document.getElementById('detm-ficha-link-standalone').value.trim();
+  await window._saveDoc('muestras',mActiva);
+  const show=document.getElementById('detm-ficha-link-show');
+  if(show)show.innerHTML=mActiva.fichaLink?`<a href="${mActiva.fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Abrir ficha →</a>`:'';
+}
 async function saveDespachoM(){if(!mActiva)return;if(!mActiva.despacho)mActiva.despacho={};mActiva.despacho.nroCorte=document.getElementById('detm-nro-corte').value;mActiva.despacho.fichaLink=document.getElementById('detm-ficha-link').value;await window._saveDoc('muestras',mActiva);}
 function renderTimelineM(){const m=mActiva,cont=document.getElementById('detm-timeline');if(!m.updates||!m.updates.length){cont.innerHTML='<p style="font-size:13px;color:var(--text3)">Sin actualizaciones.</p>';return;}const canDel=['Peque','Ariel','Stef'].includes(currentUser);cont.innerHTML=[...m.updates].reverse().map(u=>{const fotos=u.fotos&&u.fotos.length?u.fotos:(u.foto?[u.foto]:[]);return`<div class="tl-item"><div class="tl-avatar">${u.autor[0]}</div><div class="tl-body"><div class="tl-meta"><span class="tl-autor">${u.autor}</span><span class="tl-fecha">${fechaCorta(u.fecha)}</span><span class="tl-tipo ${u.tipo}">${labelTipo(u.tipo)}</span>${canDel?`<button onclick="borrarUpdateM('${u.id}')" style="margin-left:auto;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;padding:0 4px" title="Borrar">🗑</button>`:''}</div>${u.texto?`<div class="tl-text">${u.texto}</div>`:''}${fotos.length?`<div style="display:grid;grid-template-columns:repeat(${Math.min(fotos.length,3)},1fr);gap:4px;margin-top:4px">${fotos.map(f=>`<img class="tl-img" src="${f}" onclick="openLightbox('${f}')" style="aspect-ratio:1;object-fit:cover">`).join('')}</div>`:''}</div></div>`;}).join('');}
 function selectQuienM(n,btn){updateQuienM=n;document.querySelectorAll('#detm-quien .quien-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -2180,7 +2201,7 @@ function renderHome(){
         const aviosList=m.aviosList||[];
         const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
         const aviosPend=aviosList.filter(a=>!a.llegada);
-        const fichaOk=!!(m.despacho&&m.despacho.fichaLink)||!!m.fichaLink;
+        const fichaOk=!!m.fichaLink;
         const aviosOk=sinAvios||(aviosList.length>0&&aviosPend.length===0);
         const puedeIr=fichaOk&&aviosOk;
         return`<div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden">
