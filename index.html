@@ -936,7 +936,7 @@ function renderListaUnificada(contId,soloVer){
     const codStr=item.tipo==='c'?(item.nro?'#'+item.nro:'')+(item.codigo?' · '+item.codigo:''):(item.codigo||'');
     const meta=[item.tipologia,item.tela].filter(Boolean).join(' · ');
     const fechaPedido=item.fecha?'📅 Pedido: '+fechaCorta(item.fecha):'';
-    const fechaCort=item.fechaCortado?'✂️ Cortado: '+fechaCorta(item.fechaCortado):'';
+    const fechaCort=(item.fechaCortado&&item.cortado)?'✂️ Cortado: '+fechaCorta(item.fechaCortado):'';
     const done=item.cortado;
 
     // Build expandable detail section
