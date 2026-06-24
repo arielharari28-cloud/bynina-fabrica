@@ -2040,8 +2040,15 @@ async function guardarAvio(){
 
   // CREATE MODE
   avio.llegada=null;
-  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);_savingAvio=true;await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);setTimeout(()=>{_savingAvio=false;},1500);}
-  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
+  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];
+  // Evitar duplicados exactos
+  const yaExiste=mActiva.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
+  if(yaExiste){alert('Este avío ya está cargado.');return;}
+  mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);_savingAvio=true;await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);setTimeout(()=>{_savingAvio=false;},1500);}
+  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];
+  const yaExisteC=cActivo.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
+  if(yaExisteC){alert('Este avío ya está cargado.');return;}
+  cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
 }
 
 // HELPERS
