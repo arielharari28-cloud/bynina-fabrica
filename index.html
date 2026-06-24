@@ -580,9 +580,9 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
     <div class="detalle-info"><div class="detalle-codigo" id="detm-codigo"></div><div class="detalle-nombre" id="detm-nombre"></div><div id="detm-badge" style="margin-bottom:4px"></div><div class="info-grid" id="detm-grid"></div></div>
     <div class="section-block" id="detm-checks">
       <div class="section-block-title">Checks para taller</div>
-      <div class="check-row"><div class="check-row-left"><span>✂️</span><div><div class="check-label">Muestra cortada</div><div class="check-sublabel">Nahuel</div></div></div><button class="check-toggle" id="mchk-corte" onclick="toggleCheckM('corte')">Pendiente</button></div>
-      <div class="check-row"><div class="check-row-left"><span>📦</span><div><div class="check-label">Avíos listos</div><div class="check-sublabel">Peque</div></div></div><button class="check-toggle" id="mchk-avios" onclick="toggleCheckM('avios')">Pendiente</button></div>
-      <div class="check-row"><div class="check-row-left"><span>📄</span><div><div class="check-label">Ficha cargada</div><div class="check-sublabel">Peque</div></div></div><button class="check-toggle" id="mchk-ficha" onclick="toggleCheckM('ficha')">Pendiente</button></div>
+      <div class="check-row"><div class="check-row-left"><span>✂️</span><div><div class="check-label">Muestra cortada</div><div class="check-sublabel">Nahuel</div></div></div><span class="check-toggle" id="mchk-corte">Pendiente</span></div>
+      <div class="check-row"><div class="check-row-left"><span>📦</span><div><div class="check-label">Avíos listos</div><div class="check-sublabel">Peque</div></div></div><span class="check-toggle" id="mchk-avios">Pendiente</span></div>
+      <div class="check-row"><div class="check-row-left"><span>📄</span><div><div class="check-label">Ficha cargada</div><div class="check-sublabel">Peque</div></div></div><span class="check-toggle" id="mchk-ficha">Pendiente</span></div>
     </div>
     <div class="ready-banner" id="detm-ready-banner"><span style="font-size:20px">🟢</span><div class="ready-banner-text">Lista para salir a taller</div></div>
     <div class="section-block" id="detm-estado-sec">
@@ -1602,13 +1602,22 @@ function renderDetalleM(){
       sinAviosBtn.onclick=()=>marcarSinAviosM();
     }
   }
-  if(canChecks){
-    const ch=m.checks||{};
-    ['corte','avios','ficha'].forEach(k=>{const btn=document.getElementById('mchk-'+k);btn.textContent=ch[k]?'✓ Listo':'Pendiente';btn.classList.toggle('done',!!ch[k]);});
-    document.getElementById('detm-ready-banner').classList.toggle('show',!!(ch.corte&&ch.avios&&ch.ficha));
-  } else {
-    const ch=m.checks||{};
-    document.getElementById('detm-ready-banner').classList.toggle('show',!!(ch.corte&&ch.avios&&ch.ficha));
+  {
+    // Auto-calculate checks from data
+    const corteOk=!!(m.checks&&m.checks.corte);
+    const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+    const aviosList=m.aviosList||[];
+    const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
+    const fichaOk=!!m.fichaLink;
+    const checks={corte:corteOk,avios:aviosOk,ficha:fichaOk};
+    // Update check indicators
+    ['corte','avios','ficha'].forEach(k=>{
+      const el=document.getElementById('mchk-'+k);
+      if(!el)return;
+      el.textContent=checks[k]?'✓ Listo':'Pendiente';
+      el.classList.toggle('done',checks[k]);
+    });
+    document.getElementById('detm-ready-banner').classList.toggle('show',!!(checks.corte&&checks.avios&&checks.ficha));
   }
   if(canEstadoM){
     document.querySelectorAll('#overlay-detalle-m .estado-opt').forEach(b=>{b.className='estado-opt';b.disabled=false;b.style.opacity='1';b.style.cursor='pointer';});
