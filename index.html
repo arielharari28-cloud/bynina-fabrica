@@ -799,8 +799,6 @@ window._uploadFoto=async(dataUrl)=>{
 onSnapshot(collection(db,'muestras'),(snap)=>{
   window._muestras=[];snap.forEach(d=>window._muestras.push({id:d.id,...d.data()}));
   window._muestras.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  // Sync mActiva with latest Firebase data
-  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh)mActiva=fresh;}
   if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'cortes'),(snap)=>{
@@ -1625,7 +1623,7 @@ function renderDetalleM(){
   {
     // Auto-calculate checks from data
     const corteOk=!!(m.checks&&m.checks.corte);
-    const sinAvios=m.llevaAvios===false||(m.checks&&m.checks.avios===true&&!(m.aviosList&&m.aviosList.length));
+    const sinAvios=m.llevaAvios===false;
     const aviosList=m.aviosList||[];
     const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
     const fichaOk=!!m.fichaLink;
@@ -1658,15 +1656,7 @@ function renderDetalleM(){
       }
     }
   }
-  if(canDespachoM&&isAprobada){const d=m.despacho||{};document.getElementById('detm-nro-corte').value=d.nroCorte||'';document.getElementById('detm-ficha-link').value=d.fichaLink||'';renderCodigosM(d.codigos||[]);}
-  if(canDespachoM){
-    renderAviosList('detm-avios-list',m.aviosList||[]);
-    // Warn if avios text field has content but no aviosList cards
-    const aviosListEl=document.getElementById('detm-avios-list');
-    if(aviosListEl&&m.avios&&m.avios!=='Sin avíos'&&!(m.aviosList&&m.aviosList.length)&&m.llevaAvios!==false){
-      aviosListEl.insertAdjacentHTML('afterbegin',`<div style="background:var(--yellow-light);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:var(--yellow);font-weight:600">⚠️ Avío indicado en texto: "<em>${m.avios}</em>" — cargalo como card para que se pueda trackear</div>`);
-    }
-  }
+  if(canDespachoM&&isAprobada){const d=m.despacho||{};document.getElementById('detm-nro-corte').value=d.nroCorte||'';document.getElementById('detm-ficha-link').value=d.fichaLink||'';renderCodigosM(d.codigos||[]);renderAviosList('detm-avios-list',m.aviosList||[]);}
   if(canNotas){
     const qs=currentUser==='Ariel'?['Ariel','Peque','Stef']:currentUser==='Stef'?['Stef']:['Peque'];
     document.getElementById('detm-quien').innerHTML=qs.map(q=>`<button class="quien-btn${updateQuienM===q?' active':''}" onclick="selectQuienM('${q}',this)">${q}</button>`).join('');
@@ -1681,7 +1671,7 @@ async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.che
 function checkAutoEstadoM(m){
   if(currentUser==='Ariel')return; // Ariel maneja manualmente
   const corteOk=!!(m.checks&&m.checks.corte);
-  const sinAvios=m.llevaAvios===false||(m.checks&&m.checks.avios===true&&!(m.aviosList&&m.aviosList.length));
+  const sinAvios=m.llevaAvios===false;
   const aviosList=m.aviosList||[];
   const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
   const fichaOk=!!m.fichaLink;
@@ -2047,15 +2037,8 @@ async function guardarAvio(){
 
   // CREATE MODE
   avio.llegada=null;
-  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];
-  // Evitar duplicados exactos
-  const yaExiste=mActiva.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
-  if(yaExiste){alert('Este avío ya está cargado.');return;}
-  mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
-  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];
-  const yaExisteC=cActivo.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
-  if(yaExisteC){alert('Este avío ya está cargado.');return;}
-  cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
+  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
+  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
 }
 
 // HELPERS
@@ -2419,11 +2402,11 @@ function renderHome(){
     ].filter(Boolean);
 
     // NAHUEL
-    const nahuelM=window._muestras.filter(m=>['molderia','pendiente_corte','esp_avios'].includes(m.estado));
-    const nahuelC=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado));
+    const nahuelM=window._muestras.filter(m=>m.estado==='pendiente_corte');
+    const nahuelC=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
     const nahuel_items=[
-      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre+' ['+estadoNombreM(m.estado)+']'),color:'var(--accent)',bg:'var(--accent-light)'},
-      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre+' ['+estadoNombreC(c.estado)+']'),color:'var(--blue)',bg:'var(--blue-light)'},
+      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre),color:'var(--accent)',bg:'var(--accent-light)'},
+      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre),color:'var(--blue)',bg:'var(--blue-light)'},
     ].filter(Boolean);
 
     // EMIR
