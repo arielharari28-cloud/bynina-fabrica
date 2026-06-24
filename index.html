@@ -1946,6 +1946,29 @@ async function toggleAvioLlegada(tipo,i){if(tipo==='m'){if(!mActiva)return;const
   const btn=document.getElementById('mchk-avios');if(btn){btn.textContent=todosLlegaron?'✓ Listo':'Pendiente';btn.classList.toggle('done',todosLlegaron);}
   mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();
   }else{if(!cActivo)return;const a=cActivo.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
+async function toggleAvioLlegadaHome(tipo,itemId,avioIdx,btn){
+  // Same logic as toggleAvioLlegada but triggered from Home view, re-renders Home
+  let item;
+  if(tipo==='m'){
+    item=window._muestras.find(x=>x.id===itemId);
+    if(!item||!item.aviosList)return;
+    const a=item.aviosList[avioIdx];
+    a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');
+    const todosLlegaron=item.aviosList.every(av=>av.llegada);
+    if(!item.checks)item.checks={};
+    item.checks.avios=todosLlegaron;
+    checkAutoEstadoM(item);
+    await window._saveDoc('muestras',item);
+  } else {
+    item=window._cortes.find(x=>x.id===itemId);
+    if(!item||!item.aviosList)return;
+    const a=item.aviosList[avioIdx];
+    a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');
+    await window._saveDoc('cortes',item);
+  }
+  // Re-render home to reflect change
+  renderHome();
+}
 async function desmarcarSinAviosM(){
   if(!mActiva)return;
   mActiva.llevaAvios=null;
@@ -2311,41 +2334,60 @@ function renderHome(){
       </div>`;
     }
 
-    // Muestras listas para sacar a taller
-    const muestrasListasTaller=window._muestras.filter(m=>m.estado==='taller_ready');
-    if(muestrasListasTaller.length){
-      html+=muestrasListasTaller.map(m=>{
+    // Muestras en camino al taller (todas las que no son aprobada/taller/prueba/revision)
+    const estadosPendTaller=['molderia','pendiente_corte','esp_avios','taller_ready'];
+    const muestrasParaTaller=window._muestras.filter(m=>estadosPendTaller.includes(m.estado));
+    if(muestrasParaTaller.length){
+      html+=`<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px">🚀 Muestras para sacar a taller</div>`;
+      html+=muestrasParaTaller.map(m=>{
         const aviosList=m.aviosList||[];
         const sinAvios=m.llevaAvios===false;
         const aviosPend=aviosList.filter(a=>!a.llegada);
         const fichaOk=!!m.fichaLink;
+        const corteOk=!!(m.checks&&m.checks.corte);
         const aviosOk=sinAvios||(aviosList.length>0&&aviosPend.length===0);
-        const puedeIr=fichaOk&&aviosOk;
-        return`<div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden">
-          <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:13px;font-weight:700">🚀 ${m.nombre}</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${puedeIr?'var(--green-light)':'var(--red-light)'};color:${puedeIr?'var(--green)':'var(--red)'}">${puedeIr?'✓ Lista':'⛔ Bloqueada'}</span>
+        const lista=fichaOk&&aviosOk&&corteOk;
+        // Calcular qué falta
+        const faltan=[];
+        if(!corteOk)faltan.push('Muestra sin cortar');
+        if(!fichaOk)faltan.push('Falta ficha en Drive');
+        if(!sinAvios&&aviosList.length===0)faltan.push('Avíos sin cargar');
+        else if(!sinAvios&&aviosPend.length>0)faltan.push(aviosPend.length+' avío'+(aviosPend.length>1?'s':'')+' sin llegar');
+        const [ecls,elbl]=estadoDisplay(m.estado);
+        return`<div style="background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.nombre}</div>
+              <div style="margin-top:3px"><span class="badge ${ecls}" style="font-size:9px;padding:1px 6px">${elbl}</span></div>
+            </div>
+            <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${lista?'var(--green-light)':'var(--yellow-light)'};color:${lista?'var(--green)':'var(--yellow)'}">${lista?'✓ Lista':'⏳ En proceso'}</span>
           </div>
-          <div style="padding:8px 14px">
+          <div style="padding:6px 14px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
-              <span style="font-size:13px">📄 Ficha en Drive</span>
-              <span style="font-size:12px;font-weight:600;color:${fichaOk?'var(--green)':'var(--red)'}">${fichaOk?'✓ Lista':'⚠️ Falta'}</span>
+              <span style="font-size:12px">✂️ Muestra cortada</span>
+              <span style="font-size:11px;font-weight:600;color:${corteOk?'var(--green)':'var(--text3)'}">${corteOk?'✓ Sí':'Pendiente'}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px">📄 Ficha en Drive</span>
+              <span style="font-size:11px;font-weight:600;color:${fichaOk?'var(--green)':'var(--text3)'}">${fichaOk?'✓ Cargada':'Pendiente'}</span>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;${aviosList.length?'border-bottom:1px solid var(--border)':''}">
-              <span style="font-size:13px">📦 Avíos</span>
-              <span style="font-size:12px;font-weight:600;color:${aviosOk?'var(--green)':'var(--yellow)'}">${sinAvios?'✓ Sin avíos':aviosList.length===0?'⚠️ Sin cargar':aviosPend.length===0?'✓ Todos llegaron':'⏳ '+aviosPend.length+' pendiente'+(aviosPend.length>1?'s':'')}</span>
+              <span style="font-size:12px">📦 Avíos</span>
+              <span style="font-size:11px;font-weight:600;color:${aviosOk?'var(--green)':'var(--text3)'}">${sinAvios?'✓ Sin avíos':aviosList.length===0?'Sin cargar':aviosPend.length===0?'✓ Todos llegaron':aviosPend.length+' pendiente'+(aviosPend.length>1?'s':'')}</span>
             </div>
-            ${aviosList.length?aviosList.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 4px 12px;border-bottom:1px solid var(--border)">
-              <span style="font-size:12px;color:var(--text2)">› ${a.nombre}${a.proveedor?' ('+a.proveedor+')':''}</span>
-              <span style="font-size:11px;font-weight:600;color:${a.llegada?'var(--green)':'var(--yellow)'}">${a.llegada?'✓':'⏳'}</span>
-            </div>`).join(''):''}
+            ${aviosList.map((a,ai)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0 5px 10px;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">› ${a.nombre}${a.proveedor?' ('+a.proveedor+')':''}</span>
+              <button onclick="toggleAvioLlegadaHome('m','${m.id}',${ai},this)" style="flex-shrink:0;margin-left:8px;padding:3px 10px;border-radius:20px;border:1.5px solid ${a.llegada?'var(--green)':'var(--border)'};background:${a.llegada?'var(--green-light)':'var(--surface)'};color:${a.llegada?'var(--green)':'var(--text2)'};font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer">${a.llegada?'✓ Llegó':'Marcar llegada'}</button>
+            </div>`).join('')}
           </div>
-          ${!puedeIr?`<div style="padding:8px 14px;background:var(--red-light);font-size:12px;font-weight:600;color:var(--red)">⛔ Completá los pendientes antes de sacarla a taller</div>`:''}
+          ${faltan.length?`<div style="padding:7px 14px;background:var(--surface2);font-size:11px;color:var(--text3)">Falta: ${faltan.join(' · ')}</div>`:''}
         </div>`;
       }).join('');
+      html+=`</div>`;
     }
 
-    if(!aviosPendAll.length&&!cortesNecesitanAvios.length&&!sinFicha.length&&!muestrasListasTaller.length){
+    if(!aviosPendAll.length&&!cortesNecesitanAvios.length&&!sinFicha.length&&!muestrasParaTaller.length){
       html+=`<div class="home-task ok"><div class="home-task-icon">✅</div><div class="home-task-body"><div class="home-task-title">Todo al día</div><div class="home-task-sub">No tenés pendientes urgentes</div></div></div>`;
     }
 
