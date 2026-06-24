@@ -2084,8 +2084,8 @@ function setPrioFiltro(f,btn){
   renderPrioridades();
 }
 function buildPrioItems(){
-  let muestras=window._muestras.filter(m=>!['taller_ready','taller','prueba','revision','aprobada'].includes(m.estado)).map(m=>({id:m.id,tipo:'m',nombre:m.nombre,codigo:m.codigo||'',nro:'',tela:m.tela||'',tipologia:m.tipologia||'',estado:m.estado,foto:m.foto||null}));
-  let cortes=window._cortes.filter(c=>!['listo','en_taller','entregado'].includes(c.estado)).map(c=>({id:c.id,tipo:'c',nombre:c.nombre,codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',nro:c.nroCorte||'',tela:c.tela||'',tipologia:c.tipologia||'',estado:c.estado,foto:c.foto||null}));
+  let muestras=window._muestras.filter(m=>['molderia','pendiente_corte','esp_avios'].includes(m.estado)).map(m=>({id:m.id,tipo:'m',nombre:m.nombre,codigo:m.codigo||'',nro:'',tela:m.tela||'',tipologia:m.tipologia||'',estado:m.estado,foto:m.foto||null}));
+  let cortes=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>({id:c.id,tipo:'c',nombre:c.nombre,codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',nro:c.nroCorte||'',tela:c.tela||'',tipologia:c.tipologia||'',estado:c.estado,foto:c.foto||null}));
   let all;
   if(prioFiltroActivo==='muestras') all=[...muestras];
   else if(prioFiltroActivo==='cortes') all=[...cortes];
