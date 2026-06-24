@@ -1623,7 +1623,7 @@ function renderDetalleM(){
   {
     // Auto-calculate checks from data
     const corteOk=!!(m.checks&&m.checks.corte);
-    const sinAvios=m.llevaAvios===false;
+    const sinAvios=m.llevaAvios===false||(m.checks&&m.checks.avios===true&&!(m.aviosList&&m.aviosList.length));
     const aviosList=m.aviosList||[];
     const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
     const fichaOk=!!m.fichaLink;
@@ -1672,7 +1672,7 @@ async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.che
 function checkAutoEstadoM(m){
   if(currentUser==='Ariel')return; // Ariel maneja manualmente
   const corteOk=!!(m.checks&&m.checks.corte);
-  const sinAvios=m.llevaAvios===false;
+  const sinAvios=m.llevaAvios===false||(m.checks&&m.checks.avios===true&&!(m.aviosList&&m.aviosList.length));
   const aviosList=m.aviosList||[];
   const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
   const fichaOk=!!m.fichaLink;
