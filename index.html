@@ -799,12 +799,13 @@ window._uploadFoto=async(dataUrl)=>{
 onSnapshot(collection(db,'muestras'),(snap)=>{
   window._muestras=[];snap.forEach(d=>window._muestras.push({id:d.id,...d.data()}));
   window._muestras.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
+  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh)mActiva=fresh;}
+  if(window._appReady){limpiarPrioridades();autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'cortes'),(snap)=>{
   window._cortes=[];snap.forEach(d=>window._cortes.push({id:d.id,...d.data()}));
   window._cortes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
+  if(window._appReady){limpiarPrioridades();autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'tipologias'),(snap)=>{
   window._tipologias=[];snap.forEach(d=>window._tipologias.push({id:d.id,...d.data()}));
@@ -851,6 +852,19 @@ onSnapshot(doc(db,'config','prioridades'),(snap)=>{
   if(window._appReady&&navActivo==='prioridades')renderPrioridades();
   if(window._appReady)renderAll();
 });
+window._limpiarPrioTimeout=null;
+window.limpiarPrioridades=()=>{
+  clearTimeout(window._limpiarPrioTimeout);
+  window._limpiarPrioTimeout=setTimeout(async()=>{
+    const ordenActual=[...(window._prioridades||[])];
+    const mActivas=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
+    const cActivos=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
+    const ordenLimpio=ordenActual.filter(k=>mActivas.has(k)||cActivos.has(k));
+    if(ordenLimpio.length!==ordenActual.length){
+      try{await window._savePrioridades(ordenLimpio);window._prioridades=ordenLimpio;}catch(e){}
+    }
+  },1000);
+};
 window._autoAgregarPrioTimeout=null;
 window.autoAgregarNuevosAPrioridades=async()=>{
   // Debounce to avoid multiple calls on load
