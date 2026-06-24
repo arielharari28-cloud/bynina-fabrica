@@ -1598,13 +1598,17 @@ function renderDetalleM(){
   const sinAviosBtn=document.getElementById('btn-sin-avios-m');
   if(sinAviosBtn){
     if(mActiva.llevaAvios===false||mActiva.avios==='Sin avíos'){
-      sinAviosBtn.textContent='✓ Sin avíos (marcado)';
-      sinAviosBtn.style.background='var(--green-light)';
-      sinAviosBtn.style.cursor='default';
-      sinAviosBtn.onclick=null;
+      sinAviosBtn.textContent='↩ Desmarcar "Sin avíos"';
+      sinAviosBtn.style.background='var(--yellow-light)';
+      sinAviosBtn.style.borderColor='var(--yellow)';
+      sinAviosBtn.style.color='var(--yellow)';
+      sinAviosBtn.style.cursor='pointer';
+      sinAviosBtn.onclick=()=>desmarcarSinAviosM();
     } else {
       sinAviosBtn.textContent='✓ Sin avíos';
       sinAviosBtn.style.background='';
+      sinAviosBtn.style.borderColor='var(--green)';
+      sinAviosBtn.style.color='var(--green)';
       sinAviosBtn.onclick=()=>marcarSinAviosM();
     }
   }
@@ -1915,6 +1919,24 @@ async function toggleAvioLlegada(tipo,i){if(tipo==='m'){if(!mActiva)return;const
   const btn=document.getElementById('mchk-avios');if(btn){btn.textContent=todosLlegaron?'✓ Listo':'Pendiente';btn.classList.toggle('done',todosLlegaron);}
   mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();
   }else{if(!cActivo)return;const a=cActivo.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
+async function desmarcarSinAviosM(){
+  if(!mActiva)return;
+  mActiva.llevaAvios=null;
+  mActiva.avios='';
+  if(!mActiva.checks)mActiva.checks={};
+  mActiva.checks.avios=false;
+  // Revert state if was taller_ready
+  if(mActiva.estado==='taller_ready'&&currentUser!=='Ariel'){
+    mActiva.estado='pendiente_corte';
+    if(!mActiva.updates)mActiva.updates=[];
+    mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'estado',texto:'Lista para taller → Pendiente de corte (avíos desmarcados)',foto:null,fecha:new Date().toISOString()});
+  }
+  if(!mActiva.updates)mActiva.updates=[];
+  mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',texto:'↩ "Sin avíos" desmarcado',foto:null,fecha:new Date().toISOString()});
+  await window._saveDoc('muestras',mActiva);
+  mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;
+  renderDetalleM();
+}
 async function marcarSinAviosM(){
   if(!mActiva)return;
   mActiva.llevaAvios=false;
