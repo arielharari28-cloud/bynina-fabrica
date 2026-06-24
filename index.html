@@ -2037,8 +2037,8 @@ async function guardarAvio(){
 
   // CREATE MODE
   avio.llegada=null;
-  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
-  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();renderAviosList('detc-avios-list',cActivo.aviosList);}
+  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();}
+  else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
 }
 
 // HELPERS
