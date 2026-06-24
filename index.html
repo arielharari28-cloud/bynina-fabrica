@@ -2400,7 +2400,9 @@ function renderHome(){
     const cortesNecesitanAvios=window._cortes.filter(c=>c.llevaAvios&&!(c.aviosList&&c.aviosList.length)&&['pendiente','cortado'].includes(c.estado));
     const sinFichaC=window._cortes.filter(c=>['pendiente','cortado','listo','en_taller'].includes(c.estado)&&!c.fichaLink);
     const sinFichaM=window._muestras.filter(m=>m.estado==='aprobada'&&!(m.despacho&&m.despacho.fichaLink)&&!m.fichaLink);
+    const muestrasParaTaller=window._muestras.filter(m=>m.estado==='taller_ready');
     const peque_items=[
+      muestrasParaTaller.length&&{label:`🚀 Sacar a taller`,sub:muestrasParaTaller.map(m=>m.nombre),color:'var(--blue)',bg:'var(--blue-light)'},
       ...Object.entries(byProv).map(([prov,avios])=>({label:`📦 ${prov}`,sub:avios.map(a=>`${a.nombre} — ${a.origen}`),color:'var(--yellow)',bg:'var(--yellow-light)'})),
       cortesNecesitanAvios.length&&{label:`🚨 Hay que pedir avíos`,sub:cortesNecesitanAvios.map(c=>`Corte #${c.nroCorte||'—'} — ${c.nombre}`),color:'var(--red)',bg:'var(--red-light)'},
       (sinFichaC.length+sinFichaM.length)>0&&{label:`📄 Fichas sin cargar`,sub:[...sinFichaM.map(m=>m.nombre),...sinFichaC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre)],color:'var(--red)',bg:'var(--red-light)'},
