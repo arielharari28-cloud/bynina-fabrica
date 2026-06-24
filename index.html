@@ -2037,7 +2037,7 @@ async function guardarAvio(){
 
   // CREATE MODE
   avio.llegada=null;
-  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();setTimeout(()=>{mActiva=window._muestras.find(x=>x.id===mActiva.id)||mActiva;renderDetalleM();},400);}
+  if(avioTarget==='muestra'){if(!mActiva)return;if(!mActiva.aviosList)mActiva.aviosList=[];mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
   else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];cActivo.aviosList.push(avio);await window._saveDoc('cortes',cActivo);cerrarModalAvioBtn();cActivo=window._cortes.find(x=>x.id===cActivo.id)||cActivo;renderDetalleC();}
 }
 
@@ -2184,8 +2184,8 @@ function renderAll(){
   if(navActivo==='dashboard')renderDashboard();
   if(navActivo==='muestras')renderListaMuestras();
   if(navActivo==='cortes')renderListaCortes();
-  if(mActiva){mActiva=window._muestras.find(x=>x.id===mActiva.id);if(mActiva)renderDetalleM();}
-  if(cActivo){cActivo=window._cortes.find(x=>x.id===cActivo.id);if(cActivo)renderDetalleC();}
+  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh){mActiva=fresh;renderDetalleM();}}
+  if(cActivo){const freshC=window._cortes.find(x=>x.id===cActivo.id);if(freshC){cActivo=freshC;renderDetalleC();}}
 }
 // ── NOTIFICACIONES ──
 const NOTIF_KEY='bynina_notifs_v1';
