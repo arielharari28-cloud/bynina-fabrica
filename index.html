@@ -799,6 +799,8 @@ window._uploadFoto=async(dataUrl)=>{
 onSnapshot(collection(db,'muestras'),(snap)=>{
   window._muestras=[];snap.forEach(d=>window._muestras.push({id:d.id,...d.data()}));
   window._muestras.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  // Sync mActiva with latest Firebase data
+  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh)mActiva=fresh;}
   if(window._appReady){autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'cortes'),(snap)=>{
@@ -873,7 +875,7 @@ setTimeout(()=>{document.getElementById('loading-overlay').style.display='none';
 window._muestras=[];window._cortes=[];window._tipologias=[];window._provTela=[];window._provAvios=[];window._telas=[];window._colores=[];window._prioridades=[];window._appReady=false;
 let currentUser=null,navActivo='home',dashTab='muestras',grupoM='tipologia',grupoC='tipologia';
 let filtroM='todas',filtroC='todas',nahuelTab='muestras';
-let mActiva=null,cActivo=null,_savingAvio=false;
+let mActiva=null,cActivo=null;
 let updateQuienM=null,updateTipoM='nota',updateFotasDataM=[],nuevasFotasData=[];
 let corteVinculoFoto=null,corteFotoData=null,corteCodigosList=[];
 let updateQuienC=null,updateFotoDataC=null;
@@ -1922,7 +1924,7 @@ function renderAviosList(contId,avios){
   }).join('');
 }
 function fmtFecha(iso){if(!iso)return'—';const d=new Date(iso+'T00:00:00');return d.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});}
-async function removeAvio(tipo,i){if(tipo==='m'){if(!mActiva)return;mActiva.aviosList.splice(i,1);_savingAvio=true;await window._saveDoc('muestras',mActiva);renderAviosList('detm-avios-list',mActiva.aviosList);setTimeout(()=>{_savingAvio=false;},1500);}else{if(!cActivo)return;cActivo.aviosList.splice(i,1);await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
+async function removeAvio(tipo,i){if(tipo==='m'){if(!mActiva)return;mActiva.aviosList.splice(i,1);await window._saveDoc('muestras',mActiva);renderAviosList('detm-avios-list',mActiva.aviosList);}else{if(!cActivo)return;cActivo.aviosList.splice(i,1);await window._saveDoc('cortes',cActivo);renderAviosList('detc-avios-list',cActivo.aviosList);}}
 async function toggleAvioLlegada(tipo,i){if(tipo==='m'){if(!mActiva)return;const a=mActiva.aviosList[i];a.llegada=a.llegada?null:new Date().toLocaleDateString('es-AR');
   // Auto-check avios if all arrived
   const todosLlegaron=mActiva.aviosList.every(av=>av.llegada);
@@ -2030,11 +2032,9 @@ async function guardarAvio(){
     avio.llegada=old.llegada||null; // preserve llegada
     item.aviosList[avioEditIndex]=avio;
     const col=avioEditTarget==='m'?'muestras':'cortes';
-    if(avioEditTarget==='m')_savingAvio=true;
     await window._saveDoc(col,item);
     cerrarModalAvioBtn();
     renderAviosList(avioEditTarget==='m'?'detm-avios-list':'detc-avios-list',item.aviosList);
-    if(avioEditTarget==='m')setTimeout(()=>{_savingAvio=false;},1500);
     return;
   }
 
@@ -2044,7 +2044,7 @@ async function guardarAvio(){
   // Evitar duplicados exactos
   const yaExiste=mActiva.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
   if(yaExiste){alert('Este avío ya está cargado.');return;}
-  mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);_savingAvio=true;await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);setTimeout(()=>{_savingAvio=false;},1500);}
+  mActiva.aviosList.push(avio);checkAutoEstadoM(mActiva);await window._saveDoc('muestras',mActiva);cerrarModalAvioBtn();renderAviosList('detm-avios-list',mActiva.aviosList);}
   else{if(!cActivo)return;if(!cActivo.aviosList)cActivo.aviosList=[];
   const yaExisteC=cActivo.aviosList.some(a=>a.nombre===avio.nombre&&a.proveedor===avio.proveedor);
   if(yaExisteC){alert('Este avío ya está cargado.');return;}
@@ -2194,7 +2194,7 @@ function renderAll(){
   if(navActivo==='dashboard')renderDashboard();
   if(navActivo==='muestras')renderListaMuestras();
   if(navActivo==='cortes')renderListaCortes();
-  if(mActiva&&!_savingAvio){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh){mActiva=fresh;renderDetalleM();}}
+  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh){mActiva=fresh;renderDetalleM();}}
   if(cActivo){const freshC=window._cortes.find(x=>x.id===cActivo.id);if(freshC){cActivo=freshC;renderDetalleC();}}
 }
 // ── NOTIFICACIONES ──
