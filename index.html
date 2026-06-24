@@ -1595,7 +1595,7 @@ function renderDetalleM(){
     // If ficha cleared and state was taller_ready, revert
     if(!m.fichaLink&&m.estado==='taller_ready'&&currentUser!=='Ariel'){
       const corteOk=!!(m.checks&&m.checks.corte);
-      const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+      const sinAvios=m.llevaAvios===false;
       const aviosList=m.aviosList||[];
       const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
       m.estado=(corteOk&&aviosOk)?'esp_avios':'pendiente_corte';
@@ -1623,7 +1623,7 @@ function renderDetalleM(){
   {
     // Auto-calculate checks from data
     const corteOk=!!(m.checks&&m.checks.corte);
-    const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+    const sinAvios=m.llevaAvios===false;
     const aviosList=m.aviosList||[];
     const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
     const fichaOk=!!m.fichaLink;
@@ -1643,7 +1643,7 @@ function renderDetalleM(){
     // bloquear "lista para taller" si los checks no están completos
     {
       const corteOk=!!(m.checks&&m.checks.corte);
-      const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+      const sinAvios=m.llevaAvios===false;
       const aviosList=m.aviosList||[];
       const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
       const fichaOk=!!m.fichaLink;
@@ -1671,7 +1671,7 @@ async function toggleCheckM(k){if(!mActiva)return;if(!mActiva.checks)mActiva.che
 function checkAutoEstadoM(m){
   if(currentUser==='Ariel')return; // Ariel maneja manualmente
   const corteOk=!!(m.checks&&m.checks.corte);
-  const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+  const sinAvios=m.llevaAvios===false;
   const aviosList=m.aviosList||[];
   const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
   const fichaOk=!!m.fichaLink;
@@ -2303,7 +2303,7 @@ function renderHome(){
     if(muestrasListasTaller.length){
       html+=muestrasListasTaller.map(m=>{
         const aviosList=m.aviosList||[];
-        const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+        const sinAvios=m.llevaAvios===false;
         const aviosPend=aviosList.filter(a=>!a.llegada);
         const fichaOk=!!m.fichaLink;
         const aviosOk=sinAvios||(aviosList.length>0&&aviosPend.length===0);
@@ -2466,7 +2466,7 @@ async function recalcularEstados(){
     // Skip estados finales
     if(['taller','prueba','revision','aprobada'].includes(m.estado))continue;
     const corteOk=!!(m.checks&&m.checks.corte);
-    const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+    const sinAvios=m.llevaAvios===false;
     const aviosList=m.aviosList||[];
     const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
     const fichaOk=!!m.fichaLink;
