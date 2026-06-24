@@ -849,21 +849,17 @@ window._saveProvAvios=async(n)=>{await addDoc(collection(db,'proveedoresAvios'),
 window._deleteProvAvios=async(id)=>{await deleteDoc(doc(db,'proveedoresAvios',id));};
 onSnapshot(doc(db,'config','prioridades'),(snap)=>{
   window._prioridades=snap.exists()?snap.data().orden||[]:[];
-  if(window._appReady&&navActivo==='prioridades')renderPrioridades();
-  if(window._appReady)renderAll();
+  if(window._appReady){limpiarPrioridades();if(navActivo==='prioridades')renderPrioridades();renderAll();}
 });
 window._limpiarPrioTimeout=null;
-window.limpiarPrioridades=()=>{
-  clearTimeout(window._limpiarPrioTimeout);
-  window._limpiarPrioTimeout=setTimeout(async()=>{
-    const ordenActual=[...(window._prioridades||[])];
-    const mActivas=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
-    const cActivos=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
-    const ordenLimpio=ordenActual.filter(k=>mActivas.has(k)||cActivos.has(k));
-    if(ordenLimpio.length!==ordenActual.length){
-      try{await window._savePrioridades(ordenLimpio);window._prioridades=ordenLimpio;}catch(e){}
-    }
-  },1000);
+window.limpiarPrioridades=async()=>{
+  const ordenActual=[...(window._prioridades||[])];
+  const mActivas=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
+  const cActivos=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
+  const ordenLimpio=ordenActual.filter(k=>mActivas.has(k)||cActivos.has(k));
+  if(ordenLimpio.length!==ordenActual.length){
+    try{await window._savePrioridades(ordenLimpio);window._prioridades=ordenLimpio;}catch(e){}
+  }
 };
 window._autoAgregarPrioTimeout=null;
 window.autoAgregarNuevosAPrioridades=async()=>{
@@ -1393,6 +1389,8 @@ function setFiltroC(f,btn){filtroC=f;document.querySelectorAll('#view-cortes .fi
 function renderListaMuestras(){
   const cont=document.getElementById('lista-muestras');
   let lista=filtroM==='todas'?[...window._muestras]:window._muestras.filter(m=>m.estado===filtroM);
+  const ordenM=window._prioridades||[];
+  if(ordenM.length){lista.sort((a,b)=>{const ia=ordenM.indexOf('m_'+a.id),ib=ordenM.indexOf('m_'+b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return-1;return ia-ib;});}
   // Sort by priority order
   const orden=window._prioridades||[];
   if(orden.length){
