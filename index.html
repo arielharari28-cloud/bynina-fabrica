@@ -799,7 +799,6 @@ window._uploadFoto=async(dataUrl)=>{
 onSnapshot(collection(db,'muestras'),(snap)=>{
   window._muestras=[];snap.forEach(d=>window._muestras.push({id:d.id,...d.data()}));
   window._muestras.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  if(mActiva){const fresh=window._muestras.find(x=>x.id===mActiva.id);if(fresh)mActiva=fresh;}
   if(window._appReady){limpiarPrioridades();autoAgregarNuevosAPrioridades();window.renderAll();}
 });
 onSnapshot(collection(db,'cortes'),(snap)=>{
@@ -851,17 +850,23 @@ onSnapshot(doc(db,'config','prioridades'),(snap)=>{
   window._prioridades=snap.exists()?snap.data().orden||[]:[];
   if(window._appReady){limpiarPrioridades();if(navActivo==='prioridades')renderPrioridades();renderAll();}
 });
-window._limpiarPrioTimeout=null;
-window.limpiarPrioridades=async()=>{
-  const ordenActual=[...(window._prioridades||[])];
-  const mActivas=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
-  const cActivos=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
-  const ordenLimpio=ordenActual.filter(k=>mActivas.has(k)||cActivos.has(k));
-  if(ordenLimpio.length!==ordenActual.length){
-    try{await window._savePrioridades(ordenLimpio);window._prioridades=ordenLimpio;}catch(e){}
-  }
-};
 window._autoAgregarPrioTimeout=null;
+window._limpiarPrioRunning=false;
+window.limpiarPrioridades=async()=>{
+  if(window._limpiarPrioRunning)return;
+  window._limpiarPrioRunning=true;
+  try{
+    const ordenActual=[...(window._prioridades||[])];
+    const mOk=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
+    const cOk=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
+    const ordenLimpio=ordenActual.filter(k=>mOk.has(k)||cOk.has(k));
+    if(ordenLimpio.length!==ordenActual.length){
+      window._prioridades=ordenLimpio;
+      await window._savePrioridades(ordenLimpio);
+    }
+  }catch(e){}
+  window._limpiarPrioRunning=false;
+};
 window.autoAgregarNuevosAPrioridades=async()=>{
   // Debounce to avoid multiple calls on load
   clearTimeout(window._autoAgregarPrioTimeout);
@@ -869,10 +874,8 @@ window.autoAgregarNuevosAPrioridades=async()=>{
     const orden=[...(window._prioridades||[])];
     let changed=false;
     // Solo agregar items pendientes de corte
-    const muestrasActivas=window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado));
-    const cortesActivos=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado));
-    muestrasActivas.forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
-    cortesActivos.forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
     if(changed){try{await window._savePrioridades(orden);window._prioridades=orden;}catch(e){}}
   },800);
 };
@@ -1388,20 +1391,7 @@ function setFiltroM(f,btn){filtroM=f;document.querySelectorAll('#view-muestras .
 function setFiltroC(f,btn){filtroC=f;document.querySelectorAll('#view-cortes .filtro').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderListaCortes();}
 function renderListaMuestras(){
   const cont=document.getElementById('lista-muestras');
-  let lista=filtroM==='todas'?[...window._muestras]:window._muestras.filter(m=>m.estado===filtroM);
-  const ordenM=window._prioridades||[];
-  if(ordenM.length){lista.sort((a,b)=>{const ia=ordenM.indexOf('m_'+a.id),ib=ordenM.indexOf('m_'+b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return-1;return ia-ib;});}
-  // Sort by priority order
-  const orden=window._prioridades||[];
-  if(orden.length){
-    lista.sort((a,b)=>{
-      const ia=orden.indexOf('m_'+a.id),ib=orden.indexOf('m_'+b.id);
-      if(ia===-1&&ib===-1)return 0;
-      if(ia===-1)return 1;
-      if(ib===-1)return-1;
-      return ia-ib;
-    });
-  }
+  const lista=filtroM==='todas'?window._muestras:window._muestras.filter(m=>m.estado===filtroM);
   if(!lista.length){cont.innerHTML=`<div class="empty"><div class="empty-icon">🧵</div><h3>${filtroM==='todas'?'Sin muestras':'Nada en esta etapa'}</h3>${filtroM==='todas'?'<p>Peque crea la primera desde el + de abajo.</p>':''}</div>`;return;}
   cont.innerHTML=lista.map(m=>{const ch=m.checks||{};const[ecls,elbl]=estadoDisplay(m.estado,false);
     // badge extra días en revisión
@@ -1415,18 +1405,7 @@ function renderListaMuestras(){
 }
 function renderListaCortes(){
   const cont=document.getElementById('lista-cortes');
-  let lista=filtroC==='todas'?[...window._cortes]:window._cortes.filter(c=>c.estado===filtroC);
-  // Sort by priority order
-  const orden=window._prioridades||[];
-  if(orden.length){
-    lista.sort((a,b)=>{
-      const ia=orden.indexOf('c_'+a.id),ib=orden.indexOf('c_'+b.id);
-      if(ia===-1&&ib===-1)return 0;
-      if(ia===-1)return 1;
-      if(ib===-1)return-1;
-      return ia-ib;
-    });
-  }
+  const lista=filtroC==='todas'?window._cortes:window._cortes.filter(c=>c.estado===filtroC);
   if(!lista.length){cont.innerHTML=`<div class="empty"><div class="empty-icon">✂️</div><h3>${filtroC==='todas'?'Sin cortes':'Nada en esta etapa'}</h3>${filtroC==='todas'?'<p>Peque crea el primero desde el + de abajo.</p>':''}</div>`;return;}
   cont.innerHTML=lista.map(c=>{const[ecls,elbl]=estadoDisplayC(c.estado);
     // calcular bloqueos del corte
@@ -2117,15 +2096,6 @@ function buildPrioItems(){
 }
 
 function renderPrioridades(){
-  // Limpiar prioridades en Firebase si hay items que ya no corresponden
-  const ordenActual=[...(window._prioridades||[])];
-  const muestrasActivasSet=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
-  const cortesActivosSet=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
-  const ordenLimpio=ordenActual.filter(k=>muestrasActivasSet.has(k)||cortesActivosSet.has(k));
-  if(ordenLimpio.length!==ordenActual.length){
-    window._savePrioridades(ordenLimpio);
-    window._prioridades=ordenLimpio;
-  }
   const items=buildPrioItems();
   prioCurrentOrder=items.map(x=>x.tipo+'_'+x.id);
   const cont=document.getElementById('prio-list');
@@ -2448,11 +2418,11 @@ function renderHome(){
     ].filter(Boolean);
 
     // NAHUEL
-    const nahuelM=window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado));
-    const nahuelC=window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado));
+    const nahuelM=window._muestras.filter(m=>m.estado==='pendiente_corte');
+    const nahuelC=window._cortes.filter(c=>c.estado==='pendiente'&&c.capasListas);
     const nahuel_items=[
-      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre+' ['+estadoNombreM(m.estado)+']'),color:'var(--accent)',bg:'var(--accent-light)'},
-      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre+' ['+estadoNombreC(c.estado)+']'),color:'var(--blue)',bg:'var(--blue-light)'},
+      nahuelM.length&&{label:`🧵 Muestras para cortar`,sub:nahuelM.map(m=>m.nombre),color:'var(--accent)',bg:'var(--accent-light)'},
+      nahuelC.length&&{label:`✂️ Cortes para cortar`,sub:nahuelC.map(c=>'Corte #'+(c.nroCorte||'—')+' — '+c.nombre),color:'var(--blue)',bg:'var(--blue-light)'},
     ].filter(Boolean);
 
     // EMIR
@@ -2507,15 +2477,6 @@ function renderHome(){
 
 async function recalcularEstados(){
   if(!confirm('¿Recalcular estados de todas las muestras según sus checks actuales?'))return;
-  // Limpiar prioridades — sacar items que ya no corresponden
-  const ordenActual=[...(window._prioridades||[])];
-  const muestrasActivas=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
-  const cortesActivos=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
-  const ordenLimpio=ordenActual.filter(k=>muestrasActivas.has(k)||cortesActivos.has(k));
-  if(ordenLimpio.length!==ordenActual.length){
-    await window._savePrioridades(ordenLimpio);
-    window._prioridades=ordenLimpio;
-  }
   let actualizadas=0;
   for(const m of window._muestras){
     // Skip estados finales
