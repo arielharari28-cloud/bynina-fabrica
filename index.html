@@ -898,22 +898,26 @@ function abrirNueva(){if(navActivo==='cortes')abrirNuevoCorte();else abrirNuevaM
 function setNahuelTab(t,btn){nahuelTab=t;document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('nahuel-muestras-lista').style.display=t==='muestras'?'block':'none';document.getElementById('nahuel-cortes-lista').style.display=t==='cortes'?'block':'none';}
 function buildListaUnificada(){
   // All items sorted by priority
-  const muestras=window._muestras.map(m=>({
+  const muestras=window._muestras
+    .filter(m=>!(m.checks&&m.checks.corte))  // excluir muestras ya cortadas
+    .map(m=>({
     id:m.id,tipo:'m',nombre:m.nombre,
     codigo:m.codigo||'',tipologia:m.tipologia||'',tela:m.tela||'',
     estado:m.estado,foto:m.foto||null,
     fecha:m.fecha||null,
     fechaCortado:m.fechaCortado||null,
-    cortado:!!(m.checks&&m.checks.corte)
+    cortado:false
   }));
-  const cortes=window._cortes.map(c=>({
+  const cortes=window._cortes
+    .filter(c=>!['listo','en_taller','entregado'].includes(c.estado))  // excluir cortes ya listos
+    .map(c=>({
     id:c.id,tipo:'c',nombre:c.nombre,
     codigo:c.codigos&&c.codigos.length?c.codigos[0]:'',
     nro:c.nroCorte||'',tipologia:c.tipologia||'',tela:c.tela||'',
     estado:c.estado,foto:c.foto||null,
     fecha:c.fecha||null,
     fechaCortado:c.fechaCortado||null,
-    cortado:c.estado==='cortado'||c.estado==='listo'||c.estado==='en_taller'||c.estado==='entregado'
+    cortado:c.estado==='cortado'
   }));
   const all=[...muestras,...cortes];
   const orden=window._prioridades||[];
