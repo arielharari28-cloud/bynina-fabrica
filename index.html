@@ -857,7 +857,7 @@ window.limpiarPrioridades=async()=>{
   window._limpiarPrioRunning=true;
   try{
     const ordenActual=[...(window._prioridades||[])];
-    const mOk=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).map(m=>'m_'+m.id));
+    const mOk=new Set(window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)&&!(m.checks&&m.checks.corte)).map(m=>'m_'+m.id));
     const cOk=new Set(window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).map(c=>'c_'+c.id));
     const ordenLimpio=ordenActual.filter(k=>mOk.has(k)||cOk.has(k));
     if(ordenLimpio.length!==ordenActual.length){
@@ -874,7 +874,7 @@ window.autoAgregarNuevosAPrioridades=async()=>{
     const orden=[...(window._prioridades||[])];
     let changed=false;
     // Solo agregar items pendientes de corte
-    window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)).forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
+    window._muestras.filter(m=>['molderia','pendiente_corte'].includes(m.estado)&&!(m.checks&&m.checks.corte)).forEach(m=>{const k='m_'+m.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
     window._cortes.filter(c=>['pendiente','encimado'].includes(c.estado)).forEach(c=>{const k='c_'+c.id;if(!orden.includes(k)){orden.push(k);changed=true;}});
     if(changed){try{await window._savePrioridades(orden);window._prioridades=orden;}catch(e){}}
   },800);
@@ -1168,14 +1168,11 @@ async function marcarEncimadoC(id){
   const c=window._cortes.find(x=>x.id===id);if(!c)return;
   const aviosInc=(c.aviosList||[]).filter(a=>!a.nombre||!a.proveedor);
   if(c.llevaAvios!==false&&aviosInc.length){alert('Completá el tipo y proveedor de todos los avíos antes de encimar');return;}
-  c.estado='encimado';
-  c.fechaEncimado=new Date().toISOString();
-  if(!c.updates)c.updates=[];
-  c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Pendiente corte → Encimado',fotos:[],fecha:new Date().toISOString()});
-  await window._saveDoc('cortes',c);
-  renderListaUnificada('nahuel-lista-unificada',false);
-  renderListaUnificada('emir-lista-unificada',true);
+  // Abrir sheet de capas — al guardar se marca encimado
+  _encimandoId=id;
+  abrirCapas(id);
 }
+let _encimandoId=null;
 async function desmarcarEncimadoC(id){
   const c=window._cortes.find(x=>x.id===id);if(!c)return;
   c.estado='pendiente';
@@ -2884,6 +2881,9 @@ async function guardarCapas(){
   if(!capasColores.length){alert('Cargá al menos un color');return;}
   const c=window._cortes.find(x=>x.id===capasCorteId);
   if(!c){alert('Corte no encontrado');return;}
+  // If called from encimado flow, mark as encimado after saving
+  const esEncimado=_encimandoId===capasCorteId;
+  _encimandoId=null;
   // Build capasColores array compatible with old format (for Nahuel work card)
   const capasColoresArr=capasColores.map(col=>({
     color:col,
@@ -2898,8 +2898,18 @@ async function guardarCapas(){
   c.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',
     texto:`✂️ Capas cargadas: ${capasColores.join(', ')} | Talles: ${capasTalles.map(x=>x.talle).join(', ')} | Total: ${totalPrendas} prendas`,
     fotos:[],fecha:new Date().toISOString()});
+  if(esEncimado){
+    c.estado='encimado';
+    c.fechaEncimado=new Date().toISOString();
+    if(!c.updates)c.updates=[];
+    c.updates.push({id:Date.now()+'',autor:'Nahuel',tipo:'estado',texto:'Pendiente corte → Encimado',fotos:[],fecha:new Date().toISOString()});
+  }
   await window._saveDoc('cortes',c);
   cerrarCapasBtn();
+  if(esEncimado){
+    renderListaUnificada('nahuel-lista-unificada',false);
+    renderListaUnificada('emir-lista-unificada',true);
+  }
   if(cActivo&&cActivo.id===capasCorteId){
     cActivo=window._cortes.find(x=>x.id===capasCorteId)||cActivo;
     renderDetalleC();
