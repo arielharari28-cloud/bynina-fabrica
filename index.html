@@ -1378,7 +1378,18 @@ function setFiltroM(f,btn){filtroM=f;document.querySelectorAll('#view-muestras .
 function setFiltroC(f,btn){filtroC=f;document.querySelectorAll('#view-cortes .filtro').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderListaCortes();}
 function renderListaMuestras(){
   const cont=document.getElementById('lista-muestras');
-  const lista=filtroM==='todas'?window._muestras:window._muestras.filter(m=>m.estado===filtroM);
+  let lista=filtroM==='todas'?[...window._muestras]:window._muestras.filter(m=>m.estado===filtroM);
+  // Sort by priority order
+  const orden=window._prioridades||[];
+  if(orden.length){
+    lista.sort((a,b)=>{
+      const ia=orden.indexOf('m_'+a.id),ib=orden.indexOf('m_'+b.id);
+      if(ia===-1&&ib===-1)return 0;
+      if(ia===-1)return 1;
+      if(ib===-1)return-1;
+      return ia-ib;
+    });
+  }
   if(!lista.length){cont.innerHTML=`<div class="empty"><div class="empty-icon">🧵</div><h3>${filtroM==='todas'?'Sin muestras':'Nada en esta etapa'}</h3>${filtroM==='todas'?'<p>Peque crea la primera desde el + de abajo.</p>':''}</div>`;return;}
   cont.innerHTML=lista.map(m=>{const ch=m.checks||{};const[ecls,elbl]=estadoDisplay(m.estado,false);
     // badge extra días en revisión
@@ -1392,7 +1403,18 @@ function renderListaMuestras(){
 }
 function renderListaCortes(){
   const cont=document.getElementById('lista-cortes');
-  const lista=filtroC==='todas'?window._cortes:window._cortes.filter(c=>c.estado===filtroC);
+  let lista=filtroC==='todas'?[...window._cortes]:window._cortes.filter(c=>c.estado===filtroC);
+  // Sort by priority order
+  const orden=window._prioridades||[];
+  if(orden.length){
+    lista.sort((a,b)=>{
+      const ia=orden.indexOf('c_'+a.id),ib=orden.indexOf('c_'+b.id);
+      if(ia===-1&&ib===-1)return 0;
+      if(ia===-1)return 1;
+      if(ib===-1)return-1;
+      return ia-ib;
+    });
+  }
   if(!lista.length){cont.innerHTML=`<div class="empty"><div class="empty-icon">✂️</div><h3>${filtroC==='todas'?'Sin cortes':'Nada en esta etapa'}</h3>${filtroC==='todas'?'<p>Peque crea el primero desde el + de abajo.</p>':''}</div>`;return;}
   cont.innerHTML=lista.map(c=>{const[ecls,elbl]=estadoDisplayC(c.estado);
     // calcular bloqueos del corte
