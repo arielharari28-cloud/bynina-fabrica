@@ -106,6 +106,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .est-en-taller{background:var(--purple-light);color:var(--purple)}
 .est-entregado{background:var(--green-light);color:var(--green)}
 .est-encimado{background:#E8F0FE;color:#1A56DB}
+.est-esp-avios{background:#FEF3E2;color:#B45309}
 .dash-tabs{display:flex;gap:6px;margin-bottom:16px}
 .dash-tab{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;text-align:center;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
 .dash-tab.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
@@ -271,6 +272,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
 .estado-opt.active-en_taller{border-color:var(--purple);background:var(--purple-light);color:var(--purple);font-weight:700}
 .estado-opt.active-entregado{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
 .estado-opt.active-encimado{border-color:#1A56DB;background:#E8F0FE;color:#1A56DB;font-weight:700}
+.estado-opt.active-esp_avios{border-color:#B45309;background:#FEF3E2;color:#B45309;font-weight:700}
 .avio-card{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px}
 .avio-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .avio-nombre{font-size:13px;font-weight:600}
@@ -452,6 +454,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
         <button class="filtro active" onclick="setFiltroM('todas',this)">Todas</button>
         <button class="filtro" onclick="setFiltroM('molderia',this)">Moldería</button>
         <button class="filtro" onclick="setFiltroM('pendiente_corte',this)">Pend. corte</button>
+        <button class="filtro" onclick="setFiltroM('esp_avios',this)">Esp. avíos</button>
         <button class="filtro" onclick="setFiltroM('taller_ready',this)">Lista p/ taller</button>
         <button class="filtro" onclick="setFiltroM('taller',this)">En taller</button>
         <button class="filtro" onclick="setFiltroM('prueba',this)">Probar</button>
@@ -590,6 +593,7 @@ main{max-width:480px;margin:0 auto;padding:16px 14px 90px}
       <div class="estado-list">
         <button class="estado-opt" onclick="cambiarEstadoM('molderia')"><span>✂️</span> En moldería</button>
         <button class="estado-opt" onclick="cambiarEstadoM('pendiente_corte')"><span>⏳</span> Pendiente de corte</button>
+        <button class="estado-opt" onclick="cambiarEstadoM('esp_avios')"><span>📦</span> Esperando avíos</button>
         <button class="estado-opt" onclick="cambiarEstadoM('taller_ready')"><span>🟢</span> Lista para taller</button>
         <button class="estado-opt" onclick="cambiarEstadoM('taller')"><span>🧵</span> En taller</button>
         <button class="estado-opt" onclick="cambiarEstadoM('prueba')"><span>👀</span> Probar muestra</button>
@@ -1590,9 +1594,13 @@ function renderDetalleM(){
     if(fichaShow)fichaShow.innerHTML=m.fichaLink?`<a href="${m.fichaLink}" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none">📄 Abrir ficha →</a>`:'';
     // If ficha cleared and state was taller_ready, revert
     if(!m.fichaLink&&m.estado==='taller_ready'&&currentUser!=='Ariel'){
-      m.estado='pendiente_corte';
+      const corteOk=!!(m.checks&&m.checks.corte);
+      const sinAvios=m.llevaAvios===false||m.avios==='Sin avíos';
+      const aviosList=m.aviosList||[];
+      const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
+      m.estado=(corteOk&&aviosOk)?'esp_avios':'pendiente_corte';
       if(!m.updates)m.updates=[];
-      m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:'Lista para taller → Pendiente de corte (ficha eliminada)',foto:null,fecha:new Date().toISOString()});
+      m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:'Lista para taller → '+(m.estado==='esp_avios'?'Esperando avíos':'Pendiente de corte')+' (ficha eliminada)',foto:null,fecha:new Date().toISOString()});
     }
   }
   const sinAviosBtn=document.getElementById('btn-sin-avios-m');
@@ -1667,12 +1675,18 @@ function checkAutoEstadoM(m){
   const aviosList=m.aviosList||[];
   const aviosOk=sinAvios||(aviosList.length>0&&aviosList.every(a=>a.llegada));
   const fichaOk=!!m.fichaLink;
-  // Si todos los checks están ok y el estado es anterior a taller_ready, avanzar
-  if(corteOk&&aviosOk&&fichaOk&&['molderia','pendiente_corte'].includes(m.estado)){
+  // Avanzar estado automáticamente
+  if(corteOk&&aviosOk&&fichaOk&&['molderia','pendiente_corte','esp_avios'].includes(m.estado)){
     const prev=m.estado;
     m.estado='taller_ready';
     if(!m.updates)m.updates=[];
     m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:estadoNombreM(prev)+' → Lista para taller (automático)',foto:null,fecha:new Date().toISOString()});
+  } else if(corteOk&&!aviosOk&&['molderia','pendiente_corte'].includes(m.estado)){
+    // Cortada pero sin avíos completos → Esperando avíos
+    const prev=m.estado;
+    m.estado='esp_avios';
+    if(!m.updates)m.updates=[];
+    m.updates.push({id:Date.now()+'',autor:'Sistema',tipo:'estado',texto:estadoNombreM(prev)+' → Esperando avíos (automático)',foto:null,fecha:new Date().toISOString()});
   }
 }
 async function cambiarEstadoM(nuevo){
@@ -1927,9 +1941,11 @@ async function desmarcarSinAviosM(){
   mActiva.checks.avios=false;
   // Revert state if was taller_ready
   if(mActiva.estado==='taller_ready'&&currentUser!=='Ariel'){
-    mActiva.estado='pendiente_corte';
+    // Si Nahuel ya cortó, volver a esp_avios; sino a pendiente_corte
+    const corteOk=!!(mActiva.checks&&mActiva.checks.corte);
+    mActiva.estado=corteOk?'esp_avios':'pendiente_corte';
     if(!mActiva.updates)mActiva.updates=[];
-    mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'estado',texto:'Lista para taller → Pendiente de corte (avíos desmarcados)',foto:null,fecha:new Date().toISOString()});
+    mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'estado',texto:'Lista para taller → '+(corteOk?'Esperando avíos':'Pendiente de corte')+' (avíos desmarcados)',foto:null,fecha:new Date().toISOString()});
   }
   if(!mActiva.updates)mActiva.updates=[];
   mActiva.updates.push({id:Date.now()+'',autor:currentUser,tipo:'nota',texto:'↩ "Sin avíos" desmarcado',foto:null,fecha:new Date().toISOString()});
@@ -1986,7 +2002,7 @@ function abrirModalAvio(target){
   avioEditIndex=null;avioEditTarget=null;
   document.querySelector('.avio-modal-header span').textContent='Agregar avío';
   document.querySelector('#avio-modal .btn.btn-primary').textContent='Guardar avío';
-  avioTarget=target;avioTarget=target;document.getElementById('avio-modal').classList.add('open');['av-nombre','av-proveedor','av-cantidad','av-precio','av-fecha-pedido','av-fecha-entrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('avio-sugerencia-box').classList.remove('show');}
+  avioTarget=target;document.getElementById('avio-modal').classList.add('open');['av-nombre','av-proveedor','av-cantidad','av-precio','av-fecha-pedido','av-fecha-entrega'].forEach(id=>document.getElementById(id).value='');document.getElementById('avio-sugerencia-box').classList.remove('show');}
 function cerrarModalAvio(e){if(e.target===document.getElementById('avio-modal'))cerrarModalAvioBtn();}
 function cerrarModalAvioBtn(){document.getElementById('avio-modal').classList.remove('open');}
 function buscarSugerencia(){
@@ -2026,7 +2042,7 @@ async function guardarAvio(){
 }
 
 // HELPERS
-function estadoDisplay(e){return{molderia:['est-molderia','En moldería'],pendiente_corte:['est-pendiente-corte','Pendiente de corte'],taller_ready:['est-taller-ready','Lista p/ taller'],taller:['est-taller','En taller'],prueba:['est-prueba','Probar muestra'],revision:['est-revision','Aprobar muestra'],aprobada:['est-aprobada','Aprobada ✓']}[e]||['est-molderia',e];}
+function estadoDisplay(e){return{molderia:['est-molderia','En moldería'],pendiente_corte:['est-pendiente-corte','Pendiente de corte'],esp_avios:['est-esp-avios','Esperando avíos'],taller_ready:['est-taller-ready','Lista p/ taller'],taller:['est-taller','En taller'],prueba:['est-prueba','Probar muestra'],revision:['est-revision','Aprobar muestra'],aprobada:['est-aprobada','Aprobada ✓']}[e]||['est-molderia',e];}
 function estadoDisplayC(e){return{pendiente:['est-pendiente','Pendiente corte'],encimado:['est-encimado','Encimado'],cortado:['est-cortado','Cortado'],listo:['est-listo','Listo p/ taller'],en_taller:['est-en-taller','En taller'],entregado:['est-entregado','Entregado ✓']}[e]||['est-pendiente',e];}
 function estadoNombreM(e){return estadoDisplay(e)[1];}
 function estadoNombreC(e){return estadoDisplayC(e)[1];}
@@ -2164,6 +2180,7 @@ function sortByPrio(items,tipo){
 function renderAll(){
   if(currentUser==='Nahuel'){renderNahuel();return;}
   if(currentUser==='Emir'){renderEmir();return;}
+  if(navActivo==='home')renderHome();
   if(navActivo==='dashboard')renderDashboard();
   if(navActivo==='muestras')renderListaMuestras();
   if(navActivo==='cortes')renderListaCortes();
@@ -2555,7 +2572,7 @@ async function borrarUpdateM(uid){
     const match=upd.texto&&upd.texto.match(/^(.+) → (.+)$/);
     if(match){
       const nombrePrev=match[1].trim();
-      const mapaEstados={'En moldería':'molderia','Pendiente de corte':'pendiente_corte','Lista p/ taller':'taller_ready','En taller':'taller','Probar muestra':'prueba','Aprobar muestra':'revision','Aprobada ✓':'aprobada'};
+      const mapaEstados={'En moldería':'molderia','Pendiente de corte':'pendiente_corte','Esperando avíos':'esp_avios','Lista p/ taller':'taller_ready','En taller':'taller','Probar muestra':'prueba','Aprobar muestra':'revision','Aprobada ✓':'aprobada'};
       const estadoPrev=mapaEstados[nombrePrev];
       if(estadoPrev)mActiva.estado=estadoPrev;
     }
