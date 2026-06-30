@@ -170,6 +170,7 @@
     <button class="user-btn" id="btn-ariel"><div class="user-avatar" style="background:#2d6a4f">A</div><div><div class="uname">Ariel</div><div class="urole">Administrador — acceso total</div></div></button>
     <button class="user-btn" id="btn-peque"><div class="user-avatar" style="background:#5b21b6">P</div><div><div class="uname">Peque</div><div class="urole">Fábrica — acciones registradas</div></div></button>
     <button class="user-btn" id="btn-emir"><div class="user-avatar" style="background:#b45309">E</div><div><div class="uname">Emir</div><div class="urole">Depósito — recepción de avíos</div></div></button>
+    <button class="user-btn" id="btn-nahuel"><div class="user-avatar" style="background:#1d4ed8">C</div><div><div class="uname">Cortador</div><div class="urole">Corte — pendientes y cortes realizados</div></div></button>
   </div>
 </div>
 
@@ -363,6 +364,7 @@ const INITIAL_SECTIONS = {
     i7:{code:'#102 · 11663A',name:'Pantalon Pinzas Clasico Sastrero',sub:'',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
     i8:{code:'#103',name:'Chomba ML Algodon con Lycra',sub:'',done:false,avios:{}},
   }},
+  s3b:{title:'Cortes realizados',color:'green',order:4.5,items:{}},
   s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:5,items:{
     i1:{code:'Corte 102',name:'1163A · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
     i2:{code:'Corte 105',name:'7226A · Campera Bomber Paño Rayado Ana',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
@@ -393,6 +395,7 @@ function showToast(msg){
 document.getElementById('btn-ariel').onclick=()=>doLogin('ariel');
 document.getElementById('btn-peque').onclick=()=>doLogin('peque');
 document.getElementById('btn-emir').onclick=()=>doLogin('emir');
+document.getElementById('btn-nahuel').onclick=()=>doLogin('nahuel');
 document.getElementById('user-chip').onclick=doLogout;
 
 function doLogin(user){
@@ -403,6 +406,10 @@ function doLogin(user){
   if(user==='ariel'){
     document.getElementById('notif-btn').classList.remove('hidden');
     document.getElementById('add-sec-btn').classList.remove('hidden');
+  }
+  if(user==='nahuel'){
+    document.getElementById('stats-bar').classList.add('hidden');
+    document.querySelector('.tabs').classList.add('hidden');
   }
   startListening();
 }
@@ -522,7 +529,11 @@ function renderStats(){
 
 function renderSections(){
   const c=document.getElementById('sections-container');c.innerHTML='';
-  Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).forEach(([secId,sec])=>{
+  let entries=Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  if(currentUser==='nahuel'){
+    entries=entries.filter(([secId])=>secId===SEC_PEND||secId==='s3'||secId==='s3b');
+  }
+  entries.forEach(([secId,sec])=>{
     const col=COLORS[sec.color]||COLORS.accent;
     const items=Object.entries(sec.items||{});
     const count=items.length;
@@ -530,7 +541,7 @@ function renderSections(){
     const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
-    const canAdd=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_PEND;
+    const canAdd=(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
     const addRow=canAdd?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
@@ -715,7 +726,7 @@ function buildMoveOptsForItem(secId,itemId){
 
 // Rerender buildItem con move correcto
 function buildItem(secId,itemId,item,sec){
-  const canEdit=currentUser==='ariel'||currentUser==='peque';
+  const canEdit=currentUser==='ariel'||currentUser==='peque'||(currentUser==='nahuel'&&secId===SEC_PEND);
   const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
   const tipo=sec.tipo||'';
   const moveOpts=buildMoveOptsForItem(secId,itemId);
@@ -775,7 +786,10 @@ function buildItem(secId,itemId,item,sec){
               <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
                 ${ficha?'✓':''}
               </div>
-              <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
+              ${item.ficha_link
+                ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" class="c-label ${ficha?'done':''}" style="color:var(--accent);text-decoration:underline">Ficha Producto lista 🔗</a>`
+                : `<span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>`}
+              ${canCheck?`<button class="btn-sm" style="margin-left:auto" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
             </div>
             <div class="cortada-row">
               <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
@@ -867,16 +881,24 @@ function buildItem(secId,itemId,item,sec){
   }
 
   const canToggle=currentUser==='ariel'||currentUser==='peque';
+  const canCortar=secId==='s3'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
+  const checkHtml = secId==='s3'
+    ? '' // en s3 no hay checkbox, se usa botón Marcar cortado
+    : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
+  const fechaCorteHtml = secId==='s3b'&&item.fecha_corte
+    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   return `<div class="item ${item.done?'done':''}">
-    <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
+    ${checkHtml}
     <div class="item-with-photo" style="flex:1">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${fechaCorteHtml}
         ${aviosHtml}
         <div class="item-actions">
+          ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
           ${moveOpts}
           ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
@@ -887,6 +909,19 @@ function buildItem(secId,itemId,item,sec){
 }
 
 // ACTIONS
+function marcarCorteRealizado(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const hoy=new Date();
+  const fechaDefault=hoy.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const fecha=prompt('¿Qué fecha se cortó?',fechaDefault);
+  if(fecha===null) return;
+  const newItem={...item, fecha_corte:fecha.trim()||fechaDefault, done:true};
+  db.ref(`fabrica_v5/sections/s3b/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault}`);
+  showToast(`✂️ ${item.code} cortado`);
+}
+
 function toggleSec(secId){db.ref(`fabrica_v5/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
 
 function toggleItem(secId,itemId){
@@ -895,6 +930,15 @@ function toggleItem(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/done`).set(nv);
   logActivity(nv?'Marcó listo':'Desmarcó',`${item.code}`);
   showToast(nv?'✓ Marcado como listo':'Desmarcado');
+}
+
+function editFichaLink(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const link=prompt('Pegá el link de la Ficha Producto (Drive, etc):',item.ficha_link||'');
+  if(link===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_link`).set(link.trim());
+  logActivity('Cargó link de ficha',item.code);
+  showToast(link.trim()?'✓ Link guardado':'Link eliminado');
 }
 
 function toggleFicha(secId,itemId){
