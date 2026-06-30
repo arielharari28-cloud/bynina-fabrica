@@ -109,6 +109,8 @@
   /* FOTO */
   .item-with-photo{display:flex;gap:10px;width:100%}
   .item-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
+  .item-photo-wrap{position:relative;width:56px;height:56px;flex-shrink:0}
+  .photo-edit-btn{position:absolute;bottom:-4px;right:-4px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);padding:0}
   .item-photo-placeholder{width:56px;height:56px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text3)}
   .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
   .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
@@ -305,7 +307,13 @@ function saveItemCode(secId,itemId,el){
 
 function buildPhotoHtml(secId,itemId,item,canEdit){
   if (item.foto) {
-    return `<img class="item-photo" src="${item.foto}" onclick="openPhotoModal('${item.foto}')" ${canEdit?`oncontextmenu="event.preventDefault();triggerPhotoUpload('${secId}','${itemId}')"`:''}>`;
+    const editBtn = canEdit
+      ? `<button class="photo-edit-btn" onclick="event.stopPropagation();triggerPhotoUpload('${secId}','${itemId}')" title="Cambiar foto">✏️</button>`
+      : '';
+    return `<div class="item-photo-wrap">
+      <img class="item-photo" src="${item.foto}" onclick="openPhotoModal('${item.foto}')">
+      ${editBtn}
+    </div>`;
   }
   if (canEdit) {
     return `<div class="item-photo-placeholder" onclick="triggerPhotoUpload('${secId}','${itemId}')" title="Agregar foto">📷</div>`;
