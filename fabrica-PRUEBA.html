@@ -855,6 +855,7 @@ function buildItem(secId,itemId,item,sec){
             <button class="btn-advance" onclick="confirmarEnvioTaller('${secId}','${itemId}')">📦 Enviar a taller</button>
           </div>`:''}
           <div class="item-actions">
+            ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
             ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
@@ -878,6 +879,7 @@ function buildItem(secId,itemId,item,sec){
             <div class="en-taller-row"><span class="et-label">Días sin entregar:</span><span class="et-val" style="color:${diasColor};font-weight:700">${dias} día${dias!==1?'s':''}</span></div>
           </div>
           <div class="item-actions">
+            ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
             ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
