@@ -433,10 +433,20 @@ function startListening(){
   db.ref('fabrica_v5').once('value',snap=>{
     if(!snap.val()) db.ref('fabrica_v5/sections').set(INITIAL_SECTIONS);
     else{
-      // Reparar sección s3b si quedó sin metadata (título undefined)
+      // Reparar cualquier sección fija que haya quedado sin metadata (título undefined)
       const data=snap.val();
-      if(data.sections && data.sections.s3b && !data.sections.s3b.title){
-        db.ref('fabrica_v5/sections/s3b').update({title:'Cortes realizados',color:'green',order:4.5,collapsed:false});
+      if(data.sections){
+        Object.keys(INITIAL_SECTIONS).forEach(secId=>{
+          const existing=data.sections[secId];
+          if(existing && !existing.title){
+            const base=INITIAL_SECTIONS[secId];
+            db.ref(`fabrica_v5/sections/${secId}`).update({
+              title:base.title, color:base.color, order:base.order,
+              collapsed:existing.collapsed||false,
+              ...(base.tipo?{tipo:base.tipo}:{})
+            });
+          }
+        });
       }
     }
   });
