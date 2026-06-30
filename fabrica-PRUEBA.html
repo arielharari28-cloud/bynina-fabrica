@@ -424,6 +424,13 @@ function doLogout(){
 function startListening(){
   db.ref('fabrica_v5').once('value',snap=>{
     if(!snap.val()) db.ref('fabrica_v5/sections').set(INITIAL_SECTIONS);
+    else{
+      // Reparar sección s3b si quedó sin metadata (título undefined)
+      const data=snap.val();
+      if(data.sections && data.sections.s3b && !data.sections.s3b.title){
+        db.ref('fabrica_v5/sections/s3b').update({title:'Cortes realizados',color:'green',order:4.5,collapsed:false});
+      }
+    }
   });
   db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
@@ -887,6 +894,7 @@ function buildItem(secId,itemId,item,sec){
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
   const fechaCorteHtml = secId==='s3b'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
+  const canDeshacer=secId==='s3b'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   return `<div class="item ${item.done?'done':''}">
     ${checkHtml}
     <div class="item-with-photo" style="flex:1">
@@ -899,6 +907,7 @@ function buildItem(secId,itemId,item,sec){
         ${aviosHtml}
         <div class="item-actions">
           ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
+          ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
           ${moveOpts}
           ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
@@ -916,10 +925,27 @@ function marcarCorteRealizado(secId,itemId){
   const fecha=prompt('¿Qué fecha se cortó?',fechaDefault);
   if(fecha===null) return;
   const newItem={...item, fecha_corte:fecha.trim()||fechaDefault, done:true};
+  // Asegurar metadata de la sección destino (por si no existía aún en Firebase)
+  if(!sectionsData['s3b'] || !sectionsData['s3b'].title){
+    db.ref('fabrica_v5/sections/s3b').update({title:'Cortes realizados',color:'green',order:4.5,collapsed:false});
+  }
   db.ref(`fabrica_v5/sections/s3b/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault}`);
   showToast(`✂️ ${item.code} cortado`);
+}
+
+function deshacerCorte(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item, done:false};
+  delete newItem.fecha_corte;
+  if(!sectionsData['s3'] || !sectionsData['s3'].title){
+    db.ref('fabrica_v5/sections/s3').update({title:'Cortes próximos a sacar',color:'accent',order:4,collapsed:false});
+  }
+  db.ref(`fabrica_v5/sections/s3/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Deshizo corte',item.code);
+  showToast(`↩ ${item.code} volvió a próximos a sacar`);
 }
 
 function toggleSec(secId){db.ref(`fabrica_v5/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
