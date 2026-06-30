@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fábrica — By Nina</title>
+<style>
+  :root {
+    --bg:#f7f5f2;--surface:#fff;--surface2:#f0ede9;--border:#e2ddd8;--border2:#ccc8c2;
+    --text:#1a1714;--text2:#6b6560;--text3:#a09890;
+    --accent:#2d6a4f;--accent-bg:#e8f4ef;
+    --danger:#991b1b;--danger-bg:#fee2e2;
+    --warn-bg:#fef3c7;--warn-text:#92400e;
+    --green-bg:#dcfce7;--green-text:#166534;
+    --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .login-card{background:var(--surface);border-radius:16px;padding:40px 32px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.1);text-align:center}
+  .login-logo{font-size:13px;font-weight:700;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+  .login-title{font-size:22px;font-weight:700;margin-bottom:4px}
+  .login-sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+  .user-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;margin-bottom:10px;transition:all .15s;text-align:left}
+  .user-btn:hover{border-color:var(--accent);background:var(--accent-bg)}
+  .user-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+  .uname{font-size:14px;font-weight:600}.urole{font-size:11px;color:var(--text2)}
+
+  #app{display:none}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .topbar-left{display:flex;align-items:center;gap:8px}
+  .topbar-logo{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase}
+  .topbar-title{font-size:15px;font-weight:600}
+  .user-chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--surface2);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer}
+  .notif-btn{position:relative;width:34px;height:34px;border-radius:50%;border:none;background:var(--surface2);cursor:pointer;font-size:16px;margin-right:6px}
+  .notif-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+  .main{max-width:720px;margin:0 auto;padding:16px}
+  .tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);border-radius:var(--radius);padding:3px}
+  .tab{flex:1;padding:7px;border-radius:8px;border:none;background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer}
+  .tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);font-weight:600}
+
+  .section{margin-bottom:14px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .sec-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer}
+  .sec-left{display:flex;align-items:center;gap:8px}
+  .sec-title{font-size:13px;font-weight:600}
+  .sec-count{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;background:rgba(255,255,255,.25)}
+  .sec-body{border-top:1px solid rgba(0,0,0,.07)}
+  .sec-add{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface)}
+  .sec-add input{flex:1;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:6px 10px;background:var(--bg);color:var(--text)}
+  .sec-add input:focus{outline:none;border-color:var(--accent)}
+  .sec-add button{font-size:12px;padding:6px 10px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+
+  .item{background:var(--surface);padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+  .item:last-of-type{border-bottom:none}
+  .item-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;transition:all .15s}
+  .item-check.checked{background:var(--accent);border-color:var(--accent)}
+  .item-body{flex:1;min-width:0}
+  .item-code{font-size:13px;font-weight:600}
+  .item-code-edit{font-size:13px;font-weight:600;border:1px dashed transparent;border-radius:4px;padding:1px 4px;cursor:text;display:inline-block}
+  .item-code-edit:hover{border-color:var(--border2);background:var(--surface2)}
+  .item-name{font-size:12px;color:var(--text2);margin-top:1px}
+  .item.done .item-code,.item.done .item-name{text-decoration:line-through;color:var(--text3)}
+  .item-actions{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center}
+
+  /* CORTADA PANEL */
+  .cortada-panel{margin-top:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);overflow:hidden}
+  .cortada-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)}
+  .cortada-row:last-child{border-bottom:none}
+  .c-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;transition:all .15s}
+  .c-check.checked{background:var(--accent);border-color:var(--accent)}
+  .c-label{font-size:12px;color:var(--text2);flex:1}
+  .c-label.done{color:var(--text3);text-decoration:line-through}
+  .radio-group{display:flex;gap:6px}
+  .radio-btn{padding:4px 12px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;font-size:11px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500}
+  .radio-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600}
+
+  /* AVÍOS dentro cortada */
+  .avios-sub{display:flex;flex-direction:column}
+  .avio-item{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 32px;border-top:1px solid var(--border);flex-wrap:wrap}
+  .avio-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .avio-name{font-size:11px;color:var(--text2);flex:1;min-width:0}
+  .avio-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+  .avio-btn{font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap}
+  .avio-btn:hover{background:var(--surface)}
+  .avio-btn.green{border-color:var(--accent);color:var(--accent)}
+
+  /* AVÍOS secciones normales */
+  .avios-normal{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+  .avio-row-n{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+  .btn-sm{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
+  .btn-sm:hover{background:var(--surface2)}
+  .btn-danger{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);cursor:pointer}
+  .btn-advance{font-size:11px;padding:5px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+  .move-select{font-size:11px;border:1px solid var(--border2);border-radius:6px;padding:3px 6px;background:var(--bg);color:var(--text);cursor:pointer;max-width:180px}
+
+  /* LISTO badge */
+  .listo-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;font-weight:600;background:var(--green-bg);color:var(--green-text);margin-top:6px}
+
+  .enviar-taller-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+
+  .en-taller-panel{margin-top:8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);padding:4px 0}
+  .en-taller-row{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:12px}
+  .et-label{color:var(--text2)}
+  .et-val{color:var(--text);font-weight:500}
+
+  /* FOTO */
+  .item-with-photo{display:flex;gap:10px;width:100%}
+  .item-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
+  .item-photo-placeholder{width:56px;height:56px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text3)}
+  .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+  .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
+  .photo-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer}
+  .photo-upload-label{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
+  .photo-uploading{font-size:10px;color:var(--text3)}
+
+  /* NOMBRE inline editable */
+  .item-name-edit{font-size:12px;color:var(--text2);border:1px dashed transparent;border-radius:4px;padding:1px 4px;margin-top:1px;cursor:text;display:inline-block;min-height:16px}
+  .item-name-edit:hover{border-color:var(--border2);background:var(--surface2)}
+  .item-name-edit:empty:before{content:'+ agregar nombre';color:var(--text3);font-style:italic}
+  .item-name-edit-input{font-size:12px;border:1px solid var(--accent);border-radius:4px;padding:2px 6px;width:100%;margin-top:2px;background:var(--surface)}
+
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .stat-card{background:var(--surface);border-radius:var(--radius);padding:10px 12px;text-align:center;box-shadow:var(--shadow)}
+  .stat-num{font-size:22px;font-weight:700}.stat-label{font-size:10px;color:var(--text3);margin-top:2px}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+  .modal-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-title{font-size:15px;font-weight:700}
+  .modal-close{font-size:22px;background:none;border:none;cursor:pointer;color:var(--text2);line-height:1}
+  .modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+  .modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+  .field label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .field input,.field select{width:100%;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text)}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .btn-primary{padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-secondary{padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+  .avio-block{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px}
+
+  .notif-panel{position:fixed;top:52px;right:8px;width:320px;max-height:70vh;background:var(--surface);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);z-index:150;overflow:hidden;display:flex;flex-direction:column}
+  .notif-panel-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .notif-list{overflow-y:auto;flex:1}
+  .notif-item{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px}
+  .notif-item.unread{background:var(--accent-bg)}
+  .notif-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
+  .notif-dot.read{background:var(--border2)}
+  .notif-text{font-size:12px;flex:1;line-height:1.4}
+  .notif-time{font-size:10px;color:var(--text3);margin-top:2px}
+  .notif-read-btn{font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;white-space:nowrap}
+  .mark-all-btn{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:500}
+  .empty-state{padding:32px;text-align:center;color:var(--text3);font-size:13px}
+  .add-sec-btn{width:100%;padding:10px;font-size:13px;border-radius:var(--radius);border:1.5px dashed var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-top:4px}
+  .hidden{display:none!important}
+  .loading{text-align:center;padding:40px;color:var(--text3);font-size:14px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1714;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">By Nina</div>
+    <div class="login-title">Fábrica</div>
+    <div class="login-sub">¿Quién sos?</div>
+    <button class="user-btn" id="btn-ariel"><div class="user-avatar" style="background:#2d6a4f">A</div><div><div class="uname">Ariel</div><div class="urole">Administrador — acceso total</div></div></button>
+    <button class="user-btn" id="btn-peque"><div class="user-avatar" style="background:#5b21b6">P</div><div><div class="uname">Peque</div><div class="urole">Fábrica — acciones registradas</div></div></button>
+    <button class="user-btn" id="btn-emir"><div class="user-avatar" style="background:#b45309">E</div><div><div class="uname">Emir</div><div class="urole">Depósito — recepción de avíos</div></div></button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left"><span class="topbar-logo">By Nina</span><span class="topbar-title">· Fábrica</span></div>
+    <div style="display:flex;align-items:center">
+      <button class="notif-btn hidden" id="notif-btn">🔔<span class="notif-badge hidden" id="notif-badge">0</span></button>
+      <div class="user-chip" id="user-chip">— <span style="opacity:.4">salir</span></div>
+    </div>
+  </div>
+  <div class="notif-panel hidden" id="notif-panel">
+    <div class="notif-panel-header"><span style="font-size:13px;font-weight:700">Actividad de Peque</span><button class="mark-all-btn" id="mark-all-btn">Marcar todo leído</button></div>
+    <div class="notif-list" id="notif-list"></div>
+  </div>
+  <div class="main">
+    <div class="tabs">
+      <button class="tab active" id="tab-btn-tablero">Tablero</button>
+      <button class="tab" id="tab-btn-actividad">Actividad</button>
+    </div>
+    <div id="tab-tablero">
+      <div class="stats-bar" id="stats-bar"></div>
+      <div id="sections-container"><div class="loading">Conectando...</div></div>
+      <button class="add-sec-btn hidden" id="add-sec-btn">+ Nueva sección</button>
+    </div>
+    <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
+  </div>
+</div>
+
+<!-- Modal editar ítem -->
+<div class="modal-overlay hidden" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Editar ítem</span><button class="modal-close" id="close-modal-edit">×</button></div>
+    <div class="modal-body" id="modal-edit-body"></div>
+    <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-edit">Cancelar</button><button class="btn-primary" id="save-modal-edit">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Modal nueva sección -->
+<div class="modal-overlay hidden" id="modal-sec">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Nueva sección</span><button class="modal-close" id="close-modal-sec">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Nombre</label><input type="text" id="new-sec-name" placeholder="Ej: Cortes en revisión"></div>
+      <div class="field"><label>Color</label><select id="new-sec-color"><option value="purple">Violeta</option><option value="warn">Naranja</option><option value="danger">Rojo</option><option value="accent">Verde claro</option><option value="green">Verde oscuro</option></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-sec">Cancelar</button><button class="btn-primary" id="save-modal-sec">Crear</button></div>
+  </div>
+</div>
+
+<!-- Modal foto grande -->
+<div class="photo-modal-overlay hidden" id="photo-modal" onclick="closePhotoModal()">
+  <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
+  <img class="photo-modal-img" id="photo-modal-img" src="" onclick="event.stopPropagation()">
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBqZ9ZkYfcDfXVEIGVsZM5_cByJkBXhVeA",
+  authDomain:"bynina-c1eec.firebaseapp.com",
+  databaseURL:"https://bynina-c1eec-default-rtdb.firebaseio.com",
+  projectId:"bynina-c1eec",
+  storageBucket:"bynina-c1eec.appspot.com",
+  messagingSenderId:"1059883614729",
+  appId:"1:1059883614729:web:bynina"
+});
+const db = firebase.database();
+
+// Cloudinary config (mismo que otras apps By Nina)
+const CLOUDINARY_CLOUD = 'dt6ijkpyy';
+const CLOUDINARY_PRESET = 'By Nina';
+
+function openPhotoModal(url){
+  document.getElementById('photo-modal-img').src = url;
+  document.getElementById('photo-modal').classList.remove('hidden');
+}
+function closePhotoModal(){
+  document.getElementById('photo-modal').classList.add('hidden');
+}
+
+async function uploadPhoto(secId,itemId,file){
+  showToast('📤 Subiendo foto...');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST', body: formData
+    });
+    const data = await res.json();
+    if (data.secure_url) {
+      db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/foto`).set(data.secure_url);
+      const item = sectionsData[secId].items[itemId];
+      logActivity('Agregó foto', item.code);
+      showToast('✓ Foto cargada');
+    } else {
+      showToast('✗ Error al subir foto');
+    }
+  } catch(e) {
+    showToast('✗ Error al subir foto');
+  }
+}
+
+function triggerPhotoUpload(secId,itemId){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    if (e.target.files[0]) uploadPhoto(secId,itemId,e.target.files[0]);
+  };
+  input.click();
+}
+
+function saveItemName(secId,itemId,el){
+  const newName = el.textContent.trim();
+  const item = sectionsData[secId].items[itemId];
+  if (newName === (item.name||'')) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/name`).set(newName);
+  logActivity('Editó nombre', `${item.code} → ${newName}`);
+}
+
+function saveItemCode(secId,itemId,el){
+  const newCode = el.textContent.trim();
+  const item = sectionsData[secId].items[itemId];
+  if (!newCode) { el.textContent = item.code; return; }
+  if (newCode === (item.code||'')) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/code`).set(newCode);
+  logActivity('Editó código', `${item.code} → ${newCode}`);
+}
+
+function buildPhotoHtml(secId,itemId,item,canEdit){
+  if (item.foto) {
+    return `<img class="item-photo" src="${item.foto}" onclick="openPhotoModal('${item.foto}')" ${canEdit?`oncontextmenu="event.preventDefault();triggerPhotoUpload('${secId}','${itemId}')"`:''}>`;
+  }
+  if (canEdit) {
+    return `<div class="item-photo-placeholder" onclick="triggerPhotoUpload('${secId}','${itemId}')" title="Agregar foto">📷</div>`;
+  }
+  return '';
+}
+
+function buildNameHtml(secId,itemId,item,canEdit){
+  if (!canEdit) {
+    return item.name ? `<div class="item-name">${item.name}</div>` : '';
+  }
+  return `<div class="item-name-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
+    onblur="saveItemName('${secId}','${itemId}',this)"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
+}
+
+function buildCodeHtml(secId,itemId,item,canEdit){
+  if (!canEdit) return `<div class="item-code">${item.code}</div>`;
+  return `<div class="item-code-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
+    onblur="saveItemCode('${secId}','${itemId}',this)"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.code}</div>`;
+}
+
+// IDs fijos para las 3 secciones de muestras
+const SEC_PEND  = 'muestra_pendiente';
+const SEC_CORT  = 'muestra_cortada';
+const SEC_LISTA = 'muestra_lista';
+const SEC_TALLER = 'muestra_en_taller';
+
+const COLORS = {
+  accent:{secBg:'#2d6a4f',secText:'#fff'},
+  warn:{secBg:'#92400e',secText:'#fff'},
+  danger:{secBg:'#991b1b',secText:'#fff'},
+  purple:{secBg:'#5b21b6',secText:'#fff'},
+  green:{secBg:'#166534',secText:'#fff'},
+};
+
+const INITIAL_SECTIONS = {
+  [SEC_PEND]:{title:'Muestras — pendiente corte',color:'danger',order:1,tipo:'muestra_pend',items:{
+    i1:{code:'7421',name:'',done:false,avios:{}},
+    i2:{code:'7439',name:'',done:false,avios:{}},
+    i3:{code:'4754',name:'',done:false,avios:{}},
+    i4:{code:'7352',name:'',done:false,avios:{}},
+    i5:{code:'4726A',name:'',done:false,avios:{}},
+  }},
+  [SEC_CORT]:{title:'Muestras — cortadas',color:'warn',order:2,tipo:'muestra_cort',items:{}},
+  [SEC_LISTA]:{title:'Muestras — listas para taller',color:'green',order:3,tipo:'muestra_lista',items:{}},
+  [SEC_TALLER]:{title:'Muestras — en taller',color:'purple',order:4,tipo:'muestra_en_taller',items:{}},
+  s3:{title:'Cortes próximos a sacar',color:'accent',order:4,items:{
+    i1:{code:'#104',name:'Blazer Corto Paño Rayado',sub:'Cortado',done:false,avios:{}},
+    i2:{code:'#105 · 7226A',name:'Campera Bomber Paño Rayado Ana',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i3:{code:'#106 · 7228',name:'Campera Bolsillos Paño Rayado',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i4:{code:'#107 · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Lacoste Friza Estampada',done:false,avios:{}},
+    i5:{code:'#107B · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Kansas Friza Invisible',done:false,avios:{}},
+    i6:{code:'#107C · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Puño SF/KANSAS/NEB',done:false,avios:{}},
+    i7:{code:'#102 · 11663A',name:'Pantalon Pinzas Clasico Sastrero',sub:'',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i8:{code:'#103',name:'Chomba ML Algodon con Lycra',sub:'',done:false,avios:{}},
+  }},
+  s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:5,items:{
+    i1:{code:'Corte 102',name:'1163A · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i2:{code:'Corte 105',name:'7226A · Campera Bomber Paño Rayado Ana',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i3:{code:'Corte 106',name:'7228A · Campera Bolsillos Paño Rayado',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+  }},
+  s5:{title:'Cortes bloqueados — avío pedido, sin entregar',color:'green',order:6,items:{
+    i1:{code:'Corte 76',name:'4742 · Top Halter con Encaje Algodon c Lycra',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
+    i2:{code:'Corte 77',name:'4738 · Remera Ancha con Encaje Jersey Uniqlo',done:false,avios:{}},
+    i3:{code:'Corte 78',name:'4743 · Remeron Tipo Milo Irregular con Encaje Jersey Uniqlo',done:false,avios:{}},
+    i4:{code:'Corte 79',name:'4744 · Remera Escote Pico con Encaje Morley Taylor',done:false,avios:{}},
+    i5:{code:'Corte 81',name:'4740 · Top Musculosa con Encaje Boston Ribb',done:false,avios:{}},
+    i6:{code:'Corte 88',name:'8027 · Campera Bolsillos y Cordon Rugby Friza',done:false,avios:{a1:{nombre:'Cordón Puntera Metálica 1,10Mts',proveedor:'Button Company',fecha_pedido:'3/6/2026',recibido:false}}},
+    i7:{code:'Corte 94',name:'4752 · Top con Puntilla con Cuello',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
+    i8:{code:'Corte 97',name:'1163 · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false}}},
+  }},
+};
+
+let currentUser=null, sectionsData={}, actividadData={};
+let editCtx={secId:null,itemId:null,newAvioCount:0};
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// LOGIN
+document.getElementById('btn-ariel').onclick=()=>doLogin('ariel');
+document.getElementById('btn-peque').onclick=()=>doLogin('peque');
+document.getElementById('btn-emir').onclick=()=>doLogin('emir');
+document.getElementById('user-chip').onclick=doLogout;
+
+function doLogin(user){
+  currentUser=user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-chip').innerHTML=user.charAt(0).toUpperCase()+user.slice(1)+' <span style="opacity:.4">salir</span>';
+  if(user==='ariel'){
+    document.getElementById('notif-btn').classList.remove('hidden');
+    document.getElementById('add-sec-btn').classList.remove('hidden');
+  }
+  startListening();
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('notif-btn').classList.add('hidden');
+  document.getElementById('add-sec-btn').classList.add('hidden');
+}
+
+function startListening(){
+  db.ref('fabrica_v5').once('value',snap=>{
+    if(!snap.val()) db.ref('fabrica_v5/sections').set(INITIAL_SECTIONS);
+  });
+  db.ref('fabrica_v5/sections').on('value',snap=>{
+    sectionsData=snap.val()||{};
+    renderSections();renderStats();
+  });
+  db.ref('fabrica_v5/actividad').on('value',snap=>{
+    actividadData=snap.val()||{};
+    renderNotifBadge();renderNotifPanel();
+    if(!document.getElementById('tab-actividad').classList.contains('hidden')) renderActividad();
+  });
+}
+
+function logActivity(action,details){
+  if(currentUser!=='peque') return;
+  db.ref('fabrica_v5/actividad').push({user:'Peque',action,details,timestamp:Date.now(),read:false});
+}
+
+// AUTO-MOVE muestra: de pendiente → cortada
+function moverACortada(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item,ficha:false,lleva_avios:null,avios:item.avios||{}};
+  db.ref(`fabrica_v5/sections/${SEC_CORT}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Muestra cortada',item.code);
+  showToast(`✂️ ${item.code} pasó a Cortadas`);
+}
+
+const TALLERISTAS_MUESTRA = ['Adela', 'Willy Ramos'];
+
+function moverALista(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item};
+  db.ref(`fabrica_v5/sections/${SEC_LISTA}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Muestra lista para taller',item.code);
+  showToast('🎉 ¡Lista para sacar a taller!');
+}
+
+function enviarATaller(secId,itemId,tallerista){
+  if(!tallerista||!tallerista.trim()) return;
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item, tallerista:tallerista.trim(), fecha_envio_taller:Date.now()};
+  db.ref(`fabrica_v5/sections/${SEC_TALLER}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Enviada a taller',`${item.code} → ${tallerista.trim()}`);
+  showToast(`📦 Enviada a ${tallerista.trim()}`);
+}
+
+function confirmarEnvioTaller(secId,itemId){
+  const sel = document.getElementById(`taller-sel-${itemId}`);
+  let val = sel.value;
+  if(!val){ showToast('Elegí un taller primero'); return; }
+  if(val==='__nuevo__'){
+    const nuevo = prompt('Nombre del taller:');
+    if(!nuevo||!nuevo.trim()) return;
+    val = nuevo.trim();
+  }
+  enviarATaller(secId,itemId,val);
+}
+
+function diasDesde(timestamp){
+  if(!timestamp) return 0;
+  const ms = Date.now() - timestamp;
+  return Math.floor(ms / (1000*60*60*24));
+}
+
+function fmtFecha(timestamp){
+  if(!timestamp) return '';
+  const d = new Date(timestamp);
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
+  if(!ficha) return;
+  if(llevaAvios===false){
+    setTimeout(()=>moverALista(secId,itemId),500);
+    return;
+  }
+  if(llevaAvios===true){
+    const avList=Object.values(avios||{});
+    if(avList.length>0 && avList.every(a=>a.recibido)){
+      setTimeout(()=>moverALista(secId,itemId),500);
+    }
+  }
+}
+
+function renderStats(){
+  let total=0,done=0,bloq=0,listas=0,enTaller=0;
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
+    Object.values(sec.items||{}).forEach(item=>{
+      total++;if(item.done)done++;
+      if((sec.title||'').toLowerCase().includes('bloqueado'))bloq++;
+    });
+    if(secId===SEC_LISTA) listas=Object.keys(sec.items||{}).length;
+    if(secId===SEC_TALLER) enTaller=Object.keys(sec.items||{}).length;
+  });
+  document.getElementById('stats-bar').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${Object.keys(sectionsData[SEC_PEND]?.items||{}).length}</div><div class="stat-label">Pendiente corte</div></div>
+    <div class="stat-card"><div class="stat-num">${Object.keys(sectionsData[SEC_CORT]?.items||{}).length}</div><div class="stat-label">En proceso</div></div>
+    <div class="stat-card"><div class="stat-num">${listas}</div><div class="stat-label">Listas para taller</div></div>
+    <div class="stat-card"><div class="stat-num">${enTaller}</div><div class="stat-label">En taller</div></div>`;
+}
+
+function renderSections(){
+  const c=document.getElementById('sections-container');c.innerHTML='';
+  Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).forEach(([secId,sec])=>{
+    const col=COLORS[sec.color]||COLORS.accent;
+    const items=Object.entries(sec.items||{});
+    const count=items.length;
+    const div=document.createElement('div');div.className='section';
+    const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId)?`
+      <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
+      <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
+    const canAdd=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_PEND;
+    const addRow=canAdd?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId);
+    const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+
+    div.innerHTML=`
+      <div class="sec-header" style="background:${col.secBg}" onclick="toggleSec('${secId}')">
+        <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${count}</span></div>
+        <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
+      </div>
+      <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
+        ${items.map(([itemId,item])=>buildItem(secId,itemId,item,sec)).join('')}
+        ${addRow}${addRowGeneral}
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+function buildItem(secId,itemId,item,sec){
+  const canEdit=currentUser==='ariel'||currentUser==='peque';
+  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const tipo=sec.tipo||'';
+
+  // --- MUESTRA PENDIENTE CORTE ---
+  if(tipo==='muestra_pend'){
+    const moveOpts=buildMoveOpts(secId);
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="item-actions">
+          ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- MUESTRA CORTADA ---
+  if(tipo==='muestra_cort'){
+    const ficha=item.ficha||false;
+    const llevaAvios=item.lleva_avios;
+    const avios=Object.entries(item.avios||{});
+    const moveOpts=buildMoveOpts(secId);
+
+    let aviosPanel='';
+    if(llevaAvios===true){
+      if(avios.length===0){
+        aviosPanel=`<div class="avio-item" style="color:var(--text3);font-size:12px;font-style:italic">
+          Sin avíos cargados — 
+          ${canEdit?`<button class="btn-sm" style="margin-left:4px" onclick="openEditModal('${secId}','${itemId}')">+ Cargar</button>`:''}
+        </div>`;
+      } else {
+        aviosPanel=avios.map(([avioId,avio])=>{
+          const rec=avio.recibido;
+          const hasDate=!!avio.fecha_pedido;
+          const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+          const badge=rec
+            ?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Entregado</span>`
+            :hasDate
+              ?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+              :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+          const btns=canCheck?`
+            ${!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Entregado</button>`:
+              `<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩</button>`}`:'' ;
+          return `<div class="avio-item">
+            <div class="avio-dot" style="background:${dot}"></div>
+            <span class="avio-name">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+            ${badge}${btns}
+          </div>`;
+        }).join('');
+        if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
+      }
+    }
+
+    const panel=`<div class="cortada-panel">
+      <div class="cortada-row">
+        <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
+          ${ficha?'✓':''}
+        </div>
+        <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
+      </div>
+      <div class="cortada-row">
+        <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
+        <div class="radio-group">
+          ${canCheck?`
+            <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
+            <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+          `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+        </div>
+      </div>
+      ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
+    </div>`;
+
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        ${panel}
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- MUESTRA LISTA ---
+  if(tipo==='muestra_lista'){
+    const moveOpts=buildMoveOpts(secId);
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="listo-badge">🎉 Lista para sacar a taller</div>
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- SECCIONES NORMALES (cortes) ---
+  const avios=Object.entries(item.avios||{});
+  let aviosHtml='';
+  if(avios.length){
+    aviosHtml='<div class="avios-normal">'+avios.map(([avioId,avio])=>{
+      const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+      const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+      const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
+        :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+        :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+        (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
+          :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
+      return `<div class="avio-row-n">
+        <div class="avio-dot" style="background:${dot}"></div>
+        <span style="font-size:11px;color:var(--text2)">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+        ${badge}${btns}
+      </div>`;
+    }).join('')+'</div>';
+  }
+
+  const canToggle=currentUser==='ariel'||currentUser==='peque';
+  const moveOpts=buildMoveOpts(secId);
+  return `<div class="item ${item.done?'done':''}">
+    <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
+    <div class="item-body">
+      <div class="item-code">${item.code}</div>
+      ${item.name?`<div class="item-name">${item.name}</div>`:''}
+      ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+      ${aviosHtml}
+      <div class="item-actions">
+        ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+        ${moveOpts}
+        ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildMoveOpts(secId){
+  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  if(!targets.length) return '';
+  const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
+  return `<select class="move-select" onchange="moveItem('${secId}',null,this.value,this)" onclick="this.dataset.itemId=''">
+    <option value="">Mover a...</option>${opts}
+  </select>`;
+}
+
+// Necesito itemId en el select, lo pongo como data
+function buildMoveOptsForItem(secId,itemId){
+  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  if(!targets.length) return '';
+  const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
+  return `<select class="move-select" onchange="moveItem('${secId}','${itemId}',this.value);this.value=''"><option value="">Mover a...</option>${opts}</select>`;
+}
+
+// Rerender buildItem con move correcto
+function buildItem(secId,itemId,item,sec){
+  const canEdit=currentUser==='ariel'||currentUser==='peque';
+  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const tipo=sec.tipo||'';
+  const moveOpts=buildMoveOptsForItem(secId,itemId);
+
+  if(tipo==='muestra_pend'){
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(tipo==='muestra_cort'){
+    const ficha=item.ficha||false;
+    const llevaAvios=item.lleva_avios;
+    const avios=Object.entries(item.avios||{});
+    let aviosPanel='';
+    if(llevaAvios===true){
+      if(avios.length===0){
+        aviosPanel=`<div class="avio-item" style="gap:8px"><span style="font-size:12px;color:var(--text3);font-style:italic">Sin avíos cargados</span>
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">+ Cargar</button>`:''}
+        </div>`;
+      } else {
+        aviosPanel=avios.map(([avioId,avio])=>{
+          const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+          const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+          const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Entregado</span>`
+            :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+            :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+          const btns=canCheck?(!rec
+            ?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Entregado</button>`
+            :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩</button>`):'';
+          return `<div class="avio-item"><div class="avio-dot" style="background:${dot}"></div>
+            <span class="avio-name">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+            ${badge}${btns}</div>`;
+        }).join('');
+        if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
+      }
+    }
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="cortada-panel">
+            <div class="cortada-row">
+              <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
+                ${ficha?'✓':''}
+              </div>
+              <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
+            </div>
+            <div class="cortada-row">
+              <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
+              <div class="radio-group">
+                ${canCheck?`
+                  <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
+                  <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+                `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+              </div>
+            </div>
+            ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
+          </div>
+          <div class="item-actions">
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(tipo==='muestra_lista'){
+    const tallerOpts=TALLERISTAS_MUESTRA.map(t=>`<option value="${t}">${t}</option>`).join('');
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="listo-badge">🎉 Lista para sacar a taller</div>
+          ${canEdit?`
+          <div class="enviar-taller-row">
+            <select class="move-select" id="taller-sel-${itemId}">
+              <option value="">Elegir taller...</option>
+              ${tallerOpts}
+              <option value="__nuevo__">+ Otro...</option>
+            </select>
+            <button class="btn-advance" onclick="confirmarEnvioTaller('${secId}','${itemId}')">📦 Enviar a taller</button>
+          </div>`:''}
+          <div class="item-actions">
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(tipo==='muestra_en_taller'){
+    const dias=diasDesde(item.fecha_envio_taller);
+    const diasColor = dias>=7 ? 'var(--danger)' : dias>=3 ? 'var(--warn-text)' : 'var(--text2)';
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="en-taller-panel">
+            <div class="en-taller-row"><span class="et-label">Taller:</span><span class="et-val">${item.tallerista||'—'}</span></div>
+            <div class="en-taller-row"><span class="et-label">Enviada:</span><span class="et-val">${fmtFecha(item.fecha_envio_taller)}</span></div>
+            <div class="en-taller-row"><span class="et-label">Días sin entregar:</span><span class="et-val" style="color:${diasColor};font-weight:700">${dias} día${dias!==1?'s':''}</span></div>
+          </div>
+          <div class="item-actions">
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Secciones normales
+  const avios=Object.entries(item.avios||{});
+  let aviosHtml='';
+  if(avios.length){
+    aviosHtml='<div class="avios-normal">'+avios.map(([avioId,avio])=>{
+      const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+      const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+      const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
+        :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+        :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+        (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
+          :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
+      return `<div class="avio-row-n"><div class="avio-dot" style="background:${dot}"></div>
+        <span style="font-size:11px;color:var(--text2)">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+        ${badge}${btns}</div>`;
+    }).join('')+'</div>';
+  }
+
+  const canToggle=currentUser==='ariel'||currentUser==='peque';
+  return `<div class="item ${item.done?'done':''}">
+    <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
+    <div class="item-with-photo" style="flex:1">
+      ${buildPhotoHtml(secId,itemId,item,canEdit)}
+      <div class="item-body">
+        ${buildCodeHtml(secId,itemId,item,canEdit)}
+        ${buildNameHtml(secId,itemId,item,canEdit)}
+        ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${aviosHtml}
+        <div class="item-actions">
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ACTIONS
+function toggleSec(secId){db.ref(`fabrica_v5/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
+
+function toggleItem(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!item.done;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/done`).set(nv);
+  logActivity(nv?'Marcó listo':'Desmarcó',`${item.code}`);
+  showToast(nv?'✓ Marcado como listo':'Desmarcado');
+}
+
+function toggleFicha(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!(item.ficha||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha`).set(nv);
+  logActivity(`Ficha ${nv?'✓':'✗'}`,item.code);
+  showToast(nv?'✓ Ficha marcada':'Ficha desmarcada');
+  checkListaParaTaller(secId,itemId,nv,item.lleva_avios,item.avios);
+}
+
+function setLlevaAvios(secId,itemId,val){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/lleva_avios`).set(val);
+  logActivity(`Lleva avíos: ${val?'Sí':'No'}`,item.code);
+  showToast(val?'Lleva avíos: Sí':'Sin avíos requeridos');
+  if(!val) checkListaParaTaller(secId,itemId,item.ficha||false,val,item.avios);
+}
+
+function marcarRecibido(secId,itemId,avioId){
+  const item=sectionsData[secId].items[itemId];
+  const avio=item.avios[avioId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(true);
+  logActivity('Avío recibido',`${avio.nombre} — ${item.code}`);
+  showToast('✓ Avío marcado como entregado');
+  const aviosAct={...item.avios,[avioId]:{...avio,recibido:true}};
+  checkListaParaTaller(secId,itemId,item.ficha||false,item.lleva_avios,aviosAct);
+}
+
+function desmarcarRecibido(secId,itemId,avioId){
+  const item=sectionsData[secId].items[itemId];
+  const avio=item.avios[avioId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(false);
+  logActivity('Deshizo avío recibido',`${avio.nombre} — ${item.code}`);
+  showToast('↩ Avío desmarcado');
+}
+
+function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
+  const item=sectionsData[secId]?.items?.[itemId];
+  if(!item) return;
+  if(sectionsData[secId].tipo!=='muestra_cort') return;
+  if(!ficha) return;
+  if(llevaAvios===false){setTimeout(()=>moverALista(secId,itemId),500);return;}
+  if(llevaAvios===true){
+    const avList=Object.values(avios||{});
+    if(avList.length>0&&avList.every(a=>a.recibido)) setTimeout(()=>moverALista(secId,itemId),500);
+  }
+}
+
+function quickAdd(secId){
+  const inp=document.getElementById(`qa-${secId}`);
+  const val=(inp.value||'').trim();if(!val)return;
+  const sec=sectionsData[secId];
+  const ni={code:val,name:'',done:false,avios:{}};
+  if(sec.tipo==='muestra_pend'||sec.tipo==='muestra_cort'){ni.ficha=false;ni.lleva_avios=null;}
+  db.ref(`fabrica_v5/sections/${secId}/items`).push(ni);
+  logActivity('Agregó ítem',val);inp.value='';showToast('Ítem agregado');
+}
+
+function moveItem(secId,itemId,targetSecId){
+  if(!targetSecId||!itemId)return;
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${targetSecId}/items`).push(item);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Movió ítem',`${item.code} → ${sectionsData[targetSecId].title}`);
+  showToast('Ítem movido');
+}
+
+function deleteItem(secId,itemId){
+  if(!confirm('¿Eliminar?'))return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  showToast('Eliminado');
+}
+
+function deleteSec(secId){
+  if(!confirm('¿Eliminar sección?'))return;
+  db.ref(`fabrica_v5/sections/${secId}`).remove();
+}
+
+function editSecTitle(secId){
+  const n=prompt('Nombre:',sectionsData[secId].title);
+  if(n&&n.trim()) db.ref(`fabrica_v5/sections/${secId}/title`).set(n.trim());
+}
+
+// EDIT MODAL
+function openEditModal(secId,itemId){
+  editCtx={secId,itemId,newAvioCount:0};
+  const item=sectionsData[secId].items[itemId];
+  const avios=Object.entries(item.avios||{});
+  document.getElementById('modal-edit-body').innerHTML=`
+    <div class="field"><label>Código</label><input type="text" id="e-code" value="${item.code||''}"></div>
+    <div class="field"><label>Nombre artículo</label><input type="text" id="e-name" value="${item.name||''}"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avíos</div>
+    <div id="avios-edit">
+      ${avios.map(([avioId,avio])=>`<div class="avio-block">
+        <div class="field"><label>Avío</label><input type="text" id="an-${avioId}" value="${avio.nombre||''}"></div>
+        <div class="field"><label>Proveedor</label><input type="text" id="ap-${avioId}" value="${avio.proveedor||''}"></div>
+        <div class="field"><label>Fecha pedido</label><input type="text" id="af-${avioId}" value="${avio.fecha_pedido||''}"></div>
+        ${currentUser==='ariel'?`<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteAvio('${secId}','${itemId}','${avioId}')">Eliminar avío</button>`:''}
+      </div>`).join('')}
+    </div>
+    <button class="btn-sm" onclick="addAvioField()" style="width:100%;padding:8px">+ Agregar avío</button>`;
+  document.getElementById('modal-edit').classList.remove('hidden');
+}
+
+function addAvioField(){
+  editCtx.newAvioCount++;
+  const n=`new${editCtx.newAvioCount}`;
+  const d=document.createElement('div');d.className='avio-block';
+  d.innerHTML=`
+    <div class="field"><label>Avío</label><input type="text" id="an-${n}" placeholder="Ej: Botón Jeanero"></div>
+    <div class="field"><label>Proveedor</label><input type="text" id="ap-${n}" placeholder="Ej: Button Company"></div>
+    <div class="field"><label>Fecha pedido</label><input type="text" id="af-${n}" placeholder="Ej: 8/6/2026"></div>`;
+  document.getElementById('avios-edit').appendChild(d);
+}
+
+function saveEditItem(){
+  const{secId,itemId,newAvioCount}=editCtx;
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+    code:document.getElementById('e-code').value.trim(),
+    name:document.getElementById('e-name').value.trim(),
+  });
+  Object.keys(item.avios||{}).forEach(avioId=>{
+    const n=document.getElementById(`an-${avioId}`);
+    if(n) db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}`).update({
+      nombre:n.value.trim(),
+      proveedor:(document.getElementById(`ap-${avioId}`)?.value||'').trim(),
+      fecha_pedido:(document.getElementById(`af-${avioId}`)?.value||'').trim(),
+    });
+  });
+  for(let i=1;i<=newAvioCount;i++){
+    const n=document.getElementById(`an-new${i}`);
+    if(n&&n.value.trim()) db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios`).push({
+      nombre:n.value.trim(),
+      proveedor:(document.getElementById(`ap-new${i}`)?.value||'').trim(),
+      fecha_pedido:(document.getElementById(`af-new${i}`)?.value||'').trim(),
+      recibido:false
+    });
+  }
+  logActivity('Editó ítem',document.getElementById('e-code').value.trim());
+  document.getElementById('modal-edit').classList.add('hidden');
+  showToast('Cambios guardados');
+}
+
+function deleteAvio(secId,itemId,avioId){
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}`).remove();
+  showToast('Avío eliminado');
+}
+
+// SECTION MODAL
+document.getElementById('add-sec-btn').onclick=()=>{document.getElementById('new-sec-name').value='';document.getElementById('modal-sec').classList.remove('hidden')};
+document.getElementById('save-modal-sec').onclick=()=>{
+  const name=document.getElementById('new-sec-name').value.trim();
+  const color=document.getElementById('new-sec-color').value;
+  if(!name)return;
+  const maxOrder=Math.max(0,...Object.values(sectionsData).map(s=>s.order||0));
+  db.ref('fabrica_v5/sections').push({title:name,color,order:maxOrder+1,collapsed:false,items:{}});
+  document.getElementById('modal-sec').classList.add('hidden');
+};
+
+// NOTIFS
+document.getElementById('notif-btn').onclick=()=>{document.getElementById('notif-panel').classList.toggle('hidden');renderNotifPanel()};
+document.getElementById('mark-all-btn').onclick=()=>{
+  Object.entries(actividadData).forEach(([id,a])=>{if(!a.read)db.ref(`fabrica_v5/actividad/${id}/read`).set(true)});
+};
+function markRead(id){db.ref(`fabrica_v5/actividad/${id}/read`).set(true)}
+function renderNotifBadge(){
+  const u=Object.values(actividadData).filter(a=>!a.read).length;
+  const b=document.getElementById('notif-badge');
+  if(u>0){b.textContent=u;b.classList.remove('hidden')}else b.classList.add('hidden');
+}
+function renderNotifPanel(){
+  const list=document.getElementById('notif-list');
+  const acts=Object.entries(actividadData).sort((a,b)=>b[1].timestamp-a[1].timestamp).slice(0,30);
+  if(!acts.length){list.innerHTML='<div class="empty-state">Sin actividad</div>';return}
+  list.innerHTML=acts.map(([id,a])=>`
+    <div class="notif-item ${a.read?'':'unread'}">
+      <div class="notif-dot ${a.read?'read':''}"></div>
+      <div style="flex:1"><div class="notif-text"><strong>${a.user}</strong> — ${a.action}: ${a.details}</div>
+      <div class="notif-time">${fmtTime(a.timestamp)}</div></div>
+      ${!a.read?`<button class="notif-read-btn" onclick="markRead('${id}')">✓</button>`:''}
+    </div>`).join('');
+}
+function renderActividad(){
+  const c=document.getElementById('actividad-list');
+  const acts=Object.entries(actividadData).sort((a,b)=>b[1].timestamp-a[1].timestamp);
+  if(!acts.length){c.innerHTML='<div class="empty-state">Sin actividad aún</div>';return}
+  c.innerHTML=acts.map(([id,a])=>`
+    <div class="notif-item ${a.read?'':'unread'}" style="border-radius:8px;margin-bottom:6px">
+      <div class="notif-dot ${a.read?'read':''}"></div>
+      <div style="flex:1"><div class="notif-text"><strong>${a.user}</strong> — ${a.action}: ${a.details}</div>
+      <div class="notif-time">${fmtTime(a.timestamp)}</div></div>
+      ${currentUser==='ariel'&&!a.read?`<button class="notif-read-btn" onclick="markRead('${id}')">✓ Leído</button>`:''}
+    </div>`).join('');
+}
+function fmtTime(ts){
+  if(!ts)return'';
+  const d=new Date(ts);
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// TABS
+document.getElementById('tab-btn-tablero').onclick=function(){
+  document.getElementById('tab-tablero').classList.remove('hidden');
+  document.getElementById('tab-actividad').classList.add('hidden');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
+};
+document.getElementById('tab-btn-actividad').onclick=function(){
+  document.getElementById('tab-tablero').classList.add('hidden');
+  document.getElementById('tab-actividad').classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');renderActividad();
+};
+document.getElementById('close-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
+document.getElementById('cancel-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
+document.getElementById('save-modal-edit').onclick=saveEditItem;
+document.getElementById('close-modal-sec').onclick=()=>document.getElementById('modal-sec').classList.add('hidden');
+document.getElementById('cancel-modal-sec').onclick=()=>document.getElementById('modal-sec').classList.add('hidden');
+</script>
+</body>
+</html>
