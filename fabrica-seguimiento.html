@@ -52,49 +52,50 @@
   .sec-add input:focus{outline:none;border-color:var(--accent)}
   .sec-add button{font-size:12px;padding:6px 10px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer}
 
-  .item{background:var(--surface);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+  .item{background:var(--surface);padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
   .item:last-of-type{border-bottom:none}
   .item-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;transition:all .15s}
   .item-check.checked{background:var(--accent);border-color:var(--accent)}
   .item-body{flex:1;min-width:0}
   .item-code{font-size:13px;font-weight:600}
   .item-name{font-size:12px;color:var(--text2);margin-top:1px}
-  .item-sub{font-size:11px;color:var(--text3);margin-top:1px;font-style:italic}
   .item.done .item-code,.item.done .item-name{text-decoration:line-through;color:var(--text3)}
   .item-actions{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center}
 
-  .etapa-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;margin-top:4px}
-
   /* CORTADA PANEL */
-  .cortada-panel{margin-top:8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);overflow:hidden}
-  .cortada-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+  .cortada-panel{margin-top:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);overflow:hidden}
+  .cortada-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)}
   .cortada-row:last-child{border-bottom:none}
-  .c-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s}
+  .c-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;transition:all .15s}
   .c-check.checked{background:var(--accent);border-color:var(--accent)}
-  .c-check.disabled{cursor:default;opacity:.4}
   .c-label{font-size:12px;color:var(--text2);flex:1}
-  .c-label.done{text-decoration:line-through;color:var(--text3)}
+  .c-label.done{color:var(--text3);text-decoration:line-through}
+  .radio-group{display:flex;gap:6px}
+  .radio-btn{padding:4px 12px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;font-size:11px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500}
+  .radio-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600}
 
-  /* AVÍOS dentro de panel cortada */
-  .avios-panel{margin-top:0;display:flex;flex-direction:column}
-  .avio-item{display:flex;align-items:center;gap:8px;padding:7px 12px 7px 28px;border-top:1px solid var(--border);flex-wrap:wrap}
-  .avio-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-  .avio-name{font-size:11px;color:var(--text2);flex:1}
-  .avio-badge{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:500;white-space:nowrap}
-  .avio-actions{display:flex;gap:4px}
-  .avio-state-btn{font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap}
-  .avio-state-btn:hover{background:var(--surface)}
+  /* AVÍOS dentro cortada */
+  .avios-sub{display:flex;flex-direction:column}
+  .avio-item{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 32px;border-top:1px solid var(--border);flex-wrap:wrap}
+  .avio-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .avio-name{font-size:11px;color:var(--text2);flex:1;min-width:0}
+  .avio-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+  .avio-btn{font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap}
+  .avio-btn:hover{background:var(--surface)}
+  .avio-btn.green{border-color:var(--accent);color:var(--accent)}
 
-  /* AVÍOS normales (secciones no muestra) */
-  .avios{margin-top:7px;display:flex;flex-direction:column;gap:4px}
-  .avio-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .avio-prov{font-size:10px;color:var(--text3)}
+  /* AVÍOS secciones normales */
+  .avios-normal{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+  .avio-row-n{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 
   .btn-sm{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
   .btn-sm:hover{background:var(--surface2)}
   .btn-danger{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);cursor:pointer}
-  .btn-advance{font-size:11px;padding:4px 10px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
-  .move-select{font-size:11px;border:1px solid var(--border2);border-radius:6px;padding:3px 6px;background:var(--bg);color:var(--text);cursor:pointer}
+  .btn-advance{font-size:11px;padding:5px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+  .move-select{font-size:11px;border:1px solid var(--border2);border-radius:6px;padding:3px 6px;background:var(--bg);color:var(--text);cursor:pointer;max-width:180px}
+
+  /* LISTO badge */
+  .listo-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;font-weight:600;background:var(--green-bg);color:var(--green-text);margin-top:6px}
 
   .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
   .stat-card{background:var(--surface);border-radius:var(--radius);padding:10px 12px;text-align:center;box-shadow:var(--shadow)}
@@ -131,14 +132,9 @@
   .loading{text-align:center;padding:40px;color:var(--text3);font-size:14px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1714;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
   .toast.show{opacity:1}
-
-  .radio-group{display:flex;gap:8px;margin-top:4px}
-  .radio-btn{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:transparent;font-size:12px;cursor:pointer;text-align:center;color:var(--text2);transition:all .15s}
-  .radio-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-
 <div class="toast" id="toast"></div>
 
 <div id="login-screen">
@@ -160,12 +156,10 @@
       <div class="user-chip" id="user-chip">— <span style="opacity:.4">salir</span></div>
     </div>
   </div>
-
   <div class="notif-panel hidden" id="notif-panel">
     <div class="notif-panel-header"><span style="font-size:13px;font-weight:700">Actividad de Peque</span><button class="mark-all-btn" id="mark-all-btn">Marcar todo leído</button></div>
     <div class="notif-list" id="notif-list"></div>
   </div>
-
   <div class="main">
     <div class="tabs">
       <button class="tab active" id="tab-btn-tablero">Tablero</button>
@@ -194,7 +188,7 @@
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Nueva sección</span><button class="modal-close" id="close-modal-sec">×</button></div>
     <div class="modal-body">
-      <div class="field"><label>Nombre</label><input type="text" id="new-sec-name" placeholder="Ej: Muestras en revisión"></div>
+      <div class="field"><label>Nombre</label><input type="text" id="new-sec-name" placeholder="Ej: Cortes en revisión"></div>
       <div class="field"><label>Color</label><select id="new-sec-color"><option value="purple">Violeta</option><option value="warn">Naranja</option><option value="danger">Rojo</option><option value="accent">Verde claro</option><option value="green">Verde oscuro</option></select></div>
     </div>
     <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-sec">Cancelar</button><button class="btn-primary" id="save-modal-sec">Crear</button></div>
@@ -215,6 +209,11 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
+// IDs fijos para las 3 secciones de muestras
+const SEC_PEND  = 'muestra_pendiente';
+const SEC_CORT  = 'muestra_cortada';
+const SEC_LISTA = 'muestra_lista';
+
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
   warn:{secBg:'#92400e',secText:'#fff'},
@@ -223,57 +222,44 @@ const COLORS = {
   green:{secBg:'#166534',secText:'#fff'},
 };
 
-const ETAPAS = ['Pendiente corte','Cortada','Sacar a taller'];
-const ETAPA_COLORS = {
-  'Pendiente corte':{bg:'#fee2e2',text:'#991b1b'},
-  'Cortada':{bg:'#fef3c7',text:'#92400e'},
-  'Sacar a taller':{bg:'#dcfce7',text:'#166534'},
-};
-
-// Destinos lógicos por sección
-const FLUJO = {
-  s1:['s2'],s2:['s1'],
-  s3:['s4','s5'],s4:['s3','s5'],s5:['s3'],
-};
-
-const INITIAL = {
-  s1:{title:'Muestras — para sacar a taller',color:'purple',order:1,tipo:'muestra',items:{
-    i1:{code:'7421',name:'',sub:'',done:false,etapa:'Pendiente corte',ficha:false,lleva_avios:null,avios:{}},
-    i2:{code:'7439',name:'',sub:'',done:false,etapa:'Pendiente corte',ficha:false,lleva_avios:null,avios:{}},
-    i3:{code:'4754',name:'',sub:'',done:false,etapa:'Pendiente corte',ficha:false,lleva_avios:null,avios:{}},
-    i4:{code:'7352',name:'',sub:'',done:false,etapa:'Pendiente corte',ficha:false,lleva_avios:null,avios:{}},
+const INITIAL_SECTIONS = {
+  [SEC_PEND]:{title:'Muestras — pendiente corte',color:'danger',order:1,tipo:'muestra_pend',items:{
+    i1:{code:'7421',name:'',done:false,avios:{}},
+    i2:{code:'7439',name:'',done:false,avios:{}},
+    i3:{code:'4754',name:'',done:false,avios:{}},
+    i4:{code:'7352',name:'',done:false,avios:{}},
+    i5:{code:'4726A',name:'',done:false,avios:{}},
   }},
-  s2:{title:'Muestras — pendiente avíos',color:'warn',order:2,tipo:'muestra',items:{
-    i1:{code:'4726A',name:'',sub:'',done:false,etapa:'Pendiente corte',ficha:false,lleva_avios:null,avios:{}},
-  }},
-  s3:{title:'Cortes próximos a sacar',color:'accent',order:3,items:{
+  [SEC_CORT]:{title:'Muestras — cortadas',color:'warn',order:2,tipo:'muestra_cort',items:{}},
+  [SEC_LISTA]:{title:'Muestras — listas para taller',color:'green',order:3,tipo:'muestra_lista',items:{}},
+  s3:{title:'Cortes próximos a sacar',color:'accent',order:4,items:{
     i1:{code:'#104',name:'Blazer Corto Paño Rayado',sub:'Cortado',done:false,avios:{}},
-    i2:{code:'#105 · 7226A',name:'Campera Bomber Paño Rayado Ana',sub:'Pendiente corte',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
-    i3:{code:'#106 · 7228',name:'Campera Bolsillos Paño Rayado',sub:'Pendiente corte',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i2:{code:'#105 · 7226A',name:'Campera Bomber Paño Rayado Ana',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i3:{code:'#106 · 7228',name:'Campera Bolsillos Paño Rayado',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
     i4:{code:'#107 · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Lacoste Friza Estampada',done:false,avios:{}},
     i5:{code:'#107B · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Kansas Friza Invisible',done:false,avios:{}},
     i6:{code:'#107C · 7273E',name:'Buzo Chomba Puño Arlet Friza L.',sub:'Puño SF/KANSAS/NEB',done:false,avios:{}},
-    i7:{code:'#102 · 11663A',name:'Pantalon Pinzas Clasico Sastrero',sub:'Pendiente corte',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
-    i8:{code:'#103',name:'Chomba ML Algodon con Lycra',sub:'Pendiente corte',done:false,avios:{}},
+    i7:{code:'#102 · 11663A',name:'Pantalon Pinzas Clasico Sastrero',sub:'',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i8:{code:'#103',name:'Chomba ML Algodon con Lycra',sub:'',done:false,avios:{}},
   }},
-  s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:4,items:{
-    i1:{code:'Corte 102',name:'1163A · Pantalon Pinzas Clasico',sub:'',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
-    i2:{code:'Corte 105',name:'7226A · Campera Bomber Paño Rayado Ana',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
-    i3:{code:'Corte 106',name:'7228A · Campera Bolsillos Paño Rayado',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+  s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:5,items:{
+    i1:{code:'Corte 102',name:'1163A · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'',fecha_pedido:'',recibido:false},a3:{nombre:'Elástico 4cm',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i2:{code:'Corte 105',name:'7226A · Campera Bomber Paño Rayado Ana',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
+    i3:{code:'Corte 106',name:'7228A · Campera Bolsillos Paño Rayado',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false},a2:{nombre:'Cierre Desmontable 45cm',proveedor:'',fecha_pedido:'',recibido:false}}},
   }},
-  s5:{title:'Cortes bloqueados — avío pedido, sin entregar',color:'green',order:5,items:{
-    i1:{code:'Corte 76',name:'4742 · Top Halter con Encaje Algodon c Lycra',sub:'',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
-    i2:{code:'Corte 77',name:'4738 · Remera Ancha con Encaje Jersey Uniqlo',sub:'Sin avío requerido',done:false,avios:{}},
-    i3:{code:'Corte 78',name:'4743 · Remeron Tipo Milo Irregular con Encaje Jersey Uniqlo',sub:'Sin avío requerido',done:false,avios:{}},
-    i4:{code:'Corte 79',name:'4744 · Remera Escote Pico con Encaje Morley Taylor',sub:'Sin avío requerido',done:false,avios:{}},
-    i5:{code:'Corte 81',name:'4740 · Top Musculosa con Encaje Boston Ribb',sub:'Sin avío requerido',done:false,avios:{}},
-    i6:{code:'Corte 88',name:'8027 · Campera Bolsillos y Cordon Rugby Friza',sub:'',done:false,avios:{a1:{nombre:'Cordón Puntera Metálica 1,10Mts',proveedor:'Button Company',fecha_pedido:'3/6/2026',recibido:false}}},
-    i7:{code:'Corte 94',name:'4752 · Top con Puntilla con Cuello',sub:'',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
-    i8:{code:'Corte 97',name:'1163 · Pantalon Pinzas Clasico',sub:'',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false}}},
+  s5:{title:'Cortes bloqueados — avío pedido, sin entregar',color:'green',order:6,items:{
+    i1:{code:'Corte 76',name:'4742 · Top Halter con Encaje Algodon c Lycra',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
+    i2:{code:'Corte 77',name:'4738 · Remera Ancha con Encaje Jersey Uniqlo',done:false,avios:{}},
+    i3:{code:'Corte 78',name:'4743 · Remeron Tipo Milo Irregular con Encaje Jersey Uniqlo',done:false,avios:{}},
+    i4:{code:'Corte 79',name:'4744 · Remera Escote Pico con Encaje Morley Taylor',done:false,avios:{}},
+    i5:{code:'Corte 81',name:'4740 · Top Musculosa con Encaje Boston Ribb',done:false,avios:{}},
+    i6:{code:'Corte 88',name:'8027 · Campera Bolsillos y Cordon Rugby Friza',done:false,avios:{a1:{nombre:'Cordón Puntera Metálica 1,10Mts',proveedor:'Button Company',fecha_pedido:'3/6/2026',recibido:false}}},
+    i7:{code:'Corte 94',name:'4752 · Top con Puntilla con Cuello',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
+    i8:{code:'Corte 97',name:'1163 · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false}}},
   }},
 };
 
-let currentUser=null,sectionsData={},actividadData={};
+let currentUser=null, sectionsData={}, actividadData={};
 let editCtx={secId:null,itemId:null,newAvioCount:0};
 
 function showToast(msg){
@@ -308,14 +294,14 @@ function doLogout(){
 }
 
 function startListening(){
-  db.ref('fabrica_v4').once('value',snap=>{
-    if(!snap.val()) db.ref('fabrica_v4/sections').set(INITIAL);
+  db.ref('fabrica_v5').once('value',snap=>{
+    if(!snap.val()) db.ref('fabrica_v5/sections').set(INITIAL_SECTIONS);
   });
-  db.ref('fabrica_v4/sections').on('value',snap=>{
+  db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
     renderSections();renderStats();
   });
-  db.ref('fabrica_v4/actividad').on('value',snap=>{
+  db.ref('fabrica_v5/actividad').on('value',snap=>{
     actividadData=snap.val()||{};
     renderNotifBadge();renderNotifPanel();
     if(!document.getElementById('tab-actividad').classList.contains('hidden')) renderActividad();
@@ -324,50 +310,57 @@ function startListening(){
 
 function logActivity(action,details){
   if(currentUser!=='peque') return;
-  db.ref('fabrica_v4/actividad').push({user:'Peque',action,details,timestamp:Date.now(),read:false});
+  db.ref('fabrica_v5/actividad').push({user:'Peque',action,details,timestamp:Date.now(),read:false});
 }
 
-function checkAutoAvance(secId,itemId,ficha,lleva_avios,avios){
-  // Solo avanza si está en Cortada
-  const item=sectionsData[secId]?.items?.[itemId];
-  if(!item||item.etapa!=='Cortada') return;
+// AUTO-MOVE muestra: de pendiente → cortada
+function moverACortada(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item,ficha:false,lleva_avios:null,avios:item.avios||{}};
+  db.ref(`fabrica_v5/sections/${SEC_CORT}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Muestra cortada',item.code);
+  showToast(`✂️ ${item.code} pasó a Cortadas`);
+}
+
+// AUTO-MOVE muestra: de cortada → lista
+function moverALista(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item};
+  db.ref(`fabrica_v5/sections/${SEC_LISTA}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Muestra lista para taller',item.code);
+  showToast('🎉 ¡Lista para sacar a taller!');
+}
+
+function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
   if(!ficha) return;
-  // Si no lleva avíos, avanza directo
-  if(lleva_avios===false){
-    setTimeout(()=>{
-      db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set('Sacar a taller');
-      logActivity('Auto → Sacar a taller',item.code);
-      showToast('🎉 ¡Lista para sacar a taller!');
-    },400);
+  if(llevaAvios===false){
+    setTimeout(()=>moverALista(secId,itemId),500);
     return;
   }
-  // Si lleva avíos, verificar que todos estén recibidos
-  if(lleva_avios===true){
+  if(llevaAvios===true){
     const avList=Object.values(avios||{});
     if(avList.length>0 && avList.every(a=>a.recibido)){
-      setTimeout(()=>{
-        db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set('Sacar a taller');
-        logActivity('Auto → Sacar a taller',item.code);
-        showToast('🎉 ¡Lista para sacar a taller!');
-      },400);
+      setTimeout(()=>moverALista(secId,itemId),500);
     }
   }
 }
 
 function renderStats(){
-  let total=0,done=0,bloq=0,sinPedir=0;
-  Object.values(sectionsData).forEach(sec=>{
+  let total=0,done=0,bloq=0,listas=0;
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
     Object.values(sec.items||{}).forEach(item=>{
       total++;if(item.done)done++;
       if((sec.title||'').toLowerCase().includes('bloqueado'))bloq++;
-      if(Object.values(item.avios||{}).some(a=>!a.fecha_pedido&&!a.recibido))sinPedir++;
     });
+    if(secId===SEC_LISTA) listas=Object.keys(sec.items||{}).length;
   });
   document.getElementById('stats-bar').innerHTML=`
-    <div class="stat-card"><div class="stat-num">${total-done}</div><div class="stat-label">Pendientes</div></div>
-    <div class="stat-card"><div class="stat-num">${done}</div><div class="stat-label">Listos</div></div>
-    <div class="stat-card"><div class="stat-num">${bloq}</div><div class="stat-label">Bloqueados</div></div>
-    <div class="stat-card"><div class="stat-num">${sinPedir}</div><div class="stat-label">Avíos sin pedir</div></div>`;
+    <div class="stat-card"><div class="stat-num">${Object.keys(sectionsData[SEC_PEND]?.items||{}).length}</div><div class="stat-label">Pendiente corte</div></div>
+    <div class="stat-card"><div class="stat-num">${Object.keys(sectionsData[SEC_CORT]?.items||{}).length}</div><div class="stat-label">En proceso</div></div>
+    <div class="stat-card"><div class="stat-num">${listas}</div><div class="stat-label">Listas para taller</div></div>
+    <div class="stat-card"><div class="stat-num">${bloq}</div><div class="stat-label">Cortes bloqueados</div></div>`;
 }
 
 function renderSections(){
@@ -375,20 +368,24 @@ function renderSections(){
   Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).forEach(([secId,sec])=>{
     const col=COLORS[sec.color]||COLORS.accent;
     const items=Object.entries(sec.items||{});
-    const pending=items.filter(([,i])=>!i.done).length;
+    const count=items.length;
     const div=document.createElement('div');div.className='section';
-    const hBtns=currentUser==='ariel'?`
+    const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
-    const addRow=(currentUser==='ariel'||currentUser==='peque')?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const canAdd=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_PEND;
+    const addRow=canAdd?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&![SEC_PEND,SEC_CORT,SEC_LISTA].includes(secId);
+    const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+
     div.innerHTML=`
       <div class="sec-header" style="background:${col.secBg}" onclick="toggleSec('${secId}')">
-        <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${pending}</span></div>
+        <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${count}</span></div>
         <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
         ${items.map(([itemId,item])=>buildItem(secId,itemId,item,sec)).join('')}
-        ${addRow}
+        ${addRow}${addRowGeneral}
       </div>`;
     c.appendChild(div);
   });
@@ -396,240 +393,353 @@ function renderSections(){
 
 function buildItem(secId,itemId,item,sec){
   const canEdit=currentUser==='ariel'||currentUser==='peque';
-  const esMuestra=sec.tipo==='muestra';
-  const etapa=item.etapa||'Pendiente corte';
-  const ec=ETAPA_COLORS[etapa]||{bg:'#f0ede9',text:'#6b6560'};
+  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const tipo=sec.tipo||'';
 
-  let etapaHtml='';
-  if(esMuestra) etapaHtml=`<span class="etapa-badge" style="background:${ec.bg};color:${ec.text}">● ${etapa}</span>`;
-
-  // Panel cortada
-  let cortadaPanel='';
-  if(esMuestra && etapa==='Cortada'){
-    const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
-    const fichaOk=item.ficha||false;
-    const llevaAvios=item.lleva_avios; // null=sin definir, true=sí, false=no
-    const avios=Object.entries(item.avios||{});
-
-    // Ficha row
-    let fichaRow=`<div class="cortada-row">
-      <div class="c-check ${fichaOk?'checked':''} ${!canCheck?'disabled':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
-        ${fichaOk?'✓':''}
-      </div>
-      <span class="c-label ${fichaOk?'done':''}">Ficha Producto lista</span>
-    </div>`;
-
-    // Lleva avíos row
-    let llevaAviosRow='';
-    if(canCheck){
-      llevaAviosRow=`<div class="cortada-row">
-        <span class="c-label" style="color:var(--text2);font-weight:500">¿Lleva avíos?</span>
-        <div class="radio-group" style="flex:none">
-          <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
-          <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+  // --- MUESTRA PENDIENTE CORTE ---
+  if(tipo==='muestra_pend'){
+    const moveOpts=buildMoveOpts(secId);
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="item-actions">
+          ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
-      </div>`;
-    } else {
-      const label=llevaAvios===true?'Sí lleva avíos':llevaAvios===false?'Sin avíos':'Sin definir';
-      llevaAviosRow=`<div class="cortada-row"><span class="c-label">${label}</span></div>`;
-    }
+      </div>
+    </div>`;
+  }
 
-    // Avíos list (si lleva)
-    let aviosListHtml='';
+  // --- MUESTRA CORTADA ---
+  if(tipo==='muestra_cort'){
+    const ficha=item.ficha||false;
+    const llevaAvios=item.lleva_avios;
+    const avios=Object.entries(item.avios||{});
+    const moveOpts=buildMoveOpts(secId);
+
+    let aviosPanel='';
     if(llevaAvios===true){
-      aviosListHtml='<div class="avios-panel">';
       if(avios.length===0){
-        aviosListHtml+=`<div class="avio-item"><span style="font-size:12px;color:var(--text3);font-style:italic">Sin avíos cargados</span>
-          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">+ Cargar avíos</button>`:''}
+        aviosPanel=`<div class="avio-item" style="color:var(--text3);font-size:12px;font-style:italic">
+          Sin avíos cargados — 
+          ${canEdit?`<button class="btn-sm" style="margin-left:4px" onclick="openEditModal('${secId}','${itemId}')">+ Cargar</button>`:''}
         </div>`;
       } else {
-        aviosListHtml+=avios.map(([avioId,avio])=>{
+        aviosPanel=avios.map(([avioId,avio])=>{
           const rec=avio.recibido;
           const hasDate=!!avio.fecha_pedido;
-          const dotColor=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+          const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
           const badge=rec
             ?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Entregado</span>`
             :hasDate
               ?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
               :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
-          const btns=canCheck?`<div class="avio-actions">
-            ${!rec?`<button class="avio-state-btn" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Entregado</button>`
-              :`<button class="avio-state-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`}
-          </div>`:'';
+          const btns=canCheck?`
+            ${!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Entregado</button>`:
+              `<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩</button>`}`:'' ;
           return `<div class="avio-item">
-            <div class="avio-dot" style="background:${dotColor}"></div>
+            <div class="avio-dot" style="background:${dot}"></div>
             <span class="avio-name">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
             ${badge}${btns}
           </div>`;
         }).join('');
-        if(canEdit) aviosListHtml+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
+        if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
       }
-      aviosListHtml+='</div>';
     }
 
-    cortadaPanel=`<div class="cortada-panel">${fichaRow}${llevaAviosRow}${aviosListHtml}</div>`;
+    const panel=`<div class="cortada-panel">
+      <div class="cortada-row">
+        <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
+          ${ficha?'✓':''}
+        </div>
+        <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
+      </div>
+      <div class="cortada-row">
+        <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
+        <div class="radio-group">
+          ${canCheck?`
+            <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
+            <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+          `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+        </div>
+      </div>
+      ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
+    </div>`;
+
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        ${panel}
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
   }
 
-  // Avíos normales (secciones no muestra)
+  // --- MUESTRA LISTA ---
+  if(tipo==='muestra_lista'){
+    const moveOpts=buildMoveOpts(secId);
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="listo-badge">🎉 Lista para sacar a taller</div>
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- SECCIONES NORMALES (cortes) ---
+  const avios=Object.entries(item.avios||{});
   let aviosHtml='';
-  if(!esMuestra){
-    const avios=Object.entries(item.avios||{});
-    if(avios.length){
-      aviosHtml='<div class="avios">'+avios.map(([avioId,avio])=>{
-        const rec=avio.recibido;
-        const hasDate=!!avio.fecha_pedido;
-        const dotColor=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
-        const badge=rec
-          ?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
-          :hasDate
-            ?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
-            :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
-        const recBtn=!rec&&(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')
-          ?`<button class="avio-state-btn" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">Marcar recibido</button>`:'';
-        const unrecBtn=rec&&(currentUser==='ariel'||currentUser==='peque')
-          ?`<button class="avio-state-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`:'';
-        return `<div class="avio-row">
-          <div class="avio-dot" style="background:${dotColor}"></div>
-          <span class="avio-name" style="font-size:11px;color:var(--text2)">${avio.nombre}</span>
-          ${avio.proveedor?`<span class="avio-prov">· ${avio.proveedor}</span>`:''}
-          ${badge}${recBtn}${unrecBtn}
-        </div>`;
-      }).join('')+'</div>';
-    }
-  }
-
-  // Botón avanzar/retroceder etapa (muestras)
-  let etapaBtns='';
-  if(esMuestra && canEdit){
-    const idx=ETAPAS.indexOf(etapa);
-    if(idx<ETAPAS.length-1) etapaBtns+=`<button class="btn-advance" onclick="avanzarEtapa('${secId}','${itemId}')">→ ${ETAPAS[idx+1]}</button>`;
-    if(idx>0) etapaBtns+=` <button class="btn-sm" onclick="retrocederEtapa('${secId}','${itemId}')">↩ Volver</button>`;
-  }
-
-  // Mover a — solo destinos lógicos
-  let moveHtml='';
-  if(canEdit){
-    const destinos=(FLUJO[secId]||[]).filter(id=>sectionsData[id]);
-    // Si no hay flujo definido, mostrar todas las secciones (para secciones nuevas)
-    const targets=destinos.length>0 ? destinos : Object.keys(sectionsData).filter(id=>id!==secId);
-    if(targets.length){
-      const opts=targets.map(id=>`<option value="${id}">${sectionsData[id].title}</option>`).join('');
-      moveHtml=`<select class="move-select" onchange="moveItem('${secId}','${itemId}',this.value);this.value=''"><option value="">Mover a...</option>${opts}</select>`;
-    }
+  if(avios.length){
+    aviosHtml='<div class="avios-normal">'+avios.map(([avioId,avio])=>{
+      const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+      const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+      const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
+        :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+        :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+        (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
+          :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
+      return `<div class="avio-row-n">
+        <div class="avio-dot" style="background:${dot}"></div>
+        <span style="font-size:11px;color:var(--text2)">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+        ${badge}${btns}
+      </div>`;
+    }).join('')+'</div>';
   }
 
   const canToggle=currentUser==='ariel'||currentUser==='peque';
-  const actions=`<div class="item-actions">
-    ${etapaBtns}
-    ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
-    ${moveHtml}
-    ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
-  </div>`;
-
+  const moveOpts=buildMoveOpts(secId);
   return `<div class="item ${item.done?'done':''}">
     <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
     <div class="item-body">
       <div class="item-code">${item.code}</div>
       ${item.name?`<div class="item-name">${item.name}</div>`:''}
-      ${item.sub?`<div class="item-sub">${item.sub}</div>`:''}
-      ${etapaHtml}${cortadaPanel}${aviosHtml}${actions}
+      ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+      ${aviosHtml}
+      <div class="item-actions">
+        ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+        ${moveOpts}
+        ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildMoveOpts(secId){
+  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  if(!targets.length) return '';
+  const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
+  return `<select class="move-select" onchange="moveItem('${secId}',null,this.value,this)" onclick="this.dataset.itemId=''">
+    <option value="">Mover a...</option>${opts}
+  </select>`;
+}
+
+// Necesito itemId en el select, lo pongo como data
+function buildMoveOptsForItem(secId,itemId){
+  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  if(!targets.length) return '';
+  const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
+  return `<select class="move-select" onchange="moveItem('${secId}','${itemId}',this.value);this.value=''"><option value="">Mover a...</option>${opts}</select>`;
+}
+
+// Rerender buildItem con move correcto
+function buildItem(secId,itemId,item,sec){
+  const canEdit=currentUser==='ariel'||currentUser==='peque';
+  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const tipo=sec.tipo||'';
+  const moveOpts=buildMoveOptsForItem(secId,itemId);
+
+  if(tipo==='muestra_pend'){
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="item-actions">
+          ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(tipo==='muestra_cort'){
+    const ficha=item.ficha||false;
+    const llevaAvios=item.lleva_avios;
+    const avios=Object.entries(item.avios||{});
+    let aviosPanel='';
+    if(llevaAvios===true){
+      if(avios.length===0){
+        aviosPanel=`<div class="avio-item" style="gap:8px"><span style="font-size:12px;color:var(--text3);font-style:italic">Sin avíos cargados</span>
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">+ Cargar</button>`:''}
+        </div>`;
+      } else {
+        aviosPanel=avios.map(([avioId,avio])=>{
+          const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+          const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+          const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Entregado</span>`
+            :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+            :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+          const btns=canCheck?(!rec
+            ?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Entregado</button>`
+            :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩</button>`):'';
+          return `<div class="avio-item"><div class="avio-dot" style="background:${dot}"></div>
+            <span class="avio-name">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+            ${badge}${btns}</div>`;
+        }).join('');
+        if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
+      }
+    }
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="cortada-panel">
+          <div class="cortada-row">
+            <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
+              ${ficha?'✓':''}
+            </div>
+            <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
+          </div>
+          <div class="cortada-row">
+            <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
+            <div class="radio-group">
+              ${canCheck?`
+                <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
+                <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+              `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+            </div>
+          </div>
+          ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
+        </div>
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(tipo==='muestra_lista'){
+    return `<div class="item">
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${item.name?`<div class="item-name">${item.name}</div>`:''}
+        <div class="listo-badge">🎉 Lista para sacar a taller</div>
+        <div class="item-actions">
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Secciones normales
+  const avios=Object.entries(item.avios||{});
+  let aviosHtml='';
+  if(avios.length){
+    aviosHtml='<div class="avios-normal">'+avios.map(([avioId,avio])=>{
+      const rec=avio.recibido;const hasDate=!!avio.fecha_pedido;
+      const dot=rec?'#16a34a':hasDate?'#d97706':'#dc2626';
+      const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
+        :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
+        :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
+      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+        (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
+          :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
+      return `<div class="avio-row-n"><div class="avio-dot" style="background:${dot}"></div>
+        <span style="font-size:11px;color:var(--text2)">${avio.nombre}${avio.proveedor?` <span style="color:var(--text3);font-size:10px">· ${avio.proveedor}</span>`:''}</span>
+        ${badge}${btns}</div>`;
+    }).join('')+'</div>';
+  }
+
+  const canToggle=currentUser==='ariel'||currentUser==='peque';
+  return `<div class="item ${item.done?'done':''}">
+    <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
+    <div class="item-body">
+      <div class="item-code">${item.code}</div>
+      ${item.name?`<div class="item-name">${item.name}</div>`:''}
+      ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+      ${aviosHtml}
+      <div class="item-actions">
+        ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+        ${moveOpts}
+        ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+      </div>
     </div>
   </div>`;
 }
 
 // ACTIONS
-function toggleSec(secId){db.ref(`fabrica_v4/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
+function toggleSec(secId){db.ref(`fabrica_v5/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
+
 function toggleItem(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const nv=!item.done;
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/done`).set(nv);
-  logActivity(nv?'Marcó listo':'Desmarcó',`${item.code} ${item.name||''}`);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/done`).set(nv);
+  logActivity(nv?'Marcó listo':'Desmarcó',`${item.code}`);
   showToast(nv?'✓ Marcado como listo':'Desmarcado');
 }
 
 function toggleFicha(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const nv=!(item.ficha||false);
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/ficha`).set(nv);
-  logActivity(`Ficha Producto ${nv?'✓':'✗'}`,item.code);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha`).set(nv);
+  logActivity(`Ficha ${nv?'✓':'✗'}`,item.code);
   showToast(nv?'✓ Ficha marcada':'Ficha desmarcada');
-  // Check auto avance
-  checkAutoAvance(secId,itemId,nv,item.lleva_avios,item.avios);
+  checkListaParaTaller(secId,itemId,nv,item.lleva_avios,item.avios);
 }
 
 function setLlevaAvios(secId,itemId,val){
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/lleva_avios`).set(val);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/lleva_avios`).set(val);
   logActivity(`Lleva avíos: ${val?'Sí':'No'}`,item.code);
   showToast(val?'Lleva avíos: Sí':'Sin avíos requeridos');
-  // Si no lleva avíos y ficha ok → auto avance
-  if(!val && (item.ficha||false)){
-    checkAutoAvance(secId,itemId,item.ficha,val,item.avios);
-  }
+  if(!val) checkListaParaTaller(secId,itemId,item.ficha||false,val,item.avios);
 }
 
 function marcarRecibido(secId,itemId,avioId){
   const item=sectionsData[secId].items[itemId];
   const avio=item.avios[avioId];
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(true);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(true);
   logActivity('Avío recibido',`${avio.nombre} — ${item.code}`);
-  showToast('✓ Avío marcado como recibido');
-  // Check auto avance con el nuevo estado
-  const aviosActualizados={...item.avios,[avioId]:{...avio,recibido:true}};
-  checkAutoAvance(secId,itemId,item.ficha||false,item.lleva_avios,aviosActualizados);
+  showToast('✓ Avío marcado como entregado');
+  const aviosAct={...item.avios,[avioId]:{...avio,recibido:true}};
+  checkListaParaTaller(secId,itemId,item.ficha||false,item.lleva_avios,aviosAct);
 }
 
 function desmarcarRecibido(secId,itemId,avioId){
   const item=sectionsData[secId].items[itemId];
   const avio=item.avios[avioId];
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(false);
   logActivity('Deshizo avío recibido',`${avio.nombre} — ${item.code}`);
   showToast('↩ Avío desmarcado');
 }
 
-function checkAutoAvance(secId,itemId,ficha,llevaAvios,avios){
+function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
   const item=sectionsData[secId]?.items?.[itemId];
-  if(!item||item.etapa!=='Cortada') return;
+  if(!item) return;
+  if(sectionsData[secId].tipo!=='muestra_cort') return;
   if(!ficha) return;
-  if(llevaAvios===false){
-    setTimeout(()=>{
-      db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set('Sacar a taller');
-      logActivity('Auto → Sacar a taller',item.code);
-      showToast('🎉 ¡Lista para sacar a taller!');
-    },400);
-    return;
-  }
+  if(llevaAvios===false){setTimeout(()=>moverALista(secId,itemId),500);return;}
   if(llevaAvios===true){
     const avList=Object.values(avios||{});
-    if(avList.length>0&&avList.every(a=>a.recibido)){
-      setTimeout(()=>{
-        db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set('Sacar a taller');
-        logActivity('Auto → Sacar a taller',item.code);
-        showToast('🎉 ¡Lista para sacar a taller!');
-      },400);
-    }
-  }
-}
-
-function avanzarEtapa(secId,itemId){
-  const item=sectionsData[secId].items[itemId];
-  const idx=ETAPAS.indexOf(item.etapa||'Pendiente corte');
-  if(idx<ETAPAS.length-1){
-    const nv=ETAPAS[idx+1];
-    db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set(nv);
-    logActivity('Avanzó etapa',`${item.code} → ${nv}`);
-    showToast(`→ ${nv}`);
-  }
-}
-
-function retrocederEtapa(secId,itemId){
-  const item=sectionsData[secId].items[itemId];
-  const idx=ETAPAS.indexOf(item.etapa||'Pendiente corte');
-  if(idx>0){
-    const nv=ETAPAS[idx-1];
-    db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/etapa`).set(nv);
-    logActivity('Retrocedió etapa',`${item.code} → ${nv}`);
-    showToast(`↩ Volvió a ${nv}`);
+    if(avList.length>0&&avList.every(a=>a.recibido)) setTimeout(()=>moverALista(secId,itemId),500);
   }
 }
 
@@ -637,35 +747,35 @@ function quickAdd(secId){
   const inp=document.getElementById(`qa-${secId}`);
   const val=(inp.value||'').trim();if(!val)return;
   const sec=sectionsData[secId];
-  const ni={code:val,name:'',sub:'',done:false,avios:{}};
-  if(sec.tipo==='muestra'){ni.etapa='Pendiente corte';ni.ficha=false;ni.lleva_avios=null;}
-  db.ref(`fabrica_v4/sections/${secId}/items`).push(ni);
+  const ni={code:val,name:'',done:false,avios:{}};
+  if(sec.tipo==='muestra_pend'||sec.tipo==='muestra_cort'){ni.ficha=false;ni.lleva_avios=null;}
+  db.ref(`fabrica_v5/sections/${secId}/items`).push(ni);
   logActivity('Agregó ítem',val);inp.value='';showToast('Ítem agregado');
 }
 
 function moveItem(secId,itemId,targetSecId){
-  if(!targetSecId)return;
+  if(!targetSecId||!itemId)return;
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v4/sections/${targetSecId}/items`).push(item);
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}`).remove();
+  db.ref(`fabrica_v5/sections/${targetSecId}/items`).push(item);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Movió ítem',`${item.code} → ${sectionsData[targetSecId].title}`);
   showToast('Ítem movido');
 }
 
 function deleteItem(secId,itemId){
-  if(!confirm('¿Eliminar este ítem?'))return;
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}`).remove();
-  showToast('Ítem eliminado');
+  if(!confirm('¿Eliminar?'))return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  showToast('Eliminado');
 }
 
 function deleteSec(secId){
-  if(!confirm('¿Eliminar esta sección y todos sus ítems?'))return;
-  db.ref(`fabrica_v4/sections/${secId}`).remove();
+  if(!confirm('¿Eliminar sección?'))return;
+  db.ref(`fabrica_v5/sections/${secId}`).remove();
 }
 
 function editSecTitle(secId){
-  const name=prompt('Nombre de la sección:',sectionsData[secId].title);
-  if(name&&name.trim()) db.ref(`fabrica_v4/sections/${secId}/title`).set(name.trim());
+  const n=prompt('Nombre:',sectionsData[secId].title);
+  if(n&&n.trim()) db.ref(`fabrica_v5/sections/${secId}/title`).set(n.trim());
 }
 
 // EDIT MODAL
@@ -676,7 +786,6 @@ function openEditModal(secId,itemId){
   document.getElementById('modal-edit-body').innerHTML=`
     <div class="field"><label>Código</label><input type="text" id="e-code" value="${item.code||''}"></div>
     <div class="field"><label>Nombre artículo</label><input type="text" id="e-name" value="${item.name||''}"></div>
-    <div class="field"><label>Nota / estado</label><input type="text" id="e-sub" value="${item.sub||''}"></div>
     <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avíos</div>
     <div id="avios-edit">
       ${avios.map(([avioId,avio])=>`<div class="avio-block">
@@ -704,14 +813,13 @@ function addAvioField(){
 function saveEditItem(){
   const{secId,itemId,newAvioCount}=editCtx;
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}`).update({
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
     code:document.getElementById('e-code').value.trim(),
     name:document.getElementById('e-name').value.trim(),
-    sub:document.getElementById('e-sub').value.trim(),
   });
   Object.keys(item.avios||{}).forEach(avioId=>{
     const n=document.getElementById(`an-${avioId}`);
-    if(n) db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/avios/${avioId}`).update({
+    if(n) db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}`).update({
       nombre:n.value.trim(),
       proveedor:(document.getElementById(`ap-${avioId}`)?.value||'').trim(),
       fecha_pedido:(document.getElementById(`af-${avioId}`)?.value||'').trim(),
@@ -719,7 +827,7 @@ function saveEditItem(){
   });
   for(let i=1;i<=newAvioCount;i++){
     const n=document.getElementById(`an-new${i}`);
-    if(n&&n.value.trim()) db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/avios`).push({
+    if(n&&n.value.trim()) db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios`).push({
       nombre:n.value.trim(),
       proveedor:(document.getElementById(`ap-new${i}`)?.value||'').trim(),
       fecha_pedido:(document.getElementById(`af-new${i}`)?.value||'').trim(),
@@ -732,7 +840,7 @@ function saveEditItem(){
 }
 
 function deleteAvio(secId,itemId,avioId){
-  db.ref(`fabrica_v4/sections/${secId}/items/${itemId}/avios/${avioId}`).remove();
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}`).remove();
   showToast('Avío eliminado');
 }
 
@@ -743,17 +851,16 @@ document.getElementById('save-modal-sec').onclick=()=>{
   const color=document.getElementById('new-sec-color').value;
   if(!name)return;
   const maxOrder=Math.max(0,...Object.values(sectionsData).map(s=>s.order||0));
-  db.ref('fabrica_v4/sections').push({title:name,color,order:maxOrder+1,collapsed:false,items:{}});
+  db.ref('fabrica_v5/sections').push({title:name,color,order:maxOrder+1,collapsed:false,items:{}});
   document.getElementById('modal-sec').classList.add('hidden');
 };
 
 // NOTIFS
 document.getElementById('notif-btn').onclick=()=>{document.getElementById('notif-panel').classList.toggle('hidden');renderNotifPanel()};
 document.getElementById('mark-all-btn').onclick=()=>{
-  Object.entries(actividadData).forEach(([id,a])=>{if(!a.read)db.ref(`fabrica_v4/actividad/${id}/read`).set(true)});
+  Object.entries(actividadData).forEach(([id,a])=>{if(!a.read)db.ref(`fabrica_v5/actividad/${id}/read`).set(true)});
 };
-function markRead(id){db.ref(`fabrica_v4/actividad/${id}/read`).set(true)}
-
+function markRead(id){db.ref(`fabrica_v5/actividad/${id}/read`).set(true)}
 function renderNotifBadge(){
   const u=Object.values(actividadData).filter(a=>!a.read).length;
   const b=document.getElementById('notif-badge');
@@ -774,7 +881,7 @@ function renderNotifPanel(){
 function renderActividad(){
   const c=document.getElementById('actividad-list');
   const acts=Object.entries(actividadData).sort((a,b)=>b[1].timestamp-a[1].timestamp);
-  if(!acts.length){c.innerHTML='<div class="empty-state">Sin actividad registrada aún</div>';return}
+  if(!acts.length){c.innerHTML='<div class="empty-state">Sin actividad aún</div>';return}
   c.innerHTML=acts.map(([id,a])=>`
     <div class="notif-item ${a.read?'':'unread'}" style="border-radius:8px;margin-bottom:6px">
       <div class="notif-dot ${a.read?'read':''}"></div>
@@ -793,17 +900,13 @@ function fmtTime(ts){
 document.getElementById('tab-btn-tablero').onclick=function(){
   document.getElementById('tab-tablero').classList.remove('hidden');
   document.getElementById('tab-actividad').classList.add('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  this.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
 };
 document.getElementById('tab-btn-actividad').onclick=function(){
   document.getElementById('tab-tablero').classList.add('hidden');
   document.getElementById('tab-actividad').classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  this.classList.add('active');renderActividad();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');renderActividad();
 };
-
-// MODAL CLOSE
 document.getElementById('close-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
 document.getElementById('cancel-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
 document.getElementById('save-modal-edit').onclick=saveEditItem;
