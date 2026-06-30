@@ -58,6 +58,8 @@
   .item-check.checked{background:var(--accent);border-color:var(--accent)}
   .item-body{flex:1;min-width:0}
   .item-code{font-size:13px;font-weight:600}
+  .item-code-edit{font-size:13px;font-weight:600;border:1px dashed transparent;border-radius:4px;padding:1px 4px;cursor:text;display:inline-block}
+  .item-code-edit:hover{border-color:var(--border2);background:var(--surface2)}
   .item-name{font-size:12px;color:var(--text2);margin-top:1px}
   .item.done .item-code,.item.done .item-name{text-decoration:line-through;color:var(--text3)}
   .item-actions{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;align-items:center}
@@ -284,6 +286,15 @@ function saveItemName(secId,itemId,el){
   logActivity('Editó nombre', `${item.code} → ${newName}`);
 }
 
+function saveItemCode(secId,itemId,el){
+  const newCode = el.textContent.trim();
+  const item = sectionsData[secId].items[itemId];
+  if (!newCode) { el.textContent = item.code; return; }
+  if (newCode === (item.code||'')) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/code`).set(newCode);
+  logActivity('Editó código', `${item.code} → ${newCode}`);
+}
+
 function buildPhotoHtml(secId,itemId,item,canEdit){
   if (item.foto) {
     return `<img class="item-photo" src="${item.foto}" onclick="openPhotoModal('${item.foto}')" ${canEdit?`oncontextmenu="event.preventDefault();triggerPhotoUpload('${secId}','${itemId}')"`:''}>`;
@@ -301,6 +312,13 @@ function buildNameHtml(secId,itemId,item,canEdit){
   return `<div class="item-name-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
     onblur="saveItemName('${secId}','${itemId}',this)"
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
+}
+
+function buildCodeHtml(secId,itemId,item,canEdit){
+  if (!canEdit) return `<div class="item-code">${item.code}</div>`;
+  return `<div class="item-code-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
+    onblur="saveItemCode('${secId}','${itemId}',this)"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.code}</div>`;
 }
 
 // IDs fijos para las 3 secciones de muestras
@@ -662,7 +680,7 @@ function buildItem(secId,itemId,item,sec){
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
-          <div class="item-code">${item.code}</div>
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
@@ -705,7 +723,7 @@ function buildItem(secId,itemId,item,sec){
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
-          <div class="item-code">${item.code}</div>
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="cortada-panel">
             <div class="cortada-row">
@@ -739,7 +757,7 @@ function buildItem(secId,itemId,item,sec){
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
-          <div class="item-code">${item.code}</div>
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="listo-badge">🎉 Lista para sacar a taller</div>
           <div class="item-actions">
@@ -776,7 +794,7 @@ function buildItem(secId,itemId,item,sec){
     <div class="item-with-photo" style="flex:1">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
-        <div class="item-code">${item.code}</div>
+        ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${aviosHtml}
