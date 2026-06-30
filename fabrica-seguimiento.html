@@ -443,7 +443,7 @@ function buildItem(secId, itemId, item, sec) {
 
   // Prereqs para muestras (Ficha + Avíos listos)
   let prereqsHtml = '';
-  if (esMuestra && (item.etapa === 'Cortada' || item.etapa === 'Pendiente corte')) {
+  if (esMuestra && item.etapa === 'Cortada') {
     const canCheck = currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
     const fichaOk = item.ficha || false;
     const aviosOk = item.avios_listos || false;
@@ -561,10 +561,23 @@ function toggleItem(secId, itemId) {
 }
 
 function togglePrereq(secId, itemId, campo) {
-  const cur = sectionsData[secId].items[itemId][campo] || false;
-  db.ref(`fabrica_v3/sections/${secId}/items/${itemId}/${campo}`).set(!cur);
-  logActivity(`${campo==='ficha'?'Ficha Producto':'Avíos listos'} ${!cur?'✓':'✗'}`, sectionsData[secId].items[itemId].code);
-  showToast(!cur ? '✓ Marcado' : 'Desmarcado');
+  const item = sectionsData[secId].items[itemId];
+  const cur = item[campo] || false;
+  const newVal = !cur;
+  db.ref(`fabrica_v3/sections/${secId}/items/${itemId}/${campo}`).set(newVal);
+  logActivity(`${campo==='ficha'?'Ficha Producto':'Avíos listos'} ${newVal?'✓':'✗'}`, item.code);
+  showToast(newVal ? '✓ Marcado' : 'Desmarcado');
+
+  // Auto-avance si ambos quedan en true y la muestra está en Cortada
+  const ficha = campo === 'ficha' ? newVal : (item.ficha || false);
+  const avios = campo === 'avios_listos' ? newVal : (item.avios_listos || false);
+  if (ficha && avios && item.etapa === 'Cortada') {
+    setTimeout(() => {
+      db.ref(`fabrica_v3/sections/${secId}/items/${itemId}/etapa`).set('Sacar a taller');
+      logActivity('Auto-avanzó a Sacar a taller', item.code);
+      showToast('🎉 Lista para sacar a taller!');
+    }, 400);
+  }
 }
 
 function avanzarEtapa(secId, itemId) {
