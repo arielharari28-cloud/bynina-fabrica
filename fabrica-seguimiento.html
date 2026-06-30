@@ -97,6 +97,22 @@
   /* LISTO badge */
   .listo-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;font-weight:600;background:var(--green-bg);color:var(--green-text);margin-top:6px}
 
+  /* FOTO */
+  .item-with-photo{display:flex;gap:10px;width:100%}
+  .item-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
+  .item-photo-placeholder{width:56px;height:56px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text3)}
+  .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+  .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
+  .photo-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer}
+  .photo-upload-label{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
+  .photo-uploading{font-size:10px;color:var(--text3)}
+
+  /* NOMBRE inline editable */
+  .item-name-edit{font-size:12px;color:var(--text2);border:1px dashed transparent;border-radius:4px;padding:1px 4px;margin-top:1px;cursor:text;display:inline-block;min-height:16px}
+  .item-name-edit:hover{border-color:var(--border2);background:var(--surface2)}
+  .item-name-edit:empty:before{content:'+ agregar nombre';color:var(--text3);font-style:italic}
+  .item-name-edit-input{font-size:12px;border:1px solid var(--accent);border-radius:4px;padding:2px 6px;width:100%;margin-top:2px;background:var(--surface)}
+
   .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
   .stat-card{background:var(--surface);border-radius:var(--radius);padding:10px 12px;text-align:center;box-shadow:var(--shadow)}
   .stat-num{font-size:22px;font-weight:700}.stat-label{font-size:10px;color:var(--text3);margin-top:2px}
@@ -195,6 +211,12 @@
   </div>
 </div>
 
+<!-- Modal foto grande -->
+<div class="photo-modal-overlay hidden" id="photo-modal" onclick="closePhotoModal()">
+  <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
+  <img class="photo-modal-img" id="photo-modal-img" src="" onclick="event.stopPropagation()">
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -208,6 +230,78 @@ firebase.initializeApp({
   appId:"1:1059883614729:web:bynina"
 });
 const db = firebase.database();
+
+// Cloudinary config (mismo que otras apps By Nina)
+const CLOUDINARY_CLOUD = 'dt6ijkpyy';
+const CLOUDINARY_PRESET = 'By Nina';
+
+function openPhotoModal(url){
+  document.getElementById('photo-modal-img').src = url;
+  document.getElementById('photo-modal').classList.remove('hidden');
+}
+function closePhotoModal(){
+  document.getElementById('photo-modal').classList.add('hidden');
+}
+
+async function uploadPhoto(secId,itemId,file){
+  showToast('📤 Subiendo foto...');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST', body: formData
+    });
+    const data = await res.json();
+    if (data.secure_url) {
+      db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/foto`).set(data.secure_url);
+      const item = sectionsData[secId].items[itemId];
+      logActivity('Agregó foto', item.code);
+      showToast('✓ Foto cargada');
+    } else {
+      showToast('✗ Error al subir foto');
+    }
+  } catch(e) {
+    showToast('✗ Error al subir foto');
+  }
+}
+
+function triggerPhotoUpload(secId,itemId){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    if (e.target.files[0]) uploadPhoto(secId,itemId,e.target.files[0]);
+  };
+  input.click();
+}
+
+function saveItemName(secId,itemId,el){
+  const newName = el.textContent.trim();
+  const item = sectionsData[secId].items[itemId];
+  if (newName === (item.name||'')) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/name`).set(newName);
+  logActivity('Editó nombre', `${item.code} → ${newName}`);
+}
+
+function buildPhotoHtml(secId,itemId,item,canEdit){
+  if (item.foto) {
+    return `<img class="item-photo" src="${item.foto}" onclick="openPhotoModal('${item.foto}')" ${canEdit?`oncontextmenu="event.preventDefault();triggerPhotoUpload('${secId}','${itemId}')"`:''}>`;
+  }
+  if (canEdit) {
+    return `<div class="item-photo-placeholder" onclick="triggerPhotoUpload('${secId}','${itemId}')" title="Agregar foto">📷</div>`;
+  }
+  return '';
+}
+
+function buildNameHtml(secId,itemId,item,canEdit){
+  if (!canEdit) {
+    return item.name ? `<div class="item-name">${item.name}</div>` : '';
+  }
+  return `<div class="item-name-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
+    onblur="saveItemName('${secId}','${itemId}',this)"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
+}
 
 // IDs fijos para las 3 secciones de muestras
 const SEC_PEND  = 'muestra_pendiente';
@@ -565,14 +659,16 @@ function buildItem(secId,itemId,item,sec){
 
   if(tipo==='muestra_pend'){
     return `<div class="item">
-      <div class="item-body">
-        <div class="item-code">${item.code}</div>
-        ${item.name?`<div class="item-name">${item.name}</div>`:''}
-        <div class="item-actions">
-          ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
-          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
-          ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          <div class="item-code">${item.code}</div>
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -606,30 +702,33 @@ function buildItem(secId,itemId,item,sec){
       }
     }
     return `<div class="item">
-      <div class="item-body">
-        <div class="item-code">${item.code}</div>
-        ${item.name?`<div class="item-name">${item.name}</div>`:''}
-        <div class="cortada-panel">
-          <div class="cortada-row">
-            <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
-              ${ficha?'✓':''}
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          <div class="item-code">${item.code}</div>
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="cortada-panel">
+            <div class="cortada-row">
+              <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
+                ${ficha?'✓':''}
+              </div>
+              <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
             </div>
-            <span class="c-label ${ficha?'done':''}">Ficha Producto lista</span>
-          </div>
-          <div class="cortada-row">
-            <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
-            <div class="radio-group">
-              ${canCheck?`
-                <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
-                <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
-              `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+            <div class="cortada-row">
+              <span class="c-label" style="font-weight:500">¿Lleva avíos?</span>
+              <div class="radio-group">
+                ${canCheck?`
+                  <button class="radio-btn ${llevaAvios===true?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',true)">Sí</button>
+                  <button class="radio-btn ${llevaAvios===false?'selected':''}" onclick="setLlevaAvios('${secId}','${itemId}',false)">No</button>
+                `:`<span style="font-size:12px;color:var(--text2)">${llevaAvios===true?'Sí':llevaAvios===false?'No':'Sin definir'}</span>`}
+              </div>
             </div>
+            ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
           </div>
-          ${llevaAvios===true?`<div class="avios-sub">${aviosPanel}</div>`:''}
-        </div>
-        <div class="item-actions">
-          ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          <div class="item-actions">
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -637,13 +736,16 @@ function buildItem(secId,itemId,item,sec){
 
   if(tipo==='muestra_lista'){
     return `<div class="item">
-      <div class="item-body">
-        <div class="item-code">${item.code}</div>
-        ${item.name?`<div class="item-name">${item.name}</div>`:''}
-        <div class="listo-badge">🎉 Lista para sacar a taller</div>
-        <div class="item-actions">
-          ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          <div class="item-code">${item.code}</div>
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="listo-badge">🎉 Lista para sacar a taller</div>
+          <div class="item-actions">
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -671,15 +773,18 @@ function buildItem(secId,itemId,item,sec){
   const canToggle=currentUser==='ariel'||currentUser==='peque';
   return `<div class="item ${item.done?'done':''}">
     <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
-    <div class="item-body">
-      <div class="item-code">${item.code}</div>
-      ${item.name?`<div class="item-name">${item.name}</div>`:''}
-      ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
-      ${aviosHtml}
-      <div class="item-actions">
-        ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
-        ${moveOpts}
-        ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+    <div class="item-with-photo" style="flex:1">
+      ${buildPhotoHtml(secId,itemId,item,canEdit)}
+      <div class="item-body">
+        <div class="item-code">${item.code}</div>
+        ${buildNameHtml(secId,itemId,item,canEdit)}
+        ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${aviosHtml}
+        <div class="item-actions">
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
+          ${moveOpts}
+          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        </div>
       </div>
     </div>
   </div>`;
