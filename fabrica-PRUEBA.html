@@ -763,6 +763,12 @@ function buildItem(secId,itemId,item,sec){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            ${item.ficha_link
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+          </div>
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
             ${moveOpts}
@@ -844,6 +850,12 @@ function buildItem(secId,itemId,item,sec){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            ${item.ficha_link
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+          </div>
           <div class="listo-badge">🎉 Lista para sacar a taller</div>
           ${canEdit?`
           <div class="enviar-taller-row">
@@ -873,6 +885,12 @@ function buildItem(secId,itemId,item,sec){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            ${item.ficha_link
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+          </div>
           <div class="en-taller-panel">
             <div class="en-taller-row"><span class="et-label">Taller:</span><span class="et-val">${item.tallerista||'—'}</span></div>
             <div class="en-taller-row"><span class="et-label">Enviada:</span><span class="et-val">${fmtFecha(item.fecha_envio_taller)}</span></div>
