@@ -409,6 +409,7 @@ const INITIAL_SECTIONS = {
     i8:{code:'Corte 97',name:'1163 · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false}}},
   }},
   sLT:{title:'Cortes listo para taller',color:'green',order:6.5,items:{}},
+  sFIN:{title:'Cortes Finalizados',color:'purple',order:7,items:{}},
 };
 
 let currentUser=null, sectionsData={}, actividadData={};
@@ -1125,7 +1126,10 @@ function buildItem(secId,itemId,item,sec){
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
   const fechaCorteHtml = secId!=='s3'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
-  const canDeshacer=secId!=='s3'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
+  const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
+    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
+  const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
+  const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
   return `<div class="item ${item.done?'done':''}">
     ${checkHtml}
     <div class="item-with-photo" style="flex:1">
@@ -1135,9 +1139,11 @@ function buildItem(secId,itemId,item,sec){
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${fechaCorteHtml}
+        ${fechaSalidaHtml}
         ${aviosHtml}
         <div class="item-actions">
           ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
+          ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
           ${moveOpts}
@@ -1151,9 +1157,10 @@ function buildItem(secId,itemId,item,sec){
 // ACTIONS
 const SEC_DEFAULTS_CORTE={
   s3b:{title:'Cortes realizados',color:'green',order:4.5},
-  s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:5},
-  s5:{title:'Cortes bloqueados — avío pedido, sin entregar',color:'green',order:6},
+  s4:{title:'Corte pendiente avío no pedido para sacar a taller',color:'danger',order:5},
+  s5:{title:'Cortes pendiente avío para sacar a taller',color:'warn',order:6},
   sLT:{title:'Cortes listo para taller',color:'green',order:6.5},
+  sFIN:{title:'Cortes Finalizados',color:'purple',order:7},
 };
 
 function ensureSeccionCorte(id){
@@ -1189,7 +1196,8 @@ function marcarCorteRealizado(secId,itemId){
   ensureSeccionCorte(targetSec);
   db.ref(`fabrica_v5/sections/${targetSec}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault} → ${SEC_DEFAULTS_CORTE[targetSec].title}`);
+  const targetTitle=sectionsData[targetSec]?.title||SEC_DEFAULTS_CORTE[targetSec].title;
+  logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault} → ${targetTitle}`);
   showToast(toastMsg);
 }
 
@@ -1222,6 +1230,17 @@ function checkCorteVuelveABloqueado(secId,itemId,avios){
     logActivity('Corte vuelve a bloqueado',item.code);
     showToast(`⚠️ ${item.code} volvió a bloqueado — falta avío`);
   },400);
+}
+
+function sacarATaller(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!confirm(`¿Confirmás que ${item.code} salió a taller? Se cierra el ciclo.`)) return;
+  const newItem={...item, fecha_salida_taller:Date.now()};
+  ensureSeccionCorte('sFIN');
+  db.ref(`fabrica_v5/sections/sFIN/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Corte sacado a taller',item.code);
+  showToast(`📦 ${item.code} salió a taller — ciclo cerrado`);
 }
 
 function deshacerCorte(secId,itemId){
