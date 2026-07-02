@@ -1208,6 +1208,22 @@ function checkCorteListoParaTaller(secId,itemId,avios){
   },400);
 }
 
+function checkCorteVuelveABloqueado(secId,itemId,avios){
+  if(secId!=='sLT') return;
+  const item=sectionsData[secId]?.items?.[itemId];
+  if(!item) return;
+  const avList=Object.values(avios||{});
+  if(avList.length===0 || avList.every(a=>a.recibido)) return; // sigue sin necesitar nada, se queda
+  const targetSec=avList.some(a=>a.fecha_pedido)?'s5':'s4';
+  ensureSeccionCorte(targetSec);
+  setTimeout(()=>{
+    db.ref(`fabrica_v5/sections/${targetSec}/items`).push({...item,avios});
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+    logActivity('Corte vuelve a bloqueado',item.code);
+    showToast(`⚠️ ${item.code} volvió a bloqueado — falta avío`);
+  },400);
+}
+
 function deshacerCorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const newItem={...item, done:false};
@@ -1274,6 +1290,8 @@ function desmarcarRecibido(secId,itemId,avioId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}/recibido`).set(false);
   logActivity('Deshizo avío recibido',`${avio.nombre} — ${item.code}`);
   showToast('↩ Avío desmarcado');
+  const aviosAct={...item.avios,[avioId]:{...avio,recibido:false}};
+  checkCorteVuelveABloqueado(secId,itemId,aviosAct);
 }
 
 function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
