@@ -408,6 +408,7 @@ const INITIAL_SECTIONS = {
     i7:{code:'Corte 94',name:'4752 · Top con Puntilla con Cuello',done:false,avios:{a1:{nombre:'Encaje Elastizado',proveedor:'Button Company',fecha_pedido:'8/6/2026',recibido:false}}},
     i8:{code:'Corte 97',name:'1163 · Pantalon Pinzas Clasico',done:false,avios:{a1:{nombre:'Botón Yarda a tono',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false},a2:{nombre:'Cierre 14cm',proveedor:'Walter Botonera Union',fecha_pedido:'18/6/2026',recibido:false}}},
   }},
+  sLT:{title:'Cortes listo para taller',color:'green',order:6.5,items:{}},
 };
 
 let currentUser=null, sectionsData={}, actividadData={};
@@ -1122,9 +1123,9 @@ function buildItem(secId,itemId,item,sec){
   const checkHtml = secId==='s3'
     ? '' // en s3 no hay checkbox, se usa botón Marcar cortado
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
-  const fechaCorteHtml = secId==='s3b'&&item.fecha_corte
+  const fechaCorteHtml = secId!=='s3'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
-  const canDeshacer=secId==='s3b'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
+  const canDeshacer=secId!=='s3'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   return `<div class="item ${item.done?'done':''}">
     ${checkHtml}
     <div class="item-with-photo" style="flex:1">
@@ -1148,6 +1149,19 @@ function buildItem(secId,itemId,item,sec){
 }
 
 // ACTIONS
+const SEC_DEFAULTS_CORTE={
+  s3b:{title:'Cortes realizados',color:'green',order:4.5},
+  s4:{title:'Cortes bloqueados — sin pedir avío',color:'danger',order:5},
+  s5:{title:'Cortes bloqueados — avío pedido, sin entregar',color:'green',order:6},
+  sLT:{title:'Cortes listo para taller',color:'green',order:6.5},
+};
+
+function ensureSeccionCorte(id){
+  if(!sectionsData[id] || !sectionsData[id].title){
+    db.ref(`fabrica_v5/sections/${id}`).update({...SEC_DEFAULTS_CORTE[id],collapsed:false});
+  }
+}
+
 function marcarCorteRealizado(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const hoy=new Date();
@@ -1155,14 +1169,43 @@ function marcarCorteRealizado(secId,itemId){
   const fecha=prompt('¿Qué fecha se cortó?',fechaDefault);
   if(fecha===null) return;
   const newItem={...item, fecha_corte:fecha.trim()||fechaDefault, done:true};
-  // Asegurar metadata de la sección destino (por si no existía aún en Firebase)
-  if(!sectionsData['s3b'] || !sectionsData['s3b'].title){
-    db.ref('fabrica_v5/sections/s3b').update({title:'Cortes realizados',color:'green',order:4.5,collapsed:false});
+
+  // Ruteo automático según estado de avíos: sin avíos o avíos ya recibidos → listo para taller.
+  // Avíos pendientes de pedir → bloqueado sin pedir. Avíos pedidos pero no recibidos → bloqueado esperando entrega.
+  const avList=Object.values(item.avios||{});
+  let targetSec,toastMsg;
+  if(avList.length===0 || avList.every(a=>a.recibido)){
+    targetSec='sLT';
+    toastMsg=`🎉 ${item.code} cortado y listo para taller`;
+  } else if(avList.some(a=>a.fecha_pedido)){
+    targetSec='s5';
+    toastMsg=`✂️ ${item.code} cortado — esperando que llegue el avío pedido`;
+  } else {
+    targetSec='s4';
+    toastMsg=`✂️ ${item.code} cortado — falta pedir avío`;
   }
-  db.ref(`fabrica_v5/sections/s3b/items`).push(newItem);
+
+  // Asegurar metadata de la sección destino (por si no existía aún en Firebase)
+  ensureSeccionCorte(targetSec);
+  db.ref(`fabrica_v5/sections/${targetSec}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault}`);
-  showToast(`✂️ ${item.code} cortado`);
+  logActivity('Corte realizado',`${item.code} — ${fecha.trim()||fechaDefault} → ${SEC_DEFAULTS_CORTE[targetSec].title}`);
+  showToast(toastMsg);
+}
+
+function checkCorteListoParaTaller(secId,itemId,avios){
+  if(secId!=='s4'&&secId!=='s5') return;
+  const item=sectionsData[secId]?.items?.[itemId];
+  if(!item) return;
+  const avList=Object.values(avios||{});
+  if(avList.length===0 || !avList.every(a=>a.recibido)) return;
+  ensureSeccionCorte('sLT');
+  setTimeout(()=>{
+    db.ref(`fabrica_v5/sections/sLT/items`).push({...item,avios});
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+    logActivity('Corte listo para taller',item.code);
+    showToast(`🎉 ${item.code} listo para taller`);
+  },400);
 }
 
 function deshacerCorte(secId,itemId){
@@ -1222,6 +1265,7 @@ function marcarRecibido(secId,itemId,avioId){
   showToast('✓ Avío marcado como entregado');
   const aviosAct={...item.avios,[avioId]:{...avio,recibido:true}};
   checkListaParaTaller(secId,itemId,item.ficha||false,item.lleva_avios,aviosAct);
+  checkCorteListoParaTaller(secId,itemId,aviosAct);
 }
 
 function desmarcarRecibido(secId,itemId,avioId){
