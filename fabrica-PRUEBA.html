@@ -1202,7 +1202,7 @@ function marcarCorteRealizado(secId,itemId){
 }
 
 function checkCorteListoParaTaller(secId,itemId,avios){
-  if(secId!=='s4'&&secId!=='s5') return;
+  if(secId!=='s4'&&secId!=='s5'&&secId!=='s3b') return;
   const item=sectionsData[secId]?.items?.[itemId];
   if(!item) return;
   const avList=Object.values(avios||{});
