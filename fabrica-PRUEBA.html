@@ -667,6 +667,16 @@ function renderStats(){
     <div class="stat-card"><div class="stat-num">${enTaller}</div><div class="stat-label">En taller</div></div>`;
 }
 
+function getSortedItems(sec){
+  return Object.entries(sec.items||{}).sort((a,b)=>{
+    const oa=a[1].orden, ob=b[1].orden;
+    if(oa==null&&ob==null) return 0;
+    if(oa==null) return 1;
+    if(ob==null) return -1;
+    return oa-ob;
+  });
+}
+
 function renderSections(){
   const c=document.getElementById('sections-container');c.innerHTML='';
   let entries=Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
@@ -675,7 +685,7 @@ function renderSections(){
   }
   entries.forEach(([secId,sec])=>{
     const col=COLORS[sec.color]||COLORS.accent;
-    const items=Object.entries(sec.items||{});
+    const items=getSortedItems(sec);
     const count=items.length;
     const div=document.createElement('div');div.className='section';
     const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO].includes(secId)?`
@@ -693,7 +703,7 @@ function renderSections(){
         <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
-        ${items.map(([itemId,item])=>buildItem(secId,itemId,item,sec)).join('')}
+        ${items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')}
         ${addRow}${addRowGeneral}
       </div>`;
     c.appendChild(div);
@@ -866,7 +876,7 @@ function buildMoveOptsForItem(secId,itemId){
 }
 
 // Rerender buildItem con move correcto
-function buildItem(secId,itemId,item,sec){
+function buildItem(secId,itemId,item,sec,idx,total){
   const canEdit=currentUser==='ariel'||currentUser==='peque'||(currentUser==='nahuel'&&secId===SEC_PEND);
   const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
   const tipo=sec.tipo||'';
@@ -1140,7 +1150,12 @@ function buildItem(secId,itemId,item,sec){
   const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
+  const orderHtml = (secId==='s3'&&canEdit&&total>1) ? `<div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
+      <button title="Subir" ${idx===0?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',-1)" style="border:1px solid var(--border);background:${idx===0?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'inherit'}">▲</button>
+      <button title="Bajar" ${idx===total-1?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',1)" style="border:1px solid var(--border);background:${idx===total-1?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'inherit'}">▼</button>
+    </div>` : '';
   return `<div class="item ${item.done?'done':''}">
+    ${orderHtml}
     ${checkHtml}
     <div class="item-with-photo" style="flex:1">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
@@ -1287,6 +1302,21 @@ function editFichaLink(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_link`).set(link.trim());
   logActivity('Cargó link de ficha',item.code);
   showToast(link.trim()?'✓ Link guardado':'Link eliminado');
+}
+
+function moveCorteOrder(secId,itemId,dir){
+  const sec=sectionsData[secId];
+  const items=getSortedItems(sec);
+  const idx=items.findIndex(([id])=>id===itemId);
+  const newIdx=idx+dir;
+  if(idx===-1||newIdx<0||newIdx>=items.length) return;
+  const updates={};
+  items.forEach(([id],i)=>{ updates[`fabrica_v5/sections/${secId}/items/${id}/orden`]=i; });
+  const otroId=items[newIdx][0];
+  const tmp=updates[`fabrica_v5/sections/${secId}/items/${itemId}/orden`];
+  updates[`fabrica_v5/sections/${secId}/items/${itemId}/orden`]=updates[`fabrica_v5/sections/${secId}/items/${otroId}/orden`];
+  updates[`fabrica_v5/sections/${secId}/items/${otroId}/orden`]=tmp;
+  db.ref().update(updates);
 }
 
 function editNotaCorte(secId,itemId){
