@@ -1121,6 +1121,7 @@ function buildItem(secId,itemId,item,sec){
 
   const canToggle=currentUser==='ariel'||currentUser==='peque';
   const canCortar=secId==='s3'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
+  const canFicha=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir'||currentUser==='nahuel';
   const checkHtml = secId==='s3'
     ? '' // en s3 no hay checkbox, se usa botón Marcar cortado
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
@@ -1130,6 +1131,13 @@ function buildItem(secId,itemId,item,sec){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
+  const fichaHtml = secId!=='s3' ? `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
+      ${item.ficha_link
+        ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+        : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+      ${canFicha?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+    </div>` : '';
+  const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
   return `<div class="item ${item.done?'done':''}">
@@ -1140,14 +1148,17 @@ function buildItem(secId,itemId,item,sec){
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${fichaHtml}
         ${numeroCorteHtml}
         ${fechaCorteHtml}
         ${fechaSalidaHtml}
+        ${notaHtml}
         ${aviosHtml}
         <div class="item-actions">
           ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
+          ${canFicha&&secId!=='s3'?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
           ${moveOpts}
           ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
@@ -1276,6 +1287,15 @@ function editFichaLink(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_link`).set(link.trim());
   logActivity('Cargó link de ficha',item.code);
   showToast(link.trim()?'✓ Link guardado':'Link eliminado');
+}
+
+function editNotaCorte(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nota=prompt('Aclaración / detalle sobre este corte (ej: salió diferente a la muestra):',item.nota||'');
+  if(nota===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/nota`).set(nota.trim());
+  logActivity('Nota de corte',`${item.code}: ${nota.trim()}`);
+  showToast(nota.trim()?'✓ Nota guardada':'Nota eliminada');
 }
 
 function toggleFicha(secId,itemId){
