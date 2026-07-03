@@ -683,7 +683,7 @@ function renderSections(){
   if(currentUser==='nahuel'){
     entries=entries.filter(([secId])=>secId===SEC_PEND||secId==='s3'||secId==='s3b');
   }
-  entries.forEach(([secId,sec])=>{
+  entries.forEach(([secId,sec],secIdx)=>{
     const col=COLORS[sec.color]||COLORS.accent;
     const items=getSortedItems(sec);
     const count=items.length;
@@ -691,6 +691,9 @@ function renderSections(){
     const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO].includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
+    const secOrderBtns=currentUser==='ariel'?`
+      <button title="Subir sección" ${secIdx===0?'disabled':''} onclick="moveSectionOrder('${secId}',-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===0?'default':'pointer'};font-size:11px;opacity:${secIdx===0?'.4':'1'}">▲</button>
+      <button title="Bajar sección" ${secIdx===entries.length-1?'disabled':''} onclick="moveSectionOrder('${secId}',1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===entries.length-1?'default':'pointer'};font-size:11px;opacity:${secIdx===entries.length-1?'.4':'1'}">▼</button>`:'';
     const canAdd=(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
     const canAddMold=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_MOLD;
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
@@ -700,7 +703,7 @@ function renderSections(){
     div.innerHTML=`
       <div class="sec-header" style="background:${col.secBg}" onclick="toggleSec('${secId}')">
         <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${count}</span></div>
-        <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
+        <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${secOrderBtns}${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
         ${items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')}
@@ -708,6 +711,20 @@ function renderSections(){
       </div>`;
     c.appendChild(div);
   });
+}
+
+function moveSectionOrder(secId,dir){
+  const entries=Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const idx=entries.findIndex(([id])=>id===secId);
+  const newIdx=idx+dir;
+  if(idx===-1||newIdx<0||newIdx>=entries.length) return;
+  const updates={};
+  entries.forEach(([id],i)=>{ updates[`fabrica_v5/sections/${id}/order`]=i; });
+  const otroId=entries[newIdx][0];
+  const tmp=updates[`fabrica_v5/sections/${secId}/order`];
+  updates[`fabrica_v5/sections/${secId}/order`]=updates[`fabrica_v5/sections/${otroId}/order`];
+  updates[`fabrica_v5/sections/${otroId}/order`]=tmp;
+  db.ref().update(updates);
 }
 
 function buildItem(secId,itemId,item,sec){
