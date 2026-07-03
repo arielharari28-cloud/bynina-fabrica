@@ -1126,6 +1126,8 @@ function buildItem(secId,itemId,item,sec){
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
   const fechaCorteHtml = secId!=='s3'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
+  const numeroCorteHtml = item.numero_corte
+    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
@@ -1138,6 +1140,7 @@ function buildItem(secId,itemId,item,sec){
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${numeroCorteHtml}
         ${fechaCorteHtml}
         ${fechaSalidaHtml}
         ${aviosHtml}
@@ -1145,7 +1148,7 @@ function buildItem(secId,itemId,item,sec){
           ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
-          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
+          ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
           ${moveOpts}
           ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
@@ -1368,6 +1371,8 @@ function openEditModal(secId,itemId){
   document.getElementById('modal-edit-body').innerHTML=`
     <div class="field"><label>Código</label><input type="text" id="e-code" value="${item.code||''}"></div>
     <div class="field"><label>Nombre artículo</label><input type="text" id="e-name" value="${item.name||''}"></div>
+    <div class="field"><label>Número de corte</label><input type="text" id="e-numcorte" value="${item.numero_corte||''}" placeholder="Ej: Corte 98"></div>
+    <div class="field"><label>Tela</label><input type="text" id="e-tela" value="${item.sub||''}" placeholder="Ej: Lacoste Friza Estampada"></div>
     <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avíos</div>
     <div id="avios-edit">
       ${avios.map(([avioId,avio])=>`<div class="avio-block">
@@ -1398,6 +1403,8 @@ function saveEditItem(){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
     code:document.getElementById('e-code').value.trim(),
     name:document.getElementById('e-name').value.trim(),
+    numero_corte:document.getElementById('e-numcorte').value.trim(),
+    sub:document.getElementById('e-tela').value.trim(),
   });
   Object.keys(item.avios||{}).forEach(avioId=>{
     const n=document.getElementById(`an-${avioId}`);
