@@ -1131,12 +1131,12 @@ function buildItem(secId,itemId,item,sec){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
-  const fichaHtml = secId!=='s3' ? `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
+  const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
       ${item.ficha_link
         ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
         : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
       ${canFicha?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
-    </div>` : '';
+    </div>`;
   const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
@@ -1158,7 +1158,7 @@ function buildItem(secId,itemId,item,sec){
           ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
-          ${canFicha&&secId!=='s3'?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
+          ${canFicha?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
           ${moveOpts}
           ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
