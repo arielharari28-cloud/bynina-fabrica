@@ -346,6 +346,26 @@ function buildNameHtml(secId,itemId,item,canEdit){
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
 }
 
+function buildCapasHtml(item){
+  const talles=item.capas_talles||[];
+  const filas=Object.values(item.capas||{});
+  const rows=filas.filter(f=>f&&(f.color||Object.values(f.cant||{}).some(v=>parseInt(v)>0)));
+  if(!talles.length||!rows.length) return '';
+  const totalPorTalle=talles.map(t=>rows.reduce((s,r)=>s+(parseInt(r.cant&&r.cant[t])||0),0));
+  const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
+  const headerCols=talles.map(t=>`<th style="padding:2px 6px;font-size:10px;color:var(--text2);text-align:center">${t}</th>`).join('');
+  const bodyRows=rows.map(r=>`<tr><td style="padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap">${(r.color||'—').replace(/</g,'&lt;')}</td>${talles.map(t=>`<td style="padding:2px 6px;font-size:11px;text-align:center">${r.cant&&r.cant[t]?r.cant[t]:'—'}</td>`).join('')}</tr>`).join('');
+  const totalCells=totalPorTalle.map(t=>`<td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center">${t}</td>`).join('');
+  return `<div style="margin-top:4px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);padding:6px 8px;overflow-x:auto">
+    <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🧵 Capas por color</div>
+    <table style="border-collapse:collapse;width:100%">
+      <thead><tr><th style="text-align:left;padding:2px 6px;font-size:10px;color:var(--text2)">Color</th>${headerCols}</tr></thead>
+      <tbody>${bodyRows}<tr style="border-top:1px solid var(--border)"><td style="padding:2px 6px;font-size:11px;font-weight:700">Total</td>${totalCells}</tr></tbody>
+    </table>
+    <div style="font-size:10px;color:var(--text2);margin-top:2px">Total general: <strong>${totalGeneral}</strong> capas</div>
+  </div>`;
+}
+
 function buildCodeHtml(secId,itemId,item,canEdit){
   if (!canEdit) return `<div class="item-code">${item.code}</div>`;
   return `<div class="item-code-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
@@ -1156,6 +1176,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   const numeroCorteHtml = item.numero_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
+  const capasHtml = buildCapasHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
   const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
@@ -1182,6 +1203,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${fichaHtml}
         ${numeroCorteHtml}
+        ${capasHtml}
         ${fechaCorteHtml}
         ${fechaSalidaHtml}
         ${notaHtml}
@@ -1434,13 +1456,34 @@ function editSecTitle(secId){
 function openEditModal(secId,itemId){
   editCtx={secId,itemId,newAvioCount:0};
   const item=sectionsData[secId].items[itemId];
+  const sec=sectionsData[secId];
   const avios=Object.entries(item.avios||{});
+  const esCorte=!sec.tipo; // secciones de cortes no tienen tipo (vs muestra_*)
+
+  // Inicializar estado del editor de capas a partir del item
+  editCtx.capasTalles=Array.isArray(item.capas_talles)?[...item.capas_talles]:[];
+  const filasExistentes=Object.entries(item.capas||{}).map(([id,f])=>({id,color:f.color||'',cant:{...(f.cant||{})}}));
+  editCtx.capasRows=filasExistentes.length?filasExistentes:[{id:'r'+Date.now(),color:'',cant:{}}];
+
+  const capasSectionHtml=esCorte?`
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:10px">Capas por color</div>
+    <div class="field"><label>Talles (separados por coma)</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="e-talles" value="${editCtx.capasTalles.join(', ')}" placeholder="Ej: S, M, L, XL o 36, 38, 40, 42" style="flex:1">
+        <button class="btn-sm" onclick="updateCapasTalles()">🔄 Actualizar</button>
+      </div>
+    </div>
+    <div id="capas-table-wrap" style="margin-bottom:6px"></div>
+    <button class="btn-sm" onclick="addCapaRow()" style="width:100%;padding:8px">+ Agregar color</button>
+  `:'';
+
   document.getElementById('modal-edit-body').innerHTML=`
     <div class="field"><label>Código</label><input type="text" id="e-code" value="${item.code||''}"></div>
     <div class="field"><label>Nombre artículo</label><input type="text" id="e-name" value="${item.name||''}"></div>
     <div class="field"><label>Número de corte</label><input type="text" id="e-numcorte" value="${item.numero_corte||''}" placeholder="Ej: Corte 98"></div>
     <div class="field"><label>Tela</label><input type="text" id="e-tela" value="${item.sub||''}" placeholder="Ej: Lacoste Friza Estampada"></div>
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avíos</div>
+    ${capasSectionHtml}
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:10px">Avíos</div>
     <div id="avios-edit">
       ${avios.map(([avioId,avio])=>`<div class="avio-block">
         <div class="field"><label>Avío</label><input type="text" id="an-${avioId}" value="${avio.nombre||''}"></div>
@@ -1451,6 +1494,70 @@ function openEditModal(secId,itemId){
     </div>
     <button class="btn-sm" onclick="addAvioField()" style="width:100%;padding:8px">+ Agregar avío</button>`;
   document.getElementById('modal-edit').classList.remove('hidden');
+  if(esCorte) renderCapasEditor();
+}
+
+// ---- Editor de capas por color/talle ----
+function syncCapasFromDOM(){
+  const container=document.getElementById('capas-table-wrap');
+  if(!container) return;
+  const rowEls=container.querySelectorAll('.capa-row');
+  if(rowEls.length===0) return; // aún no renderizado, no pisar el estado
+  const rows=[];
+  rowEls.forEach(rowEl=>{
+    const id=rowEl.dataset.rowid;
+    const colorInp=rowEl.querySelector('.capa-color');
+    const color=colorInp?colorInp.value:'';
+    const cant={};
+    rowEl.querySelectorAll('.capa-qty').forEach(q=>{ cant[q.dataset.talle]=q.value; });
+    rows.push({id,color,cant});
+  });
+  editCtx.capasRows=rows;
+}
+
+function renderCapasEditor(){
+  const wrap=document.getElementById('capas-table-wrap');
+  if(!wrap) return;
+  const talles=editCtx.capasTalles||[];
+  const rows=editCtx.capasRows||[];
+  if(!talles.length){
+    wrap.innerHTML=`<div style="font-size:12px;color:var(--text3);font-style:italic">Definí los talles arriba y tocá "Actualizar" para armar la tabla.</div>`;
+    return;
+  }
+  const headerCols=talles.map(t=>`<th style="padding:4px;font-size:11px;color:var(--text2)">${t}</th>`).join('');
+  const bodyRows=rows.map(row=>{
+    const qtyCells=talles.map(t=>`<td style="padding:2px"><input type="number" min="0" class="capa-qty" data-talle="${t}" value="${row.cant[t]!==undefined&&row.cant[t]!==''?row.cant[t]:''}" style="width:48px;padding:4px;font-size:12px;text-align:center;border:1px solid var(--border);border-radius:4px"></td>`).join('');
+    return `<tr class="capa-row" data-rowid="${row.id}">
+      <td style="padding:2px"><input type="text" class="capa-color" value="${(row.color||'').replace(/"/g,'&quot;')}" placeholder="Color" style="width:100px;padding:4px;font-size:12px;border:1px solid var(--border);border-radius:4px"></td>
+      ${qtyCells}
+      <td><button class="btn-danger" style="padding:2px 6px;font-size:11px" onclick="removeCapaRow('${row.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML=`<table style="border-collapse:collapse;width:100%">
+    <thead><tr><th style="padding:4px;font-size:11px;color:var(--text2);text-align:left">Color</th>${headerCols}<th></th></tr></thead>
+    <tbody>${bodyRows}</tbody>
+  </table>`;
+}
+
+function updateCapasTalles(){
+  syncCapasFromDOM();
+  const raw=document.getElementById('e-talles').value||'';
+  editCtx.capasTalles=raw.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!editCtx.capasRows||editCtx.capasRows.length===0) editCtx.capasRows=[{id:'r'+Date.now(),color:'',cant:{}}];
+  renderCapasEditor();
+}
+
+function addCapaRow(){
+  syncCapasFromDOM();
+  editCtx.capasRows.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,5),color:'',cant:{}});
+  renderCapasEditor();
+}
+
+function removeCapaRow(id){
+  syncCapasFromDOM();
+  editCtx.capasRows=editCtx.capasRows.filter(r=>r.id!==id);
+  if(editCtx.capasRows.length===0) editCtx.capasRows=[{id:'r'+Date.now(),color:'',cant:{}}];
+  renderCapasEditor();
 }
 
 function addAvioField(){
@@ -1467,12 +1574,28 @@ function addAvioField(){
 function saveEditItem(){
   const{secId,itemId,newAvioCount}=editCtx;
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+  const sec=sectionsData[secId];
+  const esCorte=!sec.tipo;
+  const updates={
     code:document.getElementById('e-code').value.trim(),
     name:document.getElementById('e-name').value.trim(),
     numero_corte:document.getElementById('e-numcorte').value.trim(),
     sub:document.getElementById('e-tela').value.trim(),
-  });
+  };
+  if(esCorte){
+    syncCapasFromDOM();
+    const capasObj={};
+    (editCtx.capasRows||[]).forEach(row=>{
+      const tieneAlgo=row.color||Object.values(row.cant||{}).some(v=>parseInt(v)>0);
+      if(!tieneAlgo) return;
+      const cantLimpio={};
+      Object.entries(row.cant||{}).forEach(([t,v])=>{ if(v!==''&&v!==undefined&&v!==null) cantLimpio[t]=parseInt(v)||0; });
+      capasObj[row.id]={color:row.color||'',cant:cantLimpio};
+    });
+    updates.capas_talles=editCtx.capasTalles||[];
+    updates.capas=capasObj;
+  }
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
   Object.keys(item.avios||{}).forEach(avioId=>{
     const n=document.getElementById(`an-${avioId}`);
     if(n) db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/avios/${avioId}`).update({
