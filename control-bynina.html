@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control By Nina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#f5f4ef;
+    --card:#ffffff;
+    --ink:#25231f;
+    --ink-soft:#847d70;
+    --line:#e6e2d8;
+    --green:#2f6b4f;
+    --green-soft:#dcece2;
+    --red:#7a3230;
+    --red-soft:#f2ded9;
+    --purple:#5b4e9e;
+    --purple-soft:#e3ddf4;
+    --rust:#8b4a2b;
+    --rust-soft:#eeddd0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:0 0 60px 0;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px;}
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:20px;
+  }
+  h1{
+    font-family:'Poppins',sans-serif;
+    font-weight:700;
+    font-size:24px;
+    margin:0;
+    color:var(--ink);
+  }
+  .datestamp{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+
+  /* Shared morning plan board */
+  .plan-board{
+    background:var(--purple);
+    border-radius:12px;
+    padding:16px 16px 14px 16px;
+    margin-bottom:20px;
+    color:#fff;
+  }
+  .plan-header{margin-bottom:12px;}
+  .plan-title{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:16px;
+  }
+  .plan-sub{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:#d9d4ef;
+    margin-top:2px;
+  }
+  .plan-field{margin-bottom:10px;}
+  .plan-field label{
+    display:block;
+    font-family:'Poppins',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:#efecfa;
+    margin-bottom:5px;
+  }
+  .plan-field textarea{
+    width:100%;
+    min-height:60px;
+    background:#fff;
+    color:var(--ink);
+    border:none;
+    border-radius:8px;
+  }
+  .plan-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .plan-updated{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:#d9d4ef;
+  }
+  .plan-footer button{
+    background:#fff;
+    color:var(--purple);
+  }
+  .plan-field textarea[readonly]{
+    background:#f0eef7;
+    color:var(--ink);
+    cursor:default;
+  }
+  .plan-board.readonly .plan-footer button{display:none;}
+  .plan-toggle{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:#c9c3e6;
+    text-align:right;
+    margin-top:8px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  /* Quick capture */
+  .capture{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:24px;
+  }
+  .capture-label{
+    font-family:'Poppins',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .capture-row{display:flex;gap:8px;flex-wrap:wrap;}
+  select, textarea, input[type=text], input[type=date]{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    font-size:14px;
+    background:#fff;
+    color:var(--ink);
+  }
+  select{flex:0 0 140px;}
+  input[type=date]{flex:0 0 145px;}
+  input[type=time]{flex:0 0 110px;}
+  textarea{
+    flex:1 1 240px;
+    min-width:200px;
+    resize:vertical;
+    min-height:42px;
+  }
+  button{
+    font-family:'Poppins',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    background:var(--green);
+    color:#fff;
+    border:none;
+    border-radius:20px;
+    padding:0 20px;
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button:hover{opacity:0.85;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  .capture.team-capture{
+    border-left:4px solid var(--rust);
+  }
+  .team-involve-check{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .team-involve-check input[type=checkbox]{
+    width:16px;
+    height:16px;
+    cursor:pointer;
+  }
+
+  /* Filters */
+  .filters{
+    display:flex;
+    gap:6px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .chip{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    padding:5px 12px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--card);
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .chip.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+
+  .section-title{
+    display:inline-block;
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    color:#fff;
+    background:var(--ink-soft);
+    padding:8px 16px;
+    border-radius:20px;
+    margin:24px 0 12px 0;
+  }
+  .section-title.st-red{background:var(--red);}
+  .section-title.st-green{background:var(--green);}
+  .section-title.st-purple{background:var(--purple);}
+  .section-title.st-rust{background:var(--rust);}
+
+  /* Note / task card */
+  .ticket{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:8px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .ticket.resolved{opacity:0.6;}
+  .ticket-check{
+    flex:0 0 auto;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    background:#fff;
+    color:transparent;
+    margin-top:2px;
+  }
+  .ticket.resolved .ticket-check{
+    background:var(--green);
+    border-color:var(--green);
+    color:#fff;
+  }
+  .ticket-body{flex:1;}
+  .ticket-meta{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:4px;
+    flex-wrap:wrap;
+  }
+  .tag{
+    font-family:'Poppins',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 10px;
+    border-radius:12px;
+  }
+  .tag.emir{background:var(--purple-soft);color:var(--purple);}
+  .tag.flor,.tag.carol,.tag.noemi{background:var(--green-soft);color:var(--green);}
+  .tag.noelia,.tag.stef,.tag.meli{background:var(--rust-soft);color:var(--rust);}
+  .tag.general,.tag.aripchico,.tag.ale,.tag.nahuel{background:#eceada;color:var(--ink-soft);}
+  .ticket-time{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .due-badge{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    padding:2px 9px;
+    border-radius:12px;
+    background:var(--green-soft);
+    color:var(--green);
+  }
+  .due-badge.overdue{
+    background:var(--red-soft);
+    color:var(--red);
+    font-weight:700;
+  }
+  .time-badge{
+    background:var(--purple-soft);
+    color:var(--purple);
+  }
+  .ticket-text{
+    font-size:14px;
+    line-height:1.4;
+    word-break:break-word;
+  }
+  .ticket.resolved .ticket-text{text-decoration:line-through;}
+  .del-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:18px;
+    cursor:pointer;
+    padding:0 4px;
+    line-height:1;
+  }
+  .del-btn:hover{color:var(--red);}
+  .edit-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:14px;
+    cursor:pointer;
+    padding:0 2px;
+    line-height:1;
+  }
+  .edit-btn:hover{color:var(--purple);}
+
+  /* Edit task modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(37,35,31,0.5);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    background:var(--card);
+    border-radius:12px;
+    padding:18px;
+    width:100%;
+    max-width:420px;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  .modal-title{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    margin-bottom:14px;
+  }
+  .modal-field{margin-bottom:12px;}
+  .modal-field label{
+    display:block;
+    font-family:'Poppins',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .modal-field select, .modal-field input, .modal-field textarea{
+    width:100%;
+    min-height:auto;
+  }
+  .modal-field textarea{min-height:70px;}
+  .modal-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:6px;
+  }
+  .modal-footer button{padding:0 16px;height:34px;}
+  .modal-cancel-btn{
+    background:none;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+  }
+
+  .empty{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:20px 0;
+    text-align:center;
+  }
+
+  /* Daily checklist */
+  .checklist-sub{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:-6px 0 12px 0;
+  }
+  .check-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:8px;
+    padding:12px 14px;
+    overflow:hidden;
+  }
+  .check-card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .check-card-name{
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    font-weight:600;
+  }
+  .check-progress{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    padding:2px 10px;
+    border-radius:12px;
+    background:var(--green-soft);
+    color:var(--green);
+  }
+  .check-progress.zero{
+    background:var(--red-soft);
+    color:var(--red);
+  }
+  .check-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 0;
+    border-top:1px solid var(--line);
+  }
+  .check-item:first-of-type{border-top:none;}
+  .check-item input[type=checkbox]{
+    width:18px;
+    height:18px;
+    flex:0 0 auto;
+    accent-color:var(--green);
+    cursor:pointer;
+  }
+  .check-item label{
+    font-size:13px;
+    cursor:pointer;
+  }
+  .check-item.done label{
+    text-decoration:line-through;
+    color:var(--ink-soft);
+  }
+  .check-team-tasks{
+    margin-top:8px;
+    padding-top:2px;
+    border-top:1px dashed var(--line);
+  }
+  .check-team-item{
+    background:var(--rust-soft);
+    margin:6px -14px 0;
+    padding:8px 14px;
+    border-top:none;
+  }
+  .check-team-item:first-child{margin-top:6px;}
+  .check-team-item .ticket-check{
+    width:18px;
+    height:18px;
+    background:transparent;
+  }
+  .check-team-label{
+    flex:1;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    cursor:default;
+  }
+
+  .status-bar{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:20px;
+  }
+  @media (max-width:480px){
+    select{flex:1 1 100%;}
+    h1{font-size:20px;}
+  }
+
+  /* Tabs */
+  .tab-nav{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .tab-btn{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:10px 20px;
+    border-radius:20px;
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* Date navigator (Mi Día) */
+  .date-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:18px;
+  }
+  .date-nav button{
+    background:var(--purple);
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:32px;
+    height:32px;
+    font-size:16px;
+    font-family:'Poppins',sans-serif;
+    padding:0;
+  }
+  .date-nav .date-display{text-align:center;flex:1;}
+  .date-nav .date-main{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:15px;
+  }
+  .date-nav .date-today-link{
+    font-size:11px;
+    color:var(--purple);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  /* Agenda (Mi Día) */
+  .agenda-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .agenda-item.editing{align-items:flex-start;}
+  .agenda-time{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    color:var(--purple);
+    flex:0 0 52px;
+  }
+  .agenda-main{flex:1;min-width:120px;}
+  .agenda-text{font-size:14px;}
+  .agenda-item.done .agenda-text{
+    text-decoration:line-through;
+    color:var(--ink-soft);
+  }
+  .agenda-photo{
+    display:block;
+    width:56px;
+    height:56px;
+    object-fit:cover;
+    border-radius:8px;
+    margin-top:6px;
+    cursor:pointer;
+    border:1px solid var(--line);
+  }
+  .agenda-icon-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    font-size:15px;
+    cursor:pointer;
+    padding:2px 4px;
+    color:var(--ink-soft);
+  }
+  .agenda-icon-btn:hover{color:var(--purple);}
+  .agenda-check{
+    flex:0 0 auto;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    color:transparent;
+  }
+  .agenda-item.done .agenda-check{
+    background:var(--purple);
+    border-color:var(--purple);
+    color:#fff;
+  }
+  .agenda-del{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:18px;
+    cursor:pointer;
+    padding:0 4px;
+  }
+  .agenda-del:hover{color:var(--red);}
+  .agenda-edit-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    width:100%;
+  }
+  .agenda-edit-row input[type=time]{flex:0 0 100px;}
+  .agenda-edit-row textarea{flex:1 1 200px;min-width:160px;min-height:38px;}
+  .agenda-edit-actions{
+    display:flex;
+    gap:8px;
+    width:100%;
+    justify-content:flex-end;
+    margin-top:6px;
+  }
+  .agenda-edit-actions button{padding:0 14px;height:32px;font-size:12px;}
+  .agenda-cancel-btn{background:var(--ink-soft) !important;}
+
+  /* Personal task area tags (Mi Día) */
+  .tag.nina{background:var(--purple-soft);color:var(--purple);}
+  .tag.embrujo{background:var(--red-soft);color:var(--red);}
+  .tag.diverso{background:var(--green-soft);color:var(--green);}
+  .tag.farb{background:var(--rust-soft);color:var(--rust);}
+  .tag.otros{background:#d9e9e9;color:#2c6b6b;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>By Nina</h1>
+    <div class="datestamp" id="today"></div>
+  </header>
+
+  <div class="tab-nav">
+    <div class="tab-btn active" data-tab="control">Control equipo</div>
+    <div class="tab-btn" data-tab="mi-dia">Mi Día</div>
+  </div>
+
+  <div id="tab-control" class="tab-panel active">
+  <div class="plan-board" id="plan-board">
+    <div class="plan-header">
+      <div class="plan-title">Plan de mañana — corte y control</div>
+      <div class="plan-sub">Visible para todo el que abra este link</div>
+    </div>
+    <div class="plan-field">
+      <label for="plan-corte">Corte prioritario (Ari Chico / Ale)</label>
+      <textarea id="plan-corte" placeholder="Qué se corta mañana, en orden..."></textarea>
+    </div>
+    <div class="plan-field">
+      <label for="plan-noemi">Indicación para Noemi</label>
+      <textarea id="plan-noemi" placeholder="Qué controlar/contar mañana..."></textarea>
+    </div>
+    <div class="plan-footer">
+      <span class="plan-updated" id="plan-updated">sin actualizar todavía</span>
+      <button id="plan-save-btn">Guardar plan</button>
+    </div>
+    <div class="plan-toggle" id="plan-toggle">Soy Ariel — activar edición</div>
+  </div>
+
+  <div class="section-title st-rust">Tareas rápidas para el equipo</div>
+  <div class="capture team-capture">
+    <div class="capture-label">Crear tarea puntual (les aparece a ellos)</div>
+    <div class="capture-row">
+      <select id="team-person">
+        <option value="general">General</option>
+        <option value="emir">Emir</option>
+        <option value="aripchico">Ari Chico</option>
+        <option value="ale">Ale</option>
+        <option value="noemi">Noemi</option>
+        <option value="flor">Flor</option>
+        <option value="carol">Carol</option>
+        <option value="noelia">Noelia</option>
+        <option value="stef">Stef</option>
+        <option value="meli">Meli</option>
+        <option value="nahuel">Nahuel</option>
+      </select>
+      <input type="date" id="team-due-date">
+      <input type="time" id="team-time-input">
+      <textarea id="team-task-text" placeholder="Qué necesitás que haga..."></textarea>
+      <button id="team-add-btn">Crear</button>
+    </div>
+    <label class="team-involve-check">
+      <input type="checkbox" id="team-involve-me">
+      Estoy involucrado — agregar también a mi día
+    </label>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="section-title st-red">Pendientes</div>
+  <div id="pending-list"></div>
+
+  <div class="section-title st-green">Resueltos</div>
+  <div id="resolved-list"></div>
+
+  <div class="section-title st-purple">Checklist diario del equipo</div>
+  <div class="checklist-sub" id="checklist-date"></div>
+  <div id="checklist"></div>
+  </div>
+
+  <div id="tab-mi-dia" class="tab-panel">
+    <div class="date-nav">
+      <button id="prev-day">‹</button>
+      <div class="date-display">
+        <div class="date-main" id="date-main"></div>
+        <div class="date-today-link" id="go-today">ir a hoy</div>
+      </div>
+      <button id="next-day">›</button>
+    </div>
+
+    <div class="section-title st-purple" id="agenda-section-title">Agenda de hoy</div>
+    <div class="capture">
+      <div class="capture-row">
+        <input type="time" id="agenda-time-input">
+        <textarea id="agenda-text-input" placeholder="Qué tenés en ese horario..."></textarea>
+        <button id="agenda-add-btn">Agregar</button>
+      </div>
+    </div>
+    <div id="agenda-list"></div>
+
+    <div class="section-title st-rust">Mis tareas</div>
+    <div class="capture">
+      <div class="capture-row">
+        <select id="task-area">
+          <option value="nina">By Nina</option>
+          <option value="embrujo">Embrujo</option>
+          <option value="diverso">Diverso</option>
+          <option value="farb">Farb</option>
+          <option value="otros">Otros clientes</option>
+          <option value="personal">Personal</option>
+        </select>
+        <input type="date" id="task-due-date">
+        <textarea id="task-text-input" placeholder="Qué tenés que hacer..."></textarea>
+        <button id="task-add-btn">Agregar</button>
+      </div>
+    </div>
+    <div class="filters" id="task-filters"></div>
+    <div id="task-list"></div>
+  </div>
+
+  <div class="status-bar" id="status-bar">cargando...</div>
+</div>
+
+<div class="modal-overlay" id="edit-task-modal">
+  <div class="modal-box">
+    <div class="modal-title">Editar tarea</div>
+    <div class="modal-field">
+      <label for="edit-task-person">Persona</label>
+      <select id="edit-task-person"></select>
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-due">Vence</label>
+      <input type="date" id="edit-task-due">
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-time">Horario</label>
+      <input type="time" id="edit-task-time">
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-text">Tarea</label>
+      <textarea id="edit-task-text"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" id="edit-task-cancel">Cancelar</button>
+      <button id="edit-task-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBqZ9ZkYfcDfXVEIGVsZM5_cByJkBXhVeA",
+  authDomain:"bynina-c1eec.firebaseapp.com",
+  databaseURL:"https://bynina-c1eec-default-rtdb.firebaseio.com",
+  projectId:"bynina-c1eec",
+  storageBucket:"bynina-c1eec.appspot.com"
+});
+const db = firebase.database();
+
+async function fbGet(path){
+  try{
+    const snap = await db.ref(path).once('value');
+    return snap.exists() ? snap.val() : null;
+  }catch(e){
+    return null;
+  }
+}
+async function fbSet(path, value){
+  return db.ref(path).set(value);
+}
+
+const PEOPLE = {
+  general:'General', emir:'Emir', aripchico:'Ari Chico', ale:'Ale',
+  noemi:'Noemi', flor:'Flor', carol:'Carol', noelia:'Noelia',
+  stef:'Stef', meli:'Meli', nahuel:'Nahuel'
+};
+let activeFilter = 'todos';
+
+const checklistData = [
+  {person:'Emir', items:[
+    {id:'emir-aviso-rocio', label:'Avisó a Rocío los cortes que salieron'},
+    {id:'emir-avios-recibir', label:'Avíos pendientes por recibir revisados'},
+    {id:'emir-avios-pedir', label:'Avíos para pedir consultados'},
+    {id:'emir-cortes-taller', label:'Cortes a taller organizados'},
+    {id:'emir-objetivo-corte', label:'Objetivo de corte pasado a taller'}
+  ]},
+  {person:'Ari Chico', items:[
+    {id:'aripchico-aviso', label:'Avisó qué se hizo en el día'}
+  ]},
+  {person:'Flor', items:[
+    {id:'flor-articulo', label:'¿Quedó algún artículo pendiente de armar?'}
+  ]},
+  {person:'Carol', items:[
+    {id:'carol-articulo', label:'¿Quedó algún artículo pendiente de armar?'}
+  ]},
+  {person:'Noelia', items:[
+    {id:'noelia-pedidos', label:'Pedidos coordinados'},
+    {id:'noelia-envios', label:'Envíos resueltos'},
+    {id:'noelia-modif', label:'Modificaciones atendidas'},
+    {id:'noelia-web', label:'Problemas de web resueltos'},
+    {id:'noelia-fotos', label:'Fotos subidas'},
+    {id:'noelia-categorias', label:'Categorías ordenadas'},
+    {id:'noelia-diseno', label:'Diseño (apoyo a Stef) al día'}
+  ]},
+  {person:'Stef', items:[
+    {id:'stef-feed', label:'Contenido subido según calendario'}
+  ]},
+  {person:'Meli', items:[
+    {id:'meli-tiktok', label:'TikTok / CM al día'}
+  ]}
+];
+
+let checklistState = {};
+
+function todayKey(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+async function loadChecklist(){
+  const key = 'control_bynina/checklist/' + todayKey();
+  try{
+    const val = await fbGet(key);
+    checklistState = val ? JSON.parse(val) : {};
+  }catch(e){
+    checklistState = {};
+  }
+}
+
+async function saveChecklistItem(id, checked){
+  checklistState[id] = checked;
+  const key = 'control_bynina/checklist/' + todayKey();
+  try{
+    await fbSet(key, JSON.stringify(checklistState));
+  }catch(e){}
+}
+
+function renderChecklist(){
+  document.getElementById('checklist-date').textContent = 'hoy, ' + document.getElementById('today').textContent + ' — se reinicia solo cada día';
+  const el = document.getElementById('checklist');
+  el.innerHTML = checklistData.map(sec => {
+    const total = sec.items.length;
+    const done = sec.items.filter(it => checklistState[it.id]).length;
+    const progressClass = done === 0 ? 'zero' : '';
+    const personKey = Object.keys(PEOPLE).find(k => PEOPLE[k] === sec.person);
+    const pendingTeam = teamTasks.filter(t => !t.resolved && t.person === personKey)
+      .sort((a,b)=>b.ts-a.ts);
+    const teamBlock = pendingTeam.length ? `
+      <div class="check-team-tasks">
+        ${pendingTeam.map(teamTaskRowHtml).join('')}
+      </div>
+    ` : '';
+    return `
+      <div class="check-card">
+        <div class="check-card-header">
+          <div class="check-card-name">${sec.person}</div>
+          <div class="check-progress ${progressClass}">${done}/${total}</div>
+        </div>
+        ${sec.items.map(it => `
+          <div class="check-item ${checklistState[it.id] ? 'done' : ''}">
+            <input type="checkbox" id="chk-${it.id}" ${checklistState[it.id] ? 'checked' : ''}>
+            <label for="chk-${it.id}">${it.label}</label>
+          </div>
+        `).join('')}
+        ${teamBlock}
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const id = cb.id.replace('chk-','');
+      await saveChecklistItem(id, cb.checked);
+      renderChecklist();
+    });
+  });
+
+  el.querySelectorAll('.team-check').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const t = teamTasks.find(x=>x.id===btn.dataset.id);
+      if(!t) return;
+      t.resolved = !t.resolved;
+      renderChecklist();
+      renderLists();
+      await saveTeamTasks();
+    });
+  });
+  el.querySelectorAll('.team-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      teamTasks = teamTasks.filter(x=>x.id!==btn.dataset.id);
+      renderChecklist();
+      renderLists();
+      await saveTeamTasks();
+    });
+  });
+  el.querySelectorAll('.team-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+}
+
+function fmtTime(ts){
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm} ${hh}:${mi}`;
+}
+
+function setStatus(text){
+  document.getElementById('status-bar').textContent = text;
+}
+
+function renderFilters(){
+  const el = document.getElementById('filters');
+  const keys = ['todos', ...Object.keys(PEOPLE)];
+  el.innerHTML = keys.map(k => {
+    const label = k === 'todos' ? 'Todos' : PEOPLE[k];
+    return `<div class="chip ${activeFilter===k?'active':''}" data-key="${k}">${label}</div>`;
+  }).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      activeFilter = c.dataset.key;
+      renderFilters();
+      renderLists();
+      renderChecklist();
+    });
+  });
+}
+
+function renderLists(){
+  const pendingEl = document.getElementById('pending-list');
+  const resolvedEl = document.getElementById('resolved-list');
+
+  const filtered = activeFilter==='todos' ? teamTasks : teamTasks.filter(t=>t.person===activeFilter);
+  const pending = filtered.filter(t=>!t.resolved).sort((a,b)=>b.ts-a.ts);
+  const resolved = filtered.filter(t=>t.resolved).sort((a,b)=>b.ts-a.ts);
+
+  pendingEl.innerHTML = pending.length ? pending.map(teamTicketHtml).join('') :
+    '<div class="empty">No hay pendientes acá. Buen momento para respirar.</div>';
+  resolvedEl.innerHTML = resolved.length ? resolved.map(teamTicketHtml).join('') :
+    '<div class="empty">Todavía nada marcado como resuelto.</div>';
+
+  document.querySelectorAll('#pending-list .team-check, #resolved-list .team-check').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleTeamTaskResolved(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .team-del, #resolved-list .team-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .team-edit, #resolved-list .team-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function toggleTeamTaskResolved(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t) return;
+  t.resolved = !t.resolved;
+  renderLists();
+  renderChecklist();
+  await saveTeamTasks();
+}
+
+async function deleteTeamTask(id){
+  teamTasks = teamTasks.filter(x=>x.id!==id);
+  renderLists();
+  renderChecklist();
+  await saveTeamTasks();
+}
+
+
+function renderToday(){
+  const d = new Date();
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  let s = d.toLocaleDateString('es-AR', opts);
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  document.getElementById('today').textContent = s;
+}
+
+const PLAN_KEY = 'control-bynina:plan-manana';
+const EDIT_MODE_KEY = 'control-bynina:edit-mode';
+let editMode = false;
+
+function applyEditMode(){
+  const board = document.getElementById('plan-board');
+  const corte = document.getElementById('plan-corte');
+  const noemi = document.getElementById('plan-noemi');
+  if(editMode){
+    board.classList.remove('readonly');
+    corte.removeAttribute('readonly');
+    noemi.removeAttribute('readonly');
+    document.getElementById('plan-toggle').textContent = 'Modo edición activo — tocar para volver a solo lectura';
+  }else{
+    board.classList.add('readonly');
+    corte.setAttribute('readonly','true');
+    noemi.setAttribute('readonly','true');
+    document.getElementById('plan-toggle').textContent = 'Soy Ariel — activar edición';
+  }
+}
+
+async function toggleEditMode(){
+  editMode = !editMode;
+  applyEditMode();
+  try{
+    localStorage.setItem(EDIT_MODE_KEY, editMode ? 'true' : 'false');
+  }catch(e){}
+}
+
+async function loadEditMode(){
+  try{
+    editMode = localStorage.getItem(EDIT_MODE_KEY) === 'true';
+  }catch(e){
+    editMode = false;
+  }
+  applyEditMode();
+}
+
+document.getElementById('plan-toggle').addEventListener('click', toggleEditMode);
+
+async function loadPlan(){
+  try{
+    const val = await fbGet('control_bynina/plan_manana');
+    if(val){
+      const data = JSON.parse(val);
+      document.getElementById('plan-corte').value = data.corte || '';
+      document.getElementById('plan-noemi').value = data.noemi || '';
+      document.getElementById('plan-updated').textContent = data.ts ? ('última actualización ' + fmtTime(data.ts)) : 'sin actualizar todavía';
+    }
+  }catch(e){
+    // no plan saved yet
+  }
+}
+
+async function savePlan(){
+  const btn = document.getElementById('plan-save-btn');
+  btn.disabled = true;
+  const data = {
+    corte: document.getElementById('plan-corte').value.trim(),
+    noemi: document.getElementById('plan-noemi').value.trim(),
+    ts: Date.now()
+  };
+  try{
+    await fbSet('control_bynina/plan_manana', JSON.stringify(data));
+    document.getElementById('plan-updated').textContent = 'última actualización ' + fmtTime(data.ts);
+  }catch(e){
+    document.getElementById('plan-updated').textContent = 'error al guardar, probá de nuevo';
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('plan-save-btn').addEventListener('click', savePlan);
+
+const TEAM_TASKS_KEY = 'control-bynina:team-tasks';
+let teamTasks = [];
+
+async function loadTeamTasks(){
+  try{
+    const val = await fbGet('control_bynina/team_tasks');
+    teamTasks = val ? JSON.parse(val) : [];
+  }catch(e){
+    teamTasks = [];
+  }
+}
+
+async function saveTeamTasks(){
+  try{
+    await fbSet('control_bynina/team_tasks', JSON.stringify(teamTasks));
+    setStatus('guardado ' + fmtTime(Date.now()));
+  }catch(e){
+    setStatus('error al guardar');
+  }
+}
+
+function fmtDue(dueStr){
+  if(!dueStr) return '';
+  const [y,m,d] = dueStr.split('-');
+  return `${d}/${m}`;
+}
+
+function isOverdue(dueStr, resolved){
+  if(!dueStr || resolved) return false;
+  const today = todayKey();
+  return dueStr < today;
+}
+
+function teamTicketHtml(t){
+  const overdue = isOverdue(t.dueDate, t.resolved);
+  const dueLabel = t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '';
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  return `
+    <div class="ticket ${t.resolved?'resolved':''}">
+      <div class="ticket-check team-check" data-id="${t.id}">${t.resolved?'✓':''}</div>
+      <div class="ticket-body">
+        <div class="ticket-meta">
+          <span class="tag ${t.person}">${PEOPLE[t.person] || t.person}</span>
+          <span class="ticket-time">${fmtTime(t.ts)}</span>
+          ${timeLabel}
+          ${dueLabel}
+        </div>
+        <div class="ticket-text">${escapeHtml(t.text)}</div>
+      </div>
+      <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
+      <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
+    </div>
+  `;
+}
+
+function teamTaskRowHtml(t){
+  const overdue = isOverdue(t.dueDate, t.resolved);
+  const dueLabel = t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '';
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  return `
+    <div class="check-item check-team-item">
+      <div class="ticket-check team-check" data-id="${t.id}">${t.resolved?'✓':''}</div>
+      <label class="check-team-label">${escapeHtml(t.text)} ${timeLabel} ${dueLabel}</label>
+      <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
+      <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
+    </div>
+  `;
+}
+
+async function addTeamTask(){
+  const textEl = document.getElementById('team-task-text');
+  const personEl = document.getElementById('team-person');
+  const dueEl = document.getElementById('team-due-date');
+  const timeEl = document.getElementById('team-time-input');
+  const involveEl = document.getElementById('team-involve-me');
+  const text = textEl.value.trim();
+  if(!text) return;
+  const btn = document.getElementById('team-add-btn');
+  btn.disabled = true;
+  const dueDate = dueEl.value || '';
+  const time = timeEl.value || '';
+  const involveMe = involveEl.checked;
+  teamTasks.push({
+    id: 't' + Date.now() + Math.random().toString(36).slice(2,7),
+    person: personEl.value,
+    text: text,
+    dueDate: dueDate,
+    time: time,
+    ts: Date.now(),
+    resolved: false
+  });
+  textEl.value = '';
+  timeEl.value = '';
+  renderLists();
+  renderChecklist();
+  await saveTeamTasks();
+  if(involveMe){
+    await addToAgendaForDate(dueDate || todayKey(), time, text);
+    setStatus('guardado y agregado a tu día');
+  }
+  involveEl.checked = false;
+  btn.disabled = false;
+  textEl.focus();
+}
+
+document.getElementById('team-add-btn').addEventListener('click', addTeamTask);
+document.getElementById('team-task-text').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addTeamTask();
+  }
+});
+
+let editingTeamTaskId = null;
+
+function populateEditPersonSelect(){
+  const sel = document.getElementById('edit-task-person');
+  sel.innerHTML = Object.keys(PEOPLE).map(k=>`<option value="${k}">${PEOPLE[k]}</option>`).join('');
+}
+
+function openEditTeamTask(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t) return;
+  editingTeamTaskId = id;
+  populateEditPersonSelect();
+  document.getElementById('edit-task-person').value = t.person;
+  document.getElementById('edit-task-due').value = t.dueDate || '';
+  document.getElementById('edit-task-time').value = t.time || '';
+  document.getElementById('edit-task-text').value = t.text;
+  document.getElementById('edit-task-modal').classList.add('open');
+}
+
+function closeEditTeamTask(){
+  editingTeamTaskId = null;
+  document.getElementById('edit-task-modal').classList.remove('open');
+}
+
+async function saveEditTeamTask(){
+  const t = teamTasks.find(x=>x.id===editingTeamTaskId);
+  if(!t) return;
+  const newText = document.getElementById('edit-task-text').value.trim();
+  if(!newText) return;
+  t.text = newText;
+  t.person = document.getElementById('edit-task-person').value;
+  t.dueDate = document.getElementById('edit-task-due').value || '';
+  t.time = document.getElementById('edit-task-time').value || '';
+  closeEditTeamTask();
+  renderLists();
+  renderChecklist();
+  await saveTeamTasks();
+}
+
+document.getElementById('edit-task-cancel').addEventListener('click', closeEditTeamTask);
+document.getElementById('edit-task-save').addEventListener('click', saveEditTeamTask);
+document.getElementById('edit-task-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'edit-task-modal') closeEditTeamTask();
+});
+
+(async function init(){
+  renderToday();
+  renderFilters();
+  document.getElementById('team-due-date').value = todayKey();
+  setStatus('cargando...');
+  await loadPlan();
+  await loadEditMode();
+  await loadChecklist();
+  await loadTeamTasks();
+  renderLists();
+  renderChecklist();
+  setStatus('listo — se guarda solo en este dispositivo');
+})();
+
+/* ===== Mi Día (personal, tab 2) ===== */
+const AREAS = {
+  nina:'By Nina', embrujo:'Embrujo', diverso:'Diverso',
+  farb:'Farb', otros:'Otros clientes', personal:'Personal'
+};
+
+let currentDate = new Date();
+let agendaItems = [];
+let personalTasks = [];
+let taskFilter = 'todas';
+
+function dateKey(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function fmtDateMain(d){
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  let s = d.toLocaleDateString('es-AR', opts);
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function isSameDay(d1,d2){
+  return dateKey(d1) === dateKey(d2);
+}
+
+function defaultAgendaFor(d){
+  const items = [];
+  const day = d.getDay();
+  if(day >= 1 && day <= 5){
+    items.push({id:'def-flor', time:'10:00', text:'Check-in Flor', done:false});
+    items.push({id:'def-noe', time:'10:30', text:'Check-in Noe', done:false});
+    items.push({id:'def-emir', time:'11:00', text:'Check-in Emir', done:false});
+  }
+  if(day === 5){
+    items.push({id:'def-review', time:'15:00', text:'Revisión semanal (Embrujo/Diverso)', done:false});
+  }
+  return items;
+}
+
+async function loadAgenda(){
+  const key = 'control_bynina/agenda/' + dateKey(currentDate);
+  try{
+    const val = await fbGet(key);
+    if(val){
+      agendaItems = JSON.parse(val);
+    }else{
+      agendaItems = defaultAgendaFor(currentDate);
+      await saveAgenda();
+    }
+  }catch(e){
+    agendaItems = defaultAgendaFor(currentDate);
+    await saveAgenda();
+  }
+}
+
+async function saveAgenda(){
+  const key = 'control_bynina/agenda/' + dateKey(currentDate);
+  try{
+    await fbSet(key, JSON.stringify(agendaItems));
+  }catch(e){}
+}
+
+async function addToAgendaForDate(dateStr, time, text){
+  const newItem = {
+    id: 'a' + Date.now() + Math.random().toString(36).slice(2,7),
+    time: time || '00:00',
+    text: text,
+    done: false
+  };
+  if(dateStr === dateKey(currentDate)){
+    agendaItems.push(newItem);
+    renderAgenda();
+    await saveAgenda();
+    return;
+  }
+  const key = 'control_bynina/agenda/' + dateStr;
+  try{
+    const val = await fbGet(key);
+    const items = val ? JSON.parse(val) : defaultAgendaFor(new Date(dateStr + 'T00:00:00'));
+    items.push(newItem);
+    await fbSet(key, JSON.stringify(items));
+  }catch(e){
+    try{ await fbSet(key, JSON.stringify([newItem])); }catch(e2){}
+  }
+}
+
+async function uploadToCloudinary(file){
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'By Nina');
+  const res = await fetch('https://api.cloudinary.com/v1_1/dt6ijkpyy/image/upload', {
+    method:'POST',
+    body: formData
+  });
+  const data = await res.json();
+  if(!data.secure_url) throw new Error('upload failed');
+  return data.secure_url;
+}
+
+let editingAgendaId = null;
+
+function agendaItemHtml(it){
+  if(it.id === editingAgendaId){
+    return `
+      <div class="agenda-item editing">
+        <div class="agenda-edit-row">
+          <input type="time" class="agenda-edit-time" value="${it.time}">
+          <textarea class="agenda-edit-text">${escapeHtml(it.text)}</textarea>
+        </div>
+        <div class="agenda-edit-actions">
+          <button class="agenda-cancel-btn" data-id="${it.id}">Cancelar</button>
+          <button class="agenda-save-btn" data-id="${it.id}">Guardar</button>
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <div class="agenda-item ${it.done?'done':''}">
+      <div class="agenda-time">${it.time}</div>
+      <div class="agenda-main">
+        <div class="agenda-text">${escapeHtml(it.text)}</div>
+        ${it.photoUrl ? `<img class="agenda-photo" src="${it.photoUrl}" data-full="${it.photoUrl}">` : ''}
+      </div>
+      <button class="agenda-icon-btn agenda-photo-btn" data-id="${it.id}" title="Agregar/cambiar foto">📷</button>
+      <button class="agenda-icon-btn agenda-edit-btn" data-id="${it.id}" title="Editar">✎</button>
+      <div class="agenda-check" data-id="${it.id}">${it.done?'✓':''}</div>
+      <button class="agenda-del" data-id="${it.id}" title="Eliminar">×</button>
+      <input type="file" accept="image/*" class="agenda-photo-input" data-id="${it.id}" style="display:none">
+    </div>
+  `;
+}
+
+function renderAgenda(){
+  const el = document.getElementById('agenda-list');
+  const sorted = [...agendaItems].sort((a,b)=>a.time.localeCompare(b.time));
+  el.innerHTML = sorted.length ? sorted.map(agendaItemHtml).join('') :
+    '<div class="empty">Nada agendado para este día.</div>';
+  el.querySelectorAll('.agenda-check').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const it = agendaItems.find(x=>x.id===btn.dataset.id);
+      if(!it) return;
+      it.done = !it.done;
+      renderAgenda();
+      await saveAgenda();
+    });
+  });
+  el.querySelectorAll('.agenda-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      agendaItems = agendaItems.filter(x=>x.id!==btn.dataset.id);
+      renderAgenda();
+      await saveAgenda();
+    });
+  });
+  el.querySelectorAll('.agenda-edit-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editingAgendaId = btn.dataset.id;
+      renderAgenda();
+    });
+  });
+  el.querySelectorAll('.agenda-cancel-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      editingAgendaId = null;
+      renderAgenda();
+    });
+  });
+  el.querySelectorAll('.agenda-save-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const it = agendaItems.find(x=>x.id===btn.dataset.id);
+      if(!it) return;
+      const row = btn.closest('.agenda-item');
+      const newTime = row.querySelector('.agenda-edit-time').value;
+      const newText = row.querySelector('.agenda-edit-text').value.trim();
+      if(!newText || !newTime) return;
+      it.time = newTime;
+      it.text = newText;
+      editingAgendaId = null;
+      renderAgenda();
+      await saveAgenda();
+    });
+  });
+  el.querySelectorAll('.agenda-photo-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const input = el.querySelector(`.agenda-photo-input[data-id="${btn.dataset.id}"]`);
+      if(input) input.click();
+    });
+  });
+  el.querySelectorAll('.agenda-photo-input').forEach(input=>{
+    input.addEventListener('change', async ()=>{
+      const file = input.files[0];
+      if(!file) return;
+      const it = agendaItems.find(x=>x.id===input.dataset.id);
+      if(!it) return;
+      setStatus('subiendo foto...');
+      try{
+        const url = await uploadToCloudinary(file);
+        it.photoUrl = url;
+        renderAgenda();
+        await saveAgenda();
+        setStatus('foto guardada');
+      }catch(e){
+        setStatus('no se pudo subir la foto, probá de nuevo');
+      }
+    });
+  });
+  el.querySelectorAll('.agenda-photo').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      window.open(img.dataset.full, '_blank');
+    });
+  });
+}
+
+async function addAgendaItem(){
+  const timeEl = document.getElementById('agenda-time-input');
+  const textEl = document.getElementById('agenda-text-input');
+  const text = textEl.value.trim();
+  const time = timeEl.value;
+  if(!text || !time) return;
+  const btn = document.getElementById('agenda-add-btn');
+  btn.disabled = true;
+  agendaItems.push({
+    id: 'a' + Date.now() + Math.random().toString(36).slice(2,7),
+    time: time,
+    text: text,
+    done: false
+  });
+  textEl.value = '';
+  renderAgenda();
+  await saveAgenda();
+  btn.disabled = false;
+}
+
+document.getElementById('agenda-add-btn').addEventListener('click', addAgendaItem);
+document.getElementById('agenda-text-input').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addAgendaItem();
+  }
+});
+
+function renderDateHeader(){
+  document.getElementById('date-main').textContent = fmtDateMain(currentDate);
+  document.getElementById('agenda-section-title').textContent = isSameDay(currentDate, new Date()) ? 'Agenda de hoy' : 'Agenda del día';
+}
+
+async function goToDate(d){
+  currentDate = d;
+  renderDateHeader();
+  await loadAgenda();
+  renderAgenda();
+}
+
+document.getElementById('prev-day').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()-1);
+  goToDate(d);
+});
+document.getElementById('next-day').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()+1);
+  goToDate(d);
+});
+document.getElementById('go-today').addEventListener('click', ()=>{
+  goToDate(new Date());
+});
+
+const PERSONAL_TASKS_KEY = 'mi-dia:tasks';
+
+async function loadPersonalTasks(){
+  try{
+    const val = await fbGet('control_bynina/personal_tasks');
+    personalTasks = val ? JSON.parse(val) : [];
+  }catch(e){
+    personalTasks = [];
+  }
+}
+
+async function savePersonalTasks(){
+  try{
+    await fbSet('control_bynina/personal_tasks', JSON.stringify(personalTasks));
+  }catch(e){}
+}
+
+function renderTaskFilters(){
+  const el = document.getElementById('task-filters');
+  const keys = ['todas', ...Object.keys(AREAS)];
+  el.innerHTML = keys.map(k=>{
+    const label = k==='todas' ? 'Todas' : AREAS[k];
+    return `<div class="chip ${taskFilter===k?'active':''}" data-key="${k}">${label}</div>`;
+  }).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      taskFilter = c.dataset.key;
+      renderTaskFilters();
+      renderPersonalTasks();
+    });
+  });
+}
+
+function personalTaskHtml(t){
+  const overdue = isOverdue(t.dueDate, t.resolved);
+  const dueLabel = t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '';
+  return `
+    <div class="ticket ${t.resolved?'resolved':''}">
+      <div class="ticket-check ptask-check" data-id="${t.id}">${t.resolved?'✓':''}</div>
+      <div class="ticket-body">
+        <div class="ticket-meta">
+          <span class="tag ${t.area}">${AREAS[t.area] || t.area}</span>
+          ${dueLabel}
+        </div>
+        <div class="ticket-text">${escapeHtml(t.text)}</div>
+      </div>
+      <button class="del-btn ptask-del" data-id="${t.id}" title="Eliminar">×</button>
+    </div>
+  `;
+}
+
+function renderPersonalTasks(){
+  const el = document.getElementById('task-list');
+  const filtered = taskFilter==='todas' ? personalTasks : personalTasks.filter(t=>t.area===taskFilter);
+  const pending = filtered.filter(t=>!t.resolved).sort((a,b)=>{
+    if(a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+    if(a.dueDate) return -1;
+    if(b.dueDate) return 1;
+    return b.ts - a.ts;
+  });
+  const resolved = filtered.filter(t=>t.resolved).sort((a,b)=>b.ts-a.ts);
+  if(!filtered.length){
+    el.innerHTML = '<div class="empty">No hay tareas acá.</div>';
+    return;
+  }
+  el.innerHTML = pending.map(personalTaskHtml).join('') + resolved.map(personalTaskHtml).join('');
+  el.querySelectorAll('.ptask-check').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const t = personalTasks.find(x=>x.id===btn.dataset.id);
+      if(!t) return;
+      t.resolved = !t.resolved;
+      renderPersonalTasks();
+      await savePersonalTasks();
+    });
+  });
+  el.querySelectorAll('.ptask-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      personalTasks = personalTasks.filter(x=>x.id!==btn.dataset.id);
+      renderPersonalTasks();
+      await savePersonalTasks();
+    });
+  });
+}
+
+async function addPersonalTask(){
+  const textEl = document.getElementById('task-text-input');
+  const areaEl = document.getElementById('task-area');
+  const dueEl = document.getElementById('task-due-date');
+  const text = textEl.value.trim();
+  if(!text) return;
+  const btn = document.getElementById('task-add-btn');
+  btn.disabled = true;
+  personalTasks.push({
+    id: 'tk' + Date.now() + Math.random().toString(36).slice(2,7),
+    area: areaEl.value,
+    text: text,
+    dueDate: dueEl.value || '',
+    ts: Date.now(),
+    resolved: false
+  });
+  textEl.value = '';
+  renderPersonalTasks();
+  await savePersonalTasks();
+  btn.disabled = false;
+  textEl.focus();
+}
+
+document.getElementById('task-add-btn').addEventListener('click', addPersonalTask);
+document.getElementById('task-text-input').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addPersonalTask();
+  }
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+(async function initMiDia(){
+  document.getElementById('task-due-date').value = dateKey(new Date());
+  renderDateHeader();
+  renderTaskFilters();
+  await loadAgenda();
+  await loadPersonalTasks();
+  renderAgenda();
+  renderPersonalTasks();
+})();
+</script>
+</body>
+</html>
