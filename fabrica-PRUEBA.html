@@ -1188,6 +1188,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
+  const flujoCorteHtml = secId==='s3' ? buildFlujoPreCorte(secId,itemId,item,canCortar) : '';
+  const listoParaCortar = secId!=='s3' || !!item.encimado_terminado;
   const orderHtml = (secId==='s3'&&canEdit&&total>1) ? `<div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
       <button title="Subir" ${idx===0?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',-1)" style="border:1px solid var(--border);background:${idx===0?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'inherit'}">▲</button>
       <button title="Bajar" ${idx===total-1?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',1)" style="border:1px solid var(--border);background:${idx===total-1?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'inherit'}">▼</button>
@@ -1204,12 +1206,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${fichaHtml}
         ${numeroCorteHtml}
         ${capasHtml}
+        ${flujoCorteHtml}
         ${fechaCorteHtml}
         ${fechaSalidaHtml}
         ${notaHtml}
         ${aviosHtml}
         <div class="item-actions">
-          ${canCortar?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
+          ${(canCortar&&listoParaCortar)?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
           ${canFicha?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
@@ -1220,6 +1223,86 @@ function buildItem(secId,itemId,item,sec,idx,total){
       </div>
     </div>
   </div>`;
+}
+
+// FLUJO PRE-CORTE: Tiza -> Orden de corte -> Encimado -> (recién ahí) Marcar cortado
+function buildFlujoPreCorte(secId,itemId,item,canCortar){
+  const tiza=item.tiza_hecha; // undefined = sin definir, true/false una vez definida
+  const ordenCargada=!!item.orden_corte_cargada;
+  const encimadoTerm=!!item.encimado_terminado;
+
+  const tizaRow = (tiza===undefined||tiza===null)
+    ? `<div class="cortada-row">
+        <span class="c-label" style="font-weight:500">✏️ ¿Tiza hecha?</span>
+        <div class="radio-group">
+          ${canCortar?`
+            <button class="radio-btn" onclick="setTizaHecha('${secId}','${itemId}',true)">Sí</button>
+            <button class="radio-btn" onclick="setTizaHecha('${secId}','${itemId}',false)">No</button>
+          `:`<span style="font-size:12px;color:var(--text2)">Sin definir</span>`}
+        </div>
+      </div>`
+    : `<div class="cortada-row">
+        <span class="c-label">✏️ Tiza: <strong style="color:${tiza?'var(--green-text)':'var(--text2)'}">${tiza?'Hecha':'No hecha'}</strong></span>
+        ${canCortar&&!ordenCargada?`<button class="btn-sm" onclick="setTizaHecha('${secId}','${itemId}',null)">↩ Deshacer</button>`:''}
+      </div>`;
+
+  // Todavía no se definió la tiza: solo mostramos esa pregunta.
+  if(tiza===undefined||tiza===null){
+    return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}</div>`;
+  }
+
+  const ordenRow = !ordenCargada
+    ? `<div class="cortada-row">
+        <span class="c-label" style="font-weight:500;color:var(--warn-text)">⏳ Pendiente orden de corte</span>
+        ${canCortar?`<button class="btn-advance" onclick="setOrdenCorteCargada('${secId}','${itemId}',true)">📋 Cargar orden de corte</button>`:''}
+      </div>`
+    : `<div class="cortada-row">
+        <span class="c-label">📋 Orden de corte: <strong style="color:var(--green-text)">Cargada</strong></span>
+        ${canCortar&&!encimadoTerm?`<button class="btn-sm" onclick="setOrdenCorteCargada('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
+      </div>`;
+
+  // Tiza definida pero orden de corte todavía no cargada.
+  if(!ordenCargada){
+    return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}${ordenRow}</div>`;
+  }
+
+  const encimadoRow = !encimadoTerm
+    ? `<div class="cortada-row">
+        <span class="c-label" style="font-weight:500;color:var(--warn-text)">⏳ Pendiente encimado</span>
+        ${canCortar?`<button class="btn-advance" onclick="setEncimadoTerminado('${secId}','${itemId}',true)">🧷 Encimado terminado</button>`:''}
+      </div>`
+    : `<div class="cortada-row">
+        <span class="c-label">🧷 Encimado: <strong style="color:var(--green-text)">Terminado</strong></span>
+        ${canCortar?`<button class="btn-sm" onclick="setEncimadoTerminado('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
+      </div>`;
+
+  // Orden de corte cargada, encimado pendiente o recién terminado (acá ya puede aparecer Marcar cortado).
+  return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}${ordenRow}${encimadoRow}</div>`;
+}
+
+function setTizaHecha(secId,itemId,val){
+  const item=sectionsData[secId].items[itemId];
+  const updates={tiza_hecha:val};
+  if(val===null){ updates.orden_corte_cargada=false; updates.encimado_terminado=false; }
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Tiza',`${item.code}: ${val===null?'deshecho':val?'hecha':'no hecha'}`);
+  showToast(val===null?'↩ Tiza sin definir':val?'✓ Tiza hecha':'Tiza no hecha — sigue el flujo');
+}
+
+function setOrdenCorteCargada(secId,itemId,val){
+  const item=sectionsData[secId].items[itemId];
+  const updates={orden_corte_cargada:val};
+  if(!val) updates.encimado_terminado=false;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Orden de corte',`${item.code}: ${val?'cargada':'deshecho'}`);
+  showToast(val?'📋 Orden de corte cargada':'↩ Orden de corte deshecha');
+}
+
+function setEncimadoTerminado(secId,itemId,val){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/encimado_terminado`).set(val);
+  logActivity('Encimado',`${item.code}: ${val?'terminado':'deshecho'}`);
+  showToast(val?'🧷 Encimado terminado — ya se puede marcar cortado':'↩ Encimado deshecho');
 }
 
 // ACTIONS
