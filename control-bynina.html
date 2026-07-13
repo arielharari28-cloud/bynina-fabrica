@@ -1,0 +1,3110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control By Nina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#f5f4ef;
+    --card:#ffffff;
+    --ink:#25231f;
+    --ink-soft:#847d70;
+    --line:#e6e2d8;
+    --green:#2f6b4f;
+    --green-soft:#dcece2;
+    --red:#7a3230;
+    --red-soft:#f2ded9;
+    --purple:#5b4e9e;
+    --purple-soft:#e3ddf4;
+    --rust:#8b4a2b;
+    --rust-soft:#eeddd0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:0 0 60px 0;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px;}
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:20px;
+  }
+  h1{
+    font-family:'Poppins',sans-serif;
+    font-weight:700;
+    font-size:24px;
+    margin:0;
+    color:var(--ink);
+  }
+  .datestamp{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+
+  /* Shared morning plan board */
+  .plan-board{
+    background:var(--purple);
+    border-radius:12px;
+    padding:16px 16px 14px 16px;
+    margin-bottom:20px;
+    color:#fff;
+  }
+  .plan-header{margin-bottom:12px;}
+  .plan-title{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:16px;
+  }
+  .plan-sub{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:#d9d4ef;
+    margin-top:2px;
+  }
+  .plan-field{margin-bottom:10px;}
+  .plan-field label{
+    display:block;
+    font-family:'Poppins',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:#efecfa;
+    margin-bottom:5px;
+  }
+  .plan-field textarea{
+    width:100%;
+    min-height:60px;
+    background:#fff;
+    color:var(--ink);
+    border:none;
+    border-radius:8px;
+  }
+  .plan-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .plan-updated{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:#d9d4ef;
+  }
+  .plan-footer button{
+    background:#fff;
+    color:var(--purple);
+  }
+  .plan-field textarea[readonly]{
+    background:#f0eef7;
+    color:var(--ink);
+    cursor:default;
+  }
+  .plan-board.readonly .plan-footer button{display:none;}
+  .plan-toggle{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:#c9c3e6;
+    text-align:right;
+    margin-top:8px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  /* Quick capture */
+  .capture{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:24px;
+  }
+  .capture-label{
+    font-family:'Poppins',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .capture-row{display:flex;gap:8px;flex-wrap:wrap;}
+  select, textarea, input[type=text], input[type=date], input[type=time]{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    font-size:14px;
+    background:#fff;
+    color:var(--ink);
+  }
+  select{flex:0 0 140px;}
+  input[type=date]{flex:0 0 145px;}
+  input[type=time]{flex:0 0 110px;}
+  textarea{
+    flex:1 1 240px;
+    min-width:200px;
+    resize:vertical;
+    min-height:42px;
+  }
+  button{
+    font-family:'Poppins',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    background:var(--green);
+    color:#fff;
+    border:none;
+    border-radius:20px;
+    padding:0 20px;
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button:hover{opacity:0.85;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  .capture.team-capture{
+    border-left:4px solid var(--rust);
+  }
+  .team-involve-check{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .team-involve-check input[type=checkbox]{
+    width:16px;
+    height:16px;
+    cursor:pointer;
+  }
+  .check-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .check-row input[type=checkbox]{
+    width:16px;
+    height:16px;
+    cursor:pointer;
+  }
+
+  /* Filters */
+  .filters{
+    display:flex;
+    gap:6px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .chip{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    padding:5px 12px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--card);
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .chip.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+
+  .section-title{
+    display:inline-block;
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    color:#fff;
+    background:var(--ink-soft);
+    padding:8px 16px;
+    border-radius:20px;
+    margin:24px 0 12px 0;
+  }
+  .section-title.st-red{background:var(--red);}
+  .section-title.st-green{background:var(--green);}
+  .section-title.st-purple{background:var(--purple);}
+  .section-title.st-rust{background:var(--rust);}
+
+  /* Note / task card */
+  .ticket{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:8px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .ticket.resolved{opacity:0.6;}
+  .ticket-check{
+    flex:0 0 auto;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    background:#fff;
+    color:transparent;
+    margin-top:2px;
+  }
+  .ticket.resolved .ticket-check{
+    background:var(--green);
+    border-color:var(--green);
+    color:#fff;
+  }
+  .ticket-body{flex:1;}
+  .ticket-meta{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:4px;
+    flex-wrap:wrap;
+  }
+  .tag{
+    font-family:'Poppins',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 10px;
+    border-radius:12px;
+  }
+  .tag.emir{background:var(--purple-soft);color:var(--purple);}
+  .tag.flor,.tag.carol,.tag.noemi{background:var(--green-soft);color:var(--green);}
+  .tag.noelia,.tag.stef,.tag.meli{background:var(--rust-soft);color:var(--rust);}
+  .tag.general,.tag.aripchico,.tag.ale,.tag.nahuel,.tag.peque{background:#eceada;color:var(--ink-soft);}
+  .ticket-time{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .due-badge{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    padding:2px 9px;
+    border-radius:12px;
+    background:var(--green-soft);
+    color:var(--green);
+  }
+  .due-badge.overdue{
+    background:var(--red-soft);
+    color:var(--red);
+    font-weight:700;
+  }
+  .time-badge{
+    background:var(--purple-soft);
+    color:var(--purple);
+  }
+  .repeat-badge{
+    background:var(--rust-soft);
+    color:var(--rust);
+  }
+  .task-status-select{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    padding:2px 6px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+  }
+  .ticket-text{
+    font-size:14px;
+    line-height:1.4;
+    word-break:break-word;
+  }
+  .ticket.resolved .ticket-text{text-decoration:line-through;}
+  .del-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:18px;
+    cursor:pointer;
+    padding:0 4px;
+    line-height:1;
+  }
+  .del-btn:hover{color:var(--red);}
+  .edit-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:14px;
+    cursor:pointer;
+    padding:0 2px;
+    line-height:1;
+  }
+  .edit-btn:hover{color:var(--purple);}
+  .ptask-photo{
+    display:block;
+    width:56px;
+    height:56px;
+    object-fit:cover;
+    border-radius:8px;
+    margin-top:8px;
+    cursor:pointer;
+    border:1px solid var(--line);
+  }
+
+  /* Edit task modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(37,35,31,0.5);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    background:var(--card);
+    border-radius:12px;
+    padding:18px;
+    width:100%;
+    max-width:420px;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  .modal-title{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    margin-bottom:14px;
+  }
+  .modal-field{margin-bottom:12px;}
+  .modal-field label{
+    display:block;
+    font-family:'Poppins',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .modal-field select, .modal-field input, .modal-field textarea{
+    width:100%;
+    min-height:auto;
+  }
+  .modal-field textarea{min-height:70px;}
+  .modal-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:6px;
+  }
+  .modal-footer button{padding:0 16px;height:34px;}
+  .modal-cancel-btn{
+    background:none;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+  }
+
+  /* Calendario de contenido */
+  .cal-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;margin-bottom:14px;
+  }
+  .cal-nav button{
+    background:var(--purple);color:#fff;border:none;border-radius:50%;
+    width:32px;height:32px;font-size:16px;font-family:'Poppins',sans-serif;padding:0;
+  }
+  .cal-nav .cal-month-label{
+    font-family:'Poppins',sans-serif;font-weight:600;font-size:15px;text-align:center;flex:1;
+  }
+  .cal-day-summary{
+    display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;
+  }
+  .cal-summary-chip{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:11px;
+    padding:4px 10px;border-radius:12px;
+  }
+  .cal-summary-empty{
+    font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-soft);
+  }
+  .cal-day-team-row{display:flex;align-items:center;}
+  .cal-day-team-row .cal-day-item-main{flex:1;}
+  .cal-day-team-actions{display:flex;gap:4px;flex:0 0 auto;}
+  .cal-day-team-actions button{
+    background:none;border:1px solid var(--line);color:var(--ink-soft);
+    border-radius:50%;width:26px;height:26px;font-size:12px;padding:0;
+  }
+  .cal-day-team-actions .cal-day-team-del{color:var(--red);border-color:var(--red-soft);}
+
+  .cal-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .cal-legend-item{
+    display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;
+    font-size:11px;color:var(--ink-soft);
+  }
+  .cal-legend-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+  .cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+  .cal-dow{
+    text-align:center;font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;
+    color:var(--ink-soft);
+  }
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:20px;}
+  .cal-day{
+    background:var(--card);border:1px solid var(--line);border-radius:8px;
+    padding:4px;min-height:58px;cursor:pointer;overflow:hidden;
+  }
+  .cal-day.other-month{opacity:.35;}
+  .cal-day.today{border:2px solid var(--purple);}
+  .cal-day-num{font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;color:var(--ink);}
+  .cal-item-chip{
+    font-family:'Inter',sans-serif;font-size:9px;color:var(--ink);
+    display:flex;align-items:center;gap:3px;margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .cal-item-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;}
+  .cal-more{font-family:'Inter',sans-serif;font-size:9px;color:var(--ink-soft);margin-top:2px;}
+  .cal-day-item-row{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:8px;padding:8px;margin-bottom:8px;
+  }
+  .cal-day-item-row .cal-item-dot{width:9px;height:9px;}
+  .cal-day-item-main{flex:1;}
+  .cal-day-item-title{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink);}
+  .cal-day-item-meta{display:flex;gap:6px;margin-top:4px;}
+  .cal-day-item-meta select{
+    font-size:11px;padding:4px 6px;flex:0 0 auto;
+  }
+  .cal-day-item-del{
+    background:none;color:var(--red);border:1px solid var(--red-soft);
+    border-radius:50%;width:26px;height:26px;font-size:13px;padding:0;flex:0 0 auto;
+  }
+  .cal-item-chip.cal-task-chip{font-weight:600;}
+  .cal-item-chip.cal-task-chip.done{opacity:.45;text-decoration:line-through;}
+  .cal-item-chip.cal-task-chip.cal-task-shared{
+    background:#ede9fe;border-radius:6px;padding:2px 4px;margin-left:-4px;margin-right:-4px;
+  }
+  .cal-day-item-row.cal-task-shared{background:#ede9fe;}
+  .cal-day-team-tasks-label{
+    font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;
+    color:var(--ink-soft);margin-bottom:8px;
+  }
+  .cal-day-team-row{background:#f7f6f2;}
+  .cal-day-item-title.done{opacity:.5;text-decoration:line-through;}
+  .cal-day-team-tasks-hint{
+    font-family:'Inter',sans-serif;font-size:11px;color:var(--ink-soft);
+    margin-bottom:14px;
+  }
+
+  .cal-add-form{
+    border-top:1px solid var(--line);padding-top:12px;margin-top:4px;
+  }
+  .cal-add-form-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .cal-add-form-row select{flex:1 1 100px;}
+  .cal-add-form-row textarea{flex:1 1 100%;min-height:44px;}
+
+  .empty{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:20px 0;
+    text-align:center;
+  }
+
+  /* Daily checklist */
+  .checklist-sub{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:-6px 0 12px 0;
+  }
+  .check-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:8px;
+    padding:12px 14px;
+    overflow:hidden;
+  }
+  .check-card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .check-card-name{
+    font-family:'Poppins',sans-serif;
+    font-size:14px;
+    font-weight:600;
+  }
+  .check-progress{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:11px;
+    padding:2px 10px;
+    border-radius:12px;
+    background:var(--green-soft);
+    color:var(--green);
+  }
+  .check-progress.zero{
+    background:var(--red-soft);
+    color:var(--red);
+  }
+  .check-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 0;
+    border-top:1px solid var(--line);
+  }
+  .check-item:first-of-type{border-top:none;}
+  .check-item input[type=checkbox]{
+    width:18px;
+    height:18px;
+    flex:0 0 auto;
+    accent-color:var(--green);
+    cursor:pointer;
+  }
+  .check-item label{
+    font-size:13px;
+    cursor:pointer;
+  }
+  .check-item.done label{
+    text-decoration:line-through;
+    color:var(--ink-soft);
+  }
+  .check-team-tasks{
+    margin-top:8px;
+    padding-top:2px;
+    border-top:1px dashed var(--line);
+  }
+  .check-team-item{
+    background:var(--rust-soft);
+    margin:6px -14px 0;
+    padding:8px 14px;
+    border-top:none;
+  }
+  .check-team-item:first-child{margin-top:6px;}
+  .check-team-item .ticket-check{
+    width:18px;
+    height:18px;
+    background:transparent;
+  }
+  .check-team-label{
+    flex:1;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    cursor:default;
+  }
+  .check-item-body{
+    flex:1;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  /* Checklist editor (edición de tareas del equipo) */
+  .checklist-toggle{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--purple);
+    margin:-6px 0 10px 0;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .checklist-toggle.active{color:var(--rust);}
+
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:-6px 0 10px 0;
+  }
+  .cl-edit-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:8px;
+    padding:12px 14px;
+  }
+  .cl-edit-header{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    margin-bottom:8px;
+  }
+  .cl-edit-header input[type=text]{
+    flex:1;
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    height:32px;
+    min-height:auto;
+  }
+  .cl-move-btn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    cursor:pointer;
+    padding:2px 5px;
+    line-height:1;
+  }
+  .cl-move-btn:hover{color:var(--purple);}
+  .cl-move-btn:disabled{opacity:0.25;cursor:default;}
+  .cl-move-btn:disabled:hover{color:var(--ink-soft);}
+  .cl-item-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 0;
+    border-top:1px solid var(--line);
+  }
+  .cl-item-row:first-of-type{border-top:none;}
+  .cl-item-row input[type=text]{
+    flex:1;
+    font-size:13px;
+    height:30px;
+    min-height:auto;
+  }
+  .cl-item-row input[type=time]{
+    flex:0 0 92px;
+    height:30px;
+    font-size:12px;
+    min-height:auto;
+  }
+  .cl-add-item-btn{
+    margin-top:8px;
+    background:none;
+    border:1px dashed var(--line);
+    color:var(--ink-soft);
+    border-radius:8px;
+    width:100%;
+    height:30px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .cl-add-item-btn:hover{color:var(--purple);border-color:var(--purple);}
+  .cl-add-section-btn{
+    width:100%;
+    background:none;
+    border:1px dashed var(--line);
+    color:var(--ink-soft);
+    border-radius:12px;
+    height:38px;
+    font-size:13px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .cl-add-section-btn:hover{color:var(--purple);border-color:var(--purple);}
+
+  .status-bar{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:20px;
+  }
+  @media (max-width:480px){
+    select{flex:1 1 100%;}
+    h1{font-size:20px;}
+  }
+
+  /* Tabs */
+  .tab-nav{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .tab-btn{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:10px 20px;
+    border-radius:20px;
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  .emp-tab-btn{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:10px 20px;
+    border-radius:20px;
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .emp-tab-btn.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* Date navigator (Mi Día) */
+  .date-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:18px;
+  }
+  .date-nav button{
+    background:var(--purple);
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:32px;
+    height:32px;
+    font-size:16px;
+    font-family:'Poppins',sans-serif;
+    padding:0;
+  }
+  .date-nav .date-display{text-align:center;flex:1;}
+  .date-nav .date-main{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:15px;
+  }
+  .date-nav .date-today-link{
+    font-size:11px;
+    color:var(--purple);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  /* Personal task area tags (Mi Día) */
+  .tag.nina{background:var(--purple-soft);color:var(--purple);}
+  .tag.embrujo{background:var(--red-soft);color:var(--red);}
+  .tag.diverso{background:var(--green-soft);color:var(--green);}
+  .tag.farb{background:var(--rust-soft);color:var(--rust);}
+  .tag.otros{background:#d9e9e9;color:#2c6b6b;}
+
+  /* Resumen del día (Mi Día) */
+  .day-summary-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:24px;
+  }
+  .summary-row{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .summary-check{
+    flex:0 0 auto;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    cursor:pointer;
+    background:#fff;
+    align-self:center;
+  }
+  .summary-check:hover{border-color:var(--green);}
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row.done .summary-text{
+    text-decoration:line-through;
+    color:var(--ink-soft);
+  }
+  .summary-time{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    color:var(--purple);
+    flex:0 0 46px;
+  }
+  .summary-text{font-size:14px; flex:1 1 auto; min-width:0;}
+  .summary-subtitle{
+    font-family:'Poppins',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin:10px 0 4px;
+  }
+  .draggable-row{cursor:grab;}
+  .draggable-row:active{cursor:grabbing;}
+  .draggable-row.dragging{opacity:.4;}
+</style>
+</head>
+<body>
+<div class="wrap" id="admin-wrap">
+  <header>
+    <h1>By Nina</h1>
+    <div class="datestamp" id="today"></div>
+  </header>
+
+  <div class="tab-nav">
+    <div class="tab-btn active" data-tab="control">Control equipo</div>
+    <div class="tab-btn" data-tab="mi-dia">Mi Día</div>
+    <div class="tab-btn" data-tab="calendario">Calendario</div>
+  </div>
+
+  <div id="tab-control" class="tab-panel active">
+  <div class="plan-board" id="plan-board">
+    <div class="plan-header">
+      <div class="plan-title">Plan de mañana — corte y control</div>
+      <div class="plan-sub">Visible para todo el que abra este link</div>
+    </div>
+    <div class="plan-field">
+      <label for="plan-corte">Corte prioritario (Ari Chico / Ale)</label>
+      <textarea id="plan-corte" placeholder="Qué se corta mañana, en orden..."></textarea>
+    </div>
+    <div class="plan-field">
+      <label for="plan-noemi">Indicación para Noemi</label>
+      <textarea id="plan-noemi" placeholder="Qué controlar/contar mañana..."></textarea>
+    </div>
+    <div class="plan-footer">
+      <span class="plan-updated" id="plan-updated">sin actualizar todavía</span>
+      <button id="plan-save-btn">Guardar plan</button>
+    </div>
+    <div class="plan-toggle" id="plan-toggle">Soy Ariel — activar edición</div>
+  </div>
+
+  <div class="section-title st-rust">Tareas rápidas para el equipo</div>
+  <div class="capture team-capture">
+    <div class="capture-label">Crear tarea puntual (les aparece a ellos)</div>
+    <div class="capture-label" style="margin-top:0;">Para quién (elegí uno o varios)</div>
+    <div class="filters" id="team-person-chips"></div>
+    <div class="capture-label">Tema</div>
+    <div class="filters" id="team-category-chips"></div>
+    <div class="capture-row">
+      <input type="date" id="team-due-date">
+      <input type="time" id="team-time-input">
+      <textarea id="team-task-text" placeholder="Qué necesitás que haga..."></textarea>
+      <select id="team-repeat"></select>
+      <button id="team-add-btn">Crear</button>
+    </div>
+    <label class="team-involve-check">
+      <input type="checkbox" id="team-involve-me">
+      Estoy involucrado — me figura en Mi Día y en el Calendario como "Responsable: [persona]"
+    </label>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="section-title st-purple" id="share-links-toggle" style="cursor:pointer;">🔗 Links para el equipo — tocá para ver</div>
+  <div id="share-links-panel" style="display:none;"></div>
+
+  <div class="section-title st-red">Pendientes</div>
+  <div id="pending-list"></div>
+
+  <div class="section-title st-green">Resueltos</div>
+  <div id="resolved-list"></div>
+
+  <div class="section-title st-purple">Checklist diario del equipo</div>
+  <div class="checklist-sub" id="checklist-date"></div>
+  <div class="checklist-toggle" id="checklist-edit-toggle">✏️ Editar checklist (orden, horarios, tareas)</div>
+  <div id="checklist"></div>
+
+  <div class="checklist-editor" id="checklist-editor" style="display:none;">
+    <div class="checklist-editor-hint">Modo edición activo — ordená con las flechas, agregá horario, y sumá o sacá tareas. Se guarda solo.</div>
+    <div id="checklist-editor-body"></div>
+    <button class="cl-add-section-btn" id="checklist-add-section">+ agregar persona</button>
+  </div>
+  </div>
+
+  <div id="tab-mi-dia" class="tab-panel">
+    <div class="date-nav">
+      <button id="prev-day">‹</button>
+      <div class="date-display">
+        <div class="date-main" id="date-main"></div>
+        <div class="date-today-link" id="go-today">ir a hoy</div>
+      </div>
+      <button id="next-day">›</button>
+    </div>
+
+    <div class="section-title st-green" id="summary-section-title">Resumen de tu día</div>
+    <div class="day-summary-card" id="day-summary"></div>
+
+    <div class="section-title st-rust">Mis tareas</div>
+    <div class="capture">
+      <div class="capture-row">
+        <select id="task-area">
+          <option value="nina">By Nina</option>
+          <option value="embrujo">Embrujo</option>
+          <option value="diverso">Diverso</option>
+          <option value="farb">Farb</option>
+          <option value="otros">Otros clientes</option>
+          <option value="personal">Personal</option>
+        </select>
+        <input type="date" id="task-due-date">
+        <input type="time" id="task-time-input">
+        <textarea id="task-text-input" placeholder="Qué tenés que hacer..."></textarea>
+        <button id="task-add-btn">Agregar</button>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" id="task-repeat-daily">
+        🔁 Se repite todos los días
+      </label>
+    </div>
+    <div class="filters" id="task-filters"></div>
+    <div id="task-list"></div>
+  </div>
+
+  <div id="tab-calendario" class="tab-panel">
+    <div class="cal-nav">
+      <button id="cal-prev-month">‹</button>
+      <div class="cal-month-label" id="cal-month-label"></div>
+      <button id="cal-next-month">›</button>
+    </div>
+    <div class="capture-label" style="margin-top:0;">Filtrar tareas por persona</div>
+    <div class="filters" id="cal-person-filter"></div>
+    <div class="capture-label">Filtrar tareas por tema</div>
+    <div class="filters" id="cal-category-filter"></div>
+    <div class="cal-legend" id="cal-legend"></div>
+    <div class="cal-dow-row" id="cal-dow-row"></div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <div class="status-bar" id="status-bar">cargando...</div>
+</div>
+
+<div class="wrap" id="employee-wrap" style="display:none;">
+
+  <header>
+    <h1 id="employee-name-title">Hola</h1>
+    <div class="datestamp" id="employee-today"></div>
+  </header>
+
+  <div class="tab-nav" id="employee-tab-nav" style="display:none;">
+    <div class="emp-tab-btn active" data-emp-tab="tareas">Mis tareas</div>
+    <div class="emp-tab-btn" data-emp-tab="calendario">Calendario</div>
+  </div>
+
+  <div id="emp-tab-tareas" class="tab-panel active">
+  <div id="employee-checklist"></div>
+
+  <div class="section-title st-rust">Agregar tarea</div>
+  <div class="capture">
+    <div class="capture-label">Tema</div>
+    <div class="filters" id="employee-category-chips"></div>
+    <div class="capture-row">
+      <input type="date" id="employee-due-date">
+      <input type="time" id="employee-time-input">
+      <textarea id="employee-task-text" placeholder="Qué tenés que hacer..."></textarea>
+      <select id="employee-repeat"></select>
+      <button id="employee-add-btn">Agregar</button>
+    </div>
+    <label class="check-row">
+      <input type="checkbox" id="employee-involve-boss">
+      Que esto también le aparezca a Ariel
+    </label>
+  </div>
+
+  <div class="section-title st-red">Pendientes</div>
+  <div id="employee-pending-list"></div>
+  <div class="section-title st-green">Resueltos</div>
+  <div id="employee-resolved-list"></div>
+  </div>
+
+  <div id="emp-tab-calendario" class="tab-panel">
+    <div class="cal-nav">
+      <button id="ecal-prev-month">‹</button>
+      <div class="cal-month-label" id="ecal-month-label"></div>
+      <button id="ecal-next-month">›</button>
+    </div>
+    <div class="cal-legend" id="ecal-legend"></div>
+    <div class="cal-dow-row" id="ecal-dow-row"></div>
+    <div class="cal-grid" id="ecal-grid"></div>
+  </div>
+
+  <div class="status-bar" id="employee-status-bar">cargando...</div>
+</div>
+
+<div class="modal-overlay" id="edit-task-modal" style="z-index:200;">
+  <div class="modal-box">
+    <div class="modal-title">Editar tarea</div>
+    <div class="modal-field" id="edit-task-person-field">
+      <label for="edit-task-person">Persona</label>
+      <select id="edit-task-person"></select>
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-category">Tema</label>
+      <select id="edit-task-category"></select>
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-due">Vence</label>
+      <input type="date" id="edit-task-due">
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-time">Horario</label>
+      <input type="time" id="edit-task-time">
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-text">Tarea</label>
+      <textarea id="edit-task-text"></textarea>
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-status">Estado</label>
+      <select id="edit-task-status"></select>
+    </div>
+    <div class="modal-field">
+      <label for="edit-task-repeat">Repetición</label>
+      <select id="edit-task-repeat"></select>
+    </div>
+    <div class="modal-field" id="edit-task-shared-field">
+      <label class="check-row" style="margin:0;">
+        <input type="checkbox" id="edit-task-shared">
+        Compartida conmigo (me figura en Mi Día y en el Calendario como "Responsable: [persona]")
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" id="edit-task-cancel">Cancelar</button>
+      <button id="edit-task-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-ptask-modal">
+  <div class="modal-box">
+    <div class="modal-title">Editar tarea</div>
+    <div class="modal-field">
+      <label for="edit-ptask-area">Área</label>
+      <select id="edit-ptask-area">
+        <option value="nina">By Nina</option>
+        <option value="embrujo">Embrujo</option>
+        <option value="diverso">Diverso</option>
+        <option value="farb">Farb</option>
+        <option value="otros">Otros clientes</option>
+        <option value="personal">Personal</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label for="edit-ptask-due">Vence</label>
+      <input type="date" id="edit-ptask-due">
+    </div>
+    <div class="modal-field">
+      <label for="edit-ptask-time">Horario</label>
+      <input type="time" id="edit-ptask-time">
+    </div>
+    <div class="modal-field">
+      <label for="edit-ptask-text">Tarea</label>
+      <textarea id="edit-ptask-text"></textarea>
+    </div>
+    <label class="check-row">
+      <input type="checkbox" id="edit-ptask-repeat">
+      🔁 Se repite todos los días
+    </label>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" id="edit-ptask-cancel">Cancelar</button>
+      <button id="edit-ptask-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cal-day-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cal-day-modal-title">Contenido del día</div>
+    <div id="cal-day-summary" class="cal-day-summary"></div>
+    <div id="cal-day-team-tasks"></div>
+    <div id="cal-day-items"></div>
+    <div class="cal-add-form">
+      <div class="modal-field" style="margin-bottom:0;">
+        <label>Nuevo contenido</label>
+        <textarea id="cal-new-title" placeholder="Título / tema..."></textarea>
+      </div>
+      <div class="cal-add-form-row">
+        <select id="cal-new-type"></select>
+        <select id="cal-new-status"></select>
+      </div>
+      <div class="cal-add-form-row">
+        <button id="cal-add-item-btn">Agregar contenido</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" id="cal-day-modal-close">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBqZ9ZkYfcDfXVEIGVsZM5_cByJkBXhVeA",
+  authDomain:"bynina-c1eec.firebaseapp.com",
+  databaseURL:"https://bynina-c1eec-default-rtdb.firebaseio.com",
+  projectId:"bynina-c1eec",
+  storageBucket:"bynina-c1eec.appspot.com"
+});
+const db = firebase.database();
+
+async function fbGet(path){
+  try{
+    const snap = await db.ref(path).once('value');
+    return snap.exists() ? snap.val() : null;
+  }catch(e){
+    return null;
+  }
+}
+async function fbSet(path, value){
+  return db.ref(path).set(value);
+}
+
+const PEOPLE = {
+  general:'General', emir:'Emir', aripchico:'Ari Chico', ale:'Ale',
+  noemi:'Noemi', flor:'Flor', carol:'Carol', noelia:'Noelia',
+  stef:'Stef', meli:'Meli', nahuel:'Nahuel', peque:'Peque'
+};
+// Subconjunto para listas de selección (crear tarea, filtros, share links).
+// Se excluyen del listado por pedido de Ariel, pero quedan en PEOPLE para que
+// links/datos viejos de estas personas sigan mostrando su nombre sin romperse.
+const INACTIVE_PEOPLE_KEYS = ['ale','nahuel','carol','flor','noemi'];
+const ACTIVE_PEOPLE = Object.fromEntries(
+  Object.entries(PEOPLE).filter(([k]) => !INACTIVE_PEOPLE_KEYS.includes(k))
+);
+let activeFilter = 'todos';
+
+/* ===== Tema de la tarea (Web / Diseño / Redes / Marketing / Otro) ===== */
+const TASK_CATEGORIES = {web:'Web', diseno:'Diseño', redes:'Redes', marketing:'Marketing', otro:'Otro'};
+const TASK_CATEGORY_COLOR = {web:'#5b4e9e', diseno:'#8b4a2b', redes:'#2f6b4f', marketing:'#7a3230', otro:'#847d70'};
+
+function categorySelectOptionsHtml(selected){
+  return Object.entries(TASK_CATEGORIES).map(([k,v])=>
+    `<option value="${k}" ${k===(selected||'otro')?'selected':''}>${v}</option>`
+  ).join('');
+}
+
+/* ===== Repetición flexible (ninguna / diaria / semanal / cada 15 días / mensual) ===== */
+const REPEAT_LABELS = {
+  none:'No se repite', daily:'Todos los días', weekly:'Cada semana',
+  biweekly:'Cada 15 días', monthly:'Cada mes'
+};
+
+function repeatSelectOptionsHtml(selected){
+  return Object.entries(REPEAT_LABELS).map(([k,v])=>
+    `<option value="${k}" ${k===(selected||'none')?'selected':''}>${v}</option>`
+  ).join('');
+}
+
+// Compatibilidad: tareas viejas guardaron repeatDaily:true en vez de repeat:'daily'.
+function taskRepeatType(t){
+  if(t.repeat) return t.repeat;
+  return t.repeatDaily ? 'daily' : 'none';
+}
+
+function daysBetweenKeys(aStr, bStr){
+  const a = new Date(aStr+'T00:00:00');
+  const b = new Date(bStr+'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+
+// Determina si una tarea con repetición semanal/quincenal/mensual "cae" en dateStr,
+// tomando como ancla la fecha en que se creó/venció originalmente.
+function taskRecursOnDate(t, dateStr){
+  const type = taskRepeatType(t);
+  if(type === 'none') return false;
+  if(type === 'daily') return true;
+  const anchor = t.dueDate || todayKey();
+  if(dateStr < anchor) return false;
+  const diff = daysBetweenKeys(anchor, dateStr);
+  if(type === 'weekly') return diff % 7 === 0;
+  if(type === 'biweekly') return diff % 14 === 0;
+  if(type === 'monthly'){
+    const a = new Date(anchor+'T00:00:00');
+    const d = new Date(dateStr+'T00:00:00');
+    const lastDayOfDMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+    const targetDay = Math.min(a.getDate(), lastDayOfDMonth);
+    return d.getDate() === targetDay;
+  }
+  return false;
+}
+
+/* ===== Estado de la tarea (Pendiente / En proceso / Finalizado) ===== */
+const TASK_STATUS = {pendiente:'Pendiente', proceso:'En proceso', finalizado:'Finalizado'};
+const TASK_STATUS_COLOR = {pendiente:'#8b4a2b', proceso:'#5b4e9e', finalizado:'#2f6b4f'};
+function getTaskStatusForDate(t, dateStr){
+  if(taskRepeatType(t) !== 'none'){
+    return (t.statusDates && t.statusDates[dateStr]) || 'pendiente';
+  }
+  return t.status || (t.resolved ? 'finalizado' : 'pendiente');
+}
+function setTaskStatusForDate(t, dateStr, status){
+  if(taskRepeatType(t) !== 'none'){
+    if(!t.statusDates) t.statusDates = {};
+    t.statusDates[dateStr] = status;
+    if(!t.doneDates) t.doneDates = {};
+    if(status === 'finalizado') t.doneDates[dateStr] = true; else delete t.doneDates[dateStr];
+  } else {
+    t.status = status;
+    t.resolved = (status === 'finalizado');
+  }
+}
+function taskStatusSelectHtml(t, dateStr){
+  const current = getTaskStatusForDate(t, dateStr);
+  return Object.entries(TASK_STATUS).map(([k,v])=>`<option value="${k}" ${k===current?'selected':''}>${v}</option>`).join('');
+}
+
+// ===== Vista de empleado (link propio por persona) =====
+function getPersonaParam(){
+  const params = new URLSearchParams(window.location.search);
+  const p = params.get('persona');
+  return (p && PEOPLE[p]) ? p : null;
+}
+const employeePersona = getPersonaParam();
+
+const defaultChecklistData = [
+  {person:'Emir', items:[
+    {id:'emir-aviso-rocio', label:'Avisó a Rocío los cortes que salieron', time:''},
+    {id:'emir-avios-recibir', label:'Avíos pendientes por recibir revisados', time:''},
+    {id:'emir-avios-pedir', label:'Avíos para pedir consultados', time:''},
+    {id:'emir-cortes-taller', label:'Cortes a taller organizados', time:''},
+    {id:'emir-objetivo-corte', label:'Objetivo de corte pasado a taller', time:''}
+  ]},
+  {person:'Ari Chico', items:[
+    {id:'aripchico-aviso', label:'Avisó qué se hizo en el día', time:''}
+  ]},
+  {person:'Flor', items:[
+    {id:'flor-articulo', label:'¿Quedó algún artículo pendiente de armar?', time:''}
+  ]},
+  {person:'Carol', items:[
+    {id:'carol-articulo', label:'¿Quedó algún artículo pendiente de armar?', time:''}
+  ]},
+  {person:'Noelia', items:[
+    {id:'noelia-pedidos', label:'Pedidos coordinados', time:''},
+    {id:'noelia-envios', label:'Envíos resueltos', time:''},
+    {id:'noelia-modif', label:'Modificaciones atendidas', time:''},
+    {id:'noelia-web', label:'Problemas de web resueltos', time:''},
+    {id:'noelia-fotos', label:'Fotos subidas', time:''},
+    {id:'noelia-categorias', label:'Categorías ordenadas', time:''},
+    {id:'noelia-diseno', label:'Diseño (apoyo a Stef) al día', time:''}
+  ]},
+  {person:'Stef', items:[
+    {id:'stef-feed', label:'Contenido subido según calendario', time:''}
+  ]},
+  {person:'Meli', items:[
+    {id:'meli-tiktok', label:'TikTok / CM al día', time:''}
+  ]}
+];
+
+let checklistData = [];
+
+function genChecklistId(prefix){
+  return prefix + '-' + Math.random().toString(36).slice(2,8);
+}
+
+function escapeAttr(str){
+  return String(str==null?'':str)
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+const CHECKLIST_CONFIG_KEY = 'control_bynina/checklistConfig';
+
+async function loadChecklistConfig(){
+  try{
+    const val = await fbGet(CHECKLIST_CONFIG_KEY);
+    if(val){
+      checklistData = JSON.parse(val);
+    } else {
+      checklistData = JSON.parse(JSON.stringify(defaultChecklistData));
+      await saveChecklistConfig();
+    }
+  }catch(e){
+    checklistData = JSON.parse(JSON.stringify(defaultChecklistData));
+  }
+}
+
+async function saveChecklistConfig(){
+  try{
+    await fbSet(CHECKLIST_CONFIG_KEY, JSON.stringify(checklistData));
+  }catch(e){}
+}
+
+let checklistState = {};
+
+function todayKey(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// ===== Helpers para tareas que se repiten todos los días y posponer =====
+function nextDayKey(dateStr){
+  const base = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+  base.setDate(base.getDate() + 1);
+  const yyyy = base.getFullYear();
+  const mm = String(base.getMonth()+1).padStart(2,'0');
+  const dd = String(base.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Una tarea que se repite no tiene un único "resolved": se marca hecha por día (doneDates).
+// Una tarea normal sigue usando el campo resolved de siempre.
+function isTaskDoneForDate(t, dateStr){
+  return getTaskStatusForDate(t, dateStr) === 'finalizado';
+}
+
+function toggleTaskDoneForDate(t, dateStr){
+  const current = getTaskStatusForDate(t, dateStr);
+  setTaskStatusForDate(t, dateStr, current === 'finalizado' ? 'pendiente' : 'finalizado');
+}
+
+// Una tarea que se repite "aplica" según su frecuencia; una tarea normal solo al día de su dueDate.
+// Si estamos parados en el día de hoy, también arrastramos las que quedaron atrasadas de días anteriores.
+function taskAppliesToDate(t, dateStr){
+  const type = taskRepeatType(t);
+  if(type !== 'none') return taskRecursOnDate(t, dateStr);
+  if(t.dueDate === dateStr) return true;
+  if(dateStr === todayKey() && t.dueDate && t.dueDate < dateStr && !t.resolved) return true;
+  return false;
+}
+
+async function loadChecklist(){
+  const key = 'control_bynina/checklist/' + todayKey();
+  try{
+    const val = await fbGet(key);
+    checklistState = val ? JSON.parse(val) : {};
+  }catch(e){
+    checklistState = {};
+  }
+}
+
+async function saveChecklistItem(id, checked){
+  checklistState[id] = checked;
+  const key = 'control_bynina/checklist/' + todayKey();
+  try{
+    await fbSet(key, JSON.stringify(checklistState));
+  }catch(e){}
+}
+
+function renderChecklist(){
+  document.getElementById('checklist-date').textContent = 'hoy, ' + document.getElementById('today').textContent + ' — se reinicia solo cada día';
+  const el = document.getElementById('checklist');
+  el.innerHTML = checklistData.map(sec => {
+    const total = sec.items.length;
+    const done = sec.items.filter(it => checklistState[it.id]).length;
+    const progressClass = done === 0 ? 'zero' : '';
+    const personKey = Object.keys(PEOPLE).find(k => PEOPLE[k] === sec.person);
+    const pendingTeam = teamTasks.filter(t => !isTaskDoneForDate(t, todayKey()) && t.person === personKey)
+      .sort((a,b)=>b.ts-a.ts);
+    const teamBlock = pendingTeam.length ? `
+      <div class="check-team-tasks">
+        ${pendingTeam.map(teamTaskRowHtml).join('')}
+      </div>
+    ` : '';
+    return `
+      <div class="check-card">
+        <div class="check-card-header">
+          <div class="check-card-name">${sec.person}</div>
+          <div class="check-progress ${progressClass}">${done}/${total}</div>
+        </div>
+        ${sec.items.map(it => `
+          <div class="check-item ${checklistState[it.id] ? 'done' : ''}">
+            <input type="checkbox" id="chk-${it.id}" ${checklistState[it.id] ? 'checked' : ''}>
+            <div class="check-item-body">
+              <label for="chk-${it.id}">${escapeHtml(it.label)}</label>
+              ${it.time ? `<span class="due-badge time-badge">🕐 ${escapeHtml(it.time)}</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+        ${teamBlock}
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const id = cb.id.replace('chk-','');
+      await saveChecklistItem(id, cb.checked);
+      renderChecklist();
+    });
+  });
+
+  el.querySelectorAll('.team-check').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleTeamTaskResolved(btn.dataset.id));
+  });
+  el.querySelectorAll('.team-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      teamTasks = teamTasks.filter(x=>x.id!==btn.dataset.id);
+      renderChecklist();
+      renderLists();
+      await saveTeamTasks();
+    });
+  });
+  el.querySelectorAll('.team-postpone').forEach(btn=>{
+    btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
+  });
+  el.querySelectorAll('.team-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+  el.querySelectorAll('.task-status-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const t = teamTasks.find(x=>x.id===sel.dataset.id);
+      if(!t) return;
+      setTaskStatusForDate(t, todayKey(), sel.value);
+      renderChecklist();
+      renderLists();
+      refreshCalendars();
+      await saveTeamTasks();
+    });
+  });
+}
+
+function renderChecklistEditor(){
+  const panel = document.getElementById('checklist-editor');
+  if(!checklistEditMode){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+  const body = document.getElementById('checklist-editor-body');
+  body.innerHTML = checklistData.map((sec, si) => `
+    <div class="cl-edit-card">
+      <div class="cl-edit-header">
+        <button class="cl-move-btn" data-act="sec-up" data-si="${si}" ${si===0?'disabled':''} title="Subir">▲</button>
+        <button class="cl-move-btn" data-act="sec-down" data-si="${si}" ${si===checklistData.length-1?'disabled':''} title="Bajar">▼</button>
+        <input type="text" data-act="sec-name" data-si="${si}" value="${escapeAttr(sec.person)}">
+        <button class="del-btn" data-act="sec-del" data-si="${si}" title="Eliminar persona">×</button>
+      </div>
+      ${sec.items.map((it, ii) => `
+        <div class="cl-item-row">
+          <button class="cl-move-btn" data-act="item-up" data-si="${si}" data-ii="${ii}" ${ii===0?'disabled':''} title="Subir">▲</button>
+          <button class="cl-move-btn" data-act="item-down" data-si="${si}" data-ii="${ii}" ${ii===sec.items.length-1?'disabled':''} title="Bajar">▼</button>
+          <input type="text" data-act="item-label" data-si="${si}" data-ii="${ii}" value="${escapeAttr(it.label)}">
+          <input type="time" data-act="item-time" data-si="${si}" data-ii="${ii}" value="${escapeAttr(it.time||'')}">
+          <button class="del-btn" data-act="item-del" data-si="${si}" data-ii="${ii}" title="Eliminar tarea">×</button>
+        </div>
+      `).join('')}
+      <button class="cl-add-item-btn" data-act="item-add" data-si="${si}">+ agregar tarea</button>
+    </div>
+  `).join('');
+
+  body.querySelectorAll('input[data-act=sec-name]').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const si = +inp.dataset.si;
+      checklistData[si].person = inp.value.trim() || checklistData[si].person;
+      await saveChecklistConfig();
+      renderChecklist();
+    });
+  });
+  body.querySelectorAll('input[data-act=item-label]').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const si = +inp.dataset.si, ii = +inp.dataset.ii;
+      checklistData[si].items[ii].label = inp.value.trim() || checklistData[si].items[ii].label;
+      await saveChecklistConfig();
+      renderChecklist();
+    });
+  });
+  body.querySelectorAll('input[data-act=item-time]').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const si = +inp.dataset.si, ii = +inp.dataset.ii;
+      checklistData[si].items[ii].time = inp.value || '';
+      await saveChecklistConfig();
+      renderChecklist();
+    });
+  });
+  body.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const act = btn.dataset.act;
+      const si = +btn.dataset.si;
+      const ii = btn.dataset.ii !== undefined ? +btn.dataset.ii : null;
+      if(act === 'sec-up' && si > 0){
+        [checklistData[si-1], checklistData[si]] = [checklistData[si], checklistData[si-1]];
+      } else if(act === 'sec-down' && si < checklistData.length-1){
+        [checklistData[si+1], checklistData[si]] = [checklistData[si], checklistData[si+1]];
+      } else if(act === 'sec-del'){
+        if(!confirm('¿Eliminar a ' + checklistData[si].person + ' y todas sus tareas de la checklist?')) return;
+        checklistData.splice(si, 1);
+      } else if(act === 'item-up' && ii > 0){
+        const arr = checklistData[si].items;
+        [arr[ii-1], arr[ii]] = [arr[ii], arr[ii-1]];
+      } else if(act === 'item-down' && ii < checklistData[si].items.length-1){
+        const arr = checklistData[si].items;
+        [arr[ii+1], arr[ii]] = [arr[ii], arr[ii+1]];
+      } else if(act === 'item-del'){
+        checklistData[si].items.splice(ii, 1);
+      } else if(act === 'item-add'){
+        checklistData[si].items.push({id: genChecklistId('item'), label: 'Nueva tarea', time: ''});
+      } else {
+        return;
+      }
+      await saveChecklistConfig();
+      renderChecklist();
+      renderChecklistEditor();
+    });
+  });
+}
+
+document.getElementById('checklist-add-section').addEventListener('click', async ()=>{
+  checklistData.push({person: 'Nueva persona', items: [{id: genChecklistId('item'), label: 'Nueva tarea', time: ''}]});
+  await saveChecklistConfig();
+  renderChecklist();
+  renderChecklistEditor();
+});
+
+function fmtTime(ts){
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm} ${hh}:${mi}`;
+}
+
+function setStatus(text){
+  const el1 = document.getElementById('status-bar');
+  if(el1) el1.textContent = text;
+  const el2 = document.getElementById('employee-status-bar');
+  if(el2) el2.textContent = text;
+}
+
+function renderFilters(){
+  const el = document.getElementById('filters');
+  const keys = ['todos', ...Object.keys(ACTIVE_PEOPLE)];
+  el.innerHTML = keys.map(k => {
+    const label = k === 'todos' ? 'Todos' : PEOPLE[k];
+    return `<div class="chip ${activeFilter===k?'active':''}" data-key="${k}">${label}</div>`;
+  }).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      activeFilter = c.dataset.key;
+      renderFilters();
+      renderLists();
+      renderChecklist();
+    });
+  });
+}
+
+function renderLists(){
+  const pendingEl = document.getElementById('pending-list');
+  const resolvedEl = document.getElementById('resolved-list');
+
+  const filtered = activeFilter==='todos' ? teamTasks : teamTasks.filter(t=>t.person===activeFilter);
+  const todayStr = todayKey();
+  const pending = filtered.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
+    if(a.dueDate && b.dueDate){
+      const cmp = a.dueDate.localeCompare(b.dueDate);
+      if(cmp !== 0) return cmp;
+      return (a.time||'').localeCompare(b.time||'');
+    }
+    if(a.dueDate) return -1;
+    if(b.dueDate) return 1;
+    return b.ts - a.ts;
+  });
+  const resolved = filtered.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
+
+  pendingEl.innerHTML = pending.length ? pending.map(teamTicketHtml).join('') :
+    '<div class="empty">No hay pendientes acá. Buen momento para respirar.</div>';
+  resolvedEl.innerHTML = resolved.length ? resolved.map(teamTicketHtml).join('') :
+    '<div class="empty">Todavía nada marcado como resuelto.</div>';
+
+  document.querySelectorAll('#pending-list .team-check, #resolved-list .team-check').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleTeamTaskResolved(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .team-del, #resolved-list .team-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .team-edit, #resolved-list .team-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .team-postpone, #resolved-list .team-postpone').forEach(btn=>{
+    btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#pending-list .task-status-select, #resolved-list .task-status-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const t = teamTasks.find(x=>x.id===sel.dataset.id);
+      if(!t) return;
+      setTaskStatusForDate(t, todayKey(), sel.value);
+      renderLists();
+      renderChecklist();
+      refreshCalendars();
+      await saveTeamTasks();
+    });
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function refreshCalendars(){
+  if(typeof renderCalendarMonth === 'function'){
+    renderCalendarMonth('admin');
+    renderCalendarMonth('emp');
+  }
+}
+
+async function toggleTeamTaskResolved(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t) return;
+  const today = todayKey();
+  toggleTaskDoneForDate(t, today);
+  if(employeePersona){
+    renderEmployeeView();
+  } else {
+    renderLists();
+    renderChecklist();
+  }
+  refreshCalendars();
+  await saveTeamTasks();
+  if(t.linkedPersonalTaskId){
+    const pt = personalTasks.find(x=>x.id===t.linkedPersonalTaskId);
+    if(pt && isTaskDoneForDate(pt, today) !== isTaskDoneForDate(t, today)){
+      toggleTaskDoneForDate(pt, today);
+      renderPersonalTasks();
+      await savePersonalTasks();
+    }
+  }
+}
+
+async function postponeTeamTask(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t || taskRepeatType(t) !== 'none') return;
+  t.dueDate = nextDayKey(t.dueDate || todayKey());
+  if(employeePersona){
+    renderEmployeeView();
+  } else {
+    renderLists();
+    renderChecklist();
+  }
+  refreshCalendars();
+  await saveTeamTasks();
+  setStatus('pospuesta a mañana');
+}
+
+async function deleteTeamTask(id){
+  teamTasks = teamTasks.filter(x=>x.id!==id);
+  renderLists();
+  renderChecklist();
+  refreshCalendars();
+  await saveTeamTasks();
+}
+
+
+function renderToday(){
+  const d = new Date();
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  let s = d.toLocaleDateString('es-AR', opts);
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  document.getElementById('today').textContent = s;
+}
+
+const PLAN_KEY = 'control-bynina:plan-manana';
+const EDIT_MODE_KEY = 'control-bynina:edit-mode';
+let editMode = false;
+
+function applyEditMode(){
+  const board = document.getElementById('plan-board');
+  const corte = document.getElementById('plan-corte');
+  const noemi = document.getElementById('plan-noemi');
+  if(editMode){
+    board.classList.remove('readonly');
+    corte.removeAttribute('readonly');
+    noemi.removeAttribute('readonly');
+    document.getElementById('plan-toggle').textContent = 'Modo edición activo — tocar para volver a solo lectura';
+  }else{
+    board.classList.add('readonly');
+    corte.setAttribute('readonly','true');
+    noemi.setAttribute('readonly','true');
+    document.getElementById('plan-toggle').textContent = 'Soy Ariel — activar edición';
+  }
+}
+
+async function toggleEditMode(){
+  editMode = !editMode;
+  applyEditMode();
+  try{
+    localStorage.setItem(EDIT_MODE_KEY, editMode ? 'true' : 'false');
+  }catch(e){}
+}
+
+async function loadEditMode(){
+  try{
+    editMode = localStorage.getItem(EDIT_MODE_KEY) === 'true';
+  }catch(e){
+    editMode = false;
+  }
+  applyEditMode();
+}
+
+document.getElementById('plan-toggle').addEventListener('click', toggleEditMode);
+
+let checklistEditMode = false;
+const CHECKLIST_EDIT_MODE_KEY = 'control-bynina:checklist-edit-mode';
+
+function applyChecklistEditMode(){
+  const toggle = document.getElementById('checklist-edit-toggle');
+  if(checklistEditMode){
+    toggle.textContent = '✏️ Modo edición activo — tocá para cerrar';
+    toggle.classList.add('active');
+  } else {
+    toggle.textContent = '✏️ Editar checklist (orden, horarios, tareas)';
+    toggle.classList.remove('active');
+  }
+  renderChecklistEditor();
+}
+
+async function toggleChecklistEditMode(){
+  checklistEditMode = !checklistEditMode;
+  applyChecklistEditMode();
+  try{
+    localStorage.setItem(CHECKLIST_EDIT_MODE_KEY, checklistEditMode ? 'true' : 'false');
+  }catch(e){}
+}
+
+async function loadChecklistEditMode(){
+  try{
+    checklistEditMode = localStorage.getItem(CHECKLIST_EDIT_MODE_KEY) === 'true';
+  }catch(e){
+    checklistEditMode = false;
+  }
+  applyChecklistEditMode();
+}
+
+document.getElementById('checklist-edit-toggle').addEventListener('click', toggleChecklistEditMode);
+
+async function loadPlan(){
+  try{
+    const val = await fbGet('control_bynina/plan_manana');
+    if(val){
+      const data = JSON.parse(val);
+      document.getElementById('plan-corte').value = data.corte || '';
+      document.getElementById('plan-noemi').value = data.noemi || '';
+      document.getElementById('plan-updated').textContent = data.ts ? ('última actualización ' + fmtTime(data.ts)) : 'sin actualizar todavía';
+    }
+  }catch(e){
+    // no plan saved yet
+  }
+}
+
+async function savePlan(){
+  const btn = document.getElementById('plan-save-btn');
+  btn.disabled = true;
+  const data = {
+    corte: document.getElementById('plan-corte').value.trim(),
+    noemi: document.getElementById('plan-noemi').value.trim(),
+    ts: Date.now()
+  };
+  try{
+    await fbSet('control_bynina/plan_manana', JSON.stringify(data));
+    document.getElementById('plan-updated').textContent = 'última actualización ' + fmtTime(data.ts);
+  }catch(e){
+    document.getElementById('plan-updated').textContent = 'error al guardar, probá de nuevo';
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('plan-save-btn').addEventListener('click', savePlan);
+
+const TEAM_TASKS_KEY = 'control-bynina:team-tasks';
+let teamTasks = [];
+
+async function loadTeamTasks(){
+  try{
+    const val = await fbGet('control_bynina/team_tasks');
+    teamTasks = val ? JSON.parse(val) : [];
+  }catch(e){
+    teamTasks = [];
+  }
+}
+
+async function saveTeamTasks(){
+  try{
+    await fbSet('control_bynina/team_tasks', JSON.stringify(teamTasks));
+    setStatus('guardado ' + fmtTime(Date.now()));
+  }catch(e){
+    setStatus('error al guardar');
+  }
+}
+
+function fmtDue(dueStr){
+  if(!dueStr) return '';
+  const [y,m,d] = dueStr.split('-');
+  return `${d}/${m}`;
+}
+
+function isOverdue(dueStr, resolved){
+  if(!dueStr || resolved) return false;
+  const today = todayKey();
+  return dueStr < today;
+}
+
+function categoryTagHtml(t){
+  const cat = t.category || 'otro';
+  const label = TASK_CATEGORIES[cat] || TASK_CATEGORIES.otro;
+  const color = TASK_CATEGORY_COLOR[cat] || TASK_CATEGORY_COLOR.otro;
+  return `<span class="due-badge cat-badge" style="background:${color}22;color:${color};">${escapeHtml(label)}</span>`;
+}
+
+function repeatBadgeHtml(t){
+  const type = taskRepeatType(t);
+  if(type === 'none') return null;
+  return `<span class="due-badge repeat-badge">🔁 ${REPEAT_LABELS[type].toLowerCase()}</span>`;
+}
+
+function teamTicketHtml(t){
+  const done = isTaskDoneForDate(t, todayKey());
+  const repType = taskRepeatType(t);
+  const overdue = repType==='none' && isOverdue(t.dueDate, done);
+  const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
+    (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn team-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  return `
+    <div class="ticket ${done?'resolved':''}">
+      <div class="ticket-check team-check" data-id="${t.id}">${done?'✓':''}</div>
+      <div class="ticket-body">
+        <div class="ticket-meta">
+          <span class="tag ${t.person}">${PEOPLE[t.person] || t.person}</span>
+          ${categoryTagHtml(t)}
+          ${t.sharedWithMe?'<span class="due-badge" style="background:#ede9fe;color:#5b4e9e">👁️ Compartida conmigo</span>':''}
+          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select>
+          <span class="ticket-time">${fmtTime(t.ts)}</span>
+          ${timeLabel}
+          ${dueLabel}
+        </div>
+        <div class="ticket-text">${escapeHtml(t.text)}</div>
+      </div>
+      ${postponeBtn}
+      <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
+      <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
+    </div>
+  `;
+}
+
+function teamTaskRowHtml(t){
+  const done = isTaskDoneForDate(t, todayKey());
+  const repType = taskRepeatType(t);
+  const overdue = repType==='none' && isOverdue(t.dueDate, done);
+  const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
+    (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn team-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  return `
+    <div class="check-item check-team-item">
+      <div class="ticket-check team-check" data-id="${t.id}">${done?'✓':''}</div>
+      <label class="check-team-label">${categoryTagHtml(t)} <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select> ${escapeHtml(t.text)} ${timeLabel} ${dueLabel}</label>
+      ${postponeBtn}
+      <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
+      <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
+    </div>
+  `;
+}
+
+/* ===== Vista de empleado: solo sus tareas, sin editar/eliminar ===== */
+function employeeTicketHtml(t){
+  const done = isTaskDoneForDate(t, todayKey());
+  const repType = taskRepeatType(t);
+  const overdue = repType==='none' && isOverdue(t.dueDate, done);
+  const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
+    (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn employee-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  return `
+    <div class="ticket ${done?'resolved':''}">
+      <div class="ticket-check employee-check" data-id="${t.id}">${done?'✓':''}</div>
+      <div class="ticket-body">
+        <div class="ticket-meta">
+          ${categoryTagHtml(t)}
+          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select>
+          ${timeLabel}
+          ${dueLabel}
+        </div>
+        <div class="ticket-text">${escapeHtml(t.text)}</div>
+      </div>
+      ${postponeBtn}
+      <button class="edit-btn employee-edit" data-id="${t.id}" title="Editar">✎</button>
+    </div>
+  `;
+}
+
+function renderEmployeeChecklistSection(){
+  const sec = checklistData.find(s => s.person === PEOPLE[employeePersona]);
+  if(!sec) return '';
+  const total = sec.items.length;
+  const done = sec.items.filter(it => checklistState[it.id]).length;
+  const progressClass = done === 0 ? 'zero' : '';
+  return `
+    <div class="check-card">
+      <div class="check-card-header">
+        <div class="check-card-name">Checklist de hoy</div>
+        <div class="check-progress ${progressClass}">${done}/${total}</div>
+      </div>
+      ${sec.items.map(it => `
+        <div class="check-item ${checklistState[it.id] ? 'done' : ''}">
+          <input type="checkbox" id="echk-${it.id}" ${checklistState[it.id] ? 'checked' : ''}>
+          <div class="check-item-body">
+            <label for="echk-${it.id}">${escapeHtml(it.label)}</label>
+            ${it.time ? `<span class="due-badge time-badge">🕐 ${escapeHtml(it.time)}</span>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderEmployeeView(){
+  document.getElementById('employee-name-title').textContent = `Hola, ${PEOPLE[employeePersona]}`;
+  document.getElementById('employee-today').textContent = document.getElementById('today').textContent;
+
+  const checklistEl = document.getElementById('employee-checklist');
+  checklistEl.innerHTML = renderEmployeeChecklistSection();
+  checklistEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const id = cb.id.replace('echk-','');
+      await saveChecklistItem(id, cb.checked);
+      renderEmployeeView();
+    });
+  });
+
+  const mine = teamTasks.filter(t=>t.person===employeePersona);
+  const todayStr = todayKey();
+  const pending = mine.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
+    if(a.dueDate && b.dueDate){
+      const cmp = a.dueDate.localeCompare(b.dueDate);
+      if(cmp !== 0) return cmp;
+      return (a.time||'').localeCompare(b.time||'');
+    }
+    if(a.dueDate) return -1;
+    if(b.dueDate) return 1;
+    return b.ts - a.ts;
+  });
+  const resolved = mine.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
+
+  const pendingEl = document.getElementById('employee-pending-list');
+  const resolvedEl = document.getElementById('employee-resolved-list');
+  pendingEl.innerHTML = pending.length ? pending.map(employeeTicketHtml).join('') :
+    '<div class="empty">No tenés pendientes. 🎉</div>';
+  resolvedEl.innerHTML = resolved.length ? resolved.map(employeeTicketHtml).join('') :
+    '<div class="empty">Todavía nada resuelto hoy.</div>';
+
+  document.querySelectorAll('#employee-pending-list .employee-check, #employee-resolved-list .employee-check').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleTeamTaskResolved(btn.dataset.id));
+  });
+  document.querySelectorAll('#employee-pending-list .employee-postpone, #employee-resolved-list .employee-postpone').forEach(btn=>{
+    btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#employee-pending-list .employee-edit, #employee-resolved-list .employee-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+  document.querySelectorAll('#employee-pending-list .task-status-select, #employee-resolved-list .task-status-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const t = teamTasks.find(x=>x.id===sel.dataset.id);
+      if(!t) return;
+      setTaskStatusForDate(t, todayKey(), sel.value);
+      renderEmployeeView();
+      refreshCalendars();
+      await saveTeamTasks();
+    });
+  });
+}
+
+/* ===== Panel para copiar el link de cada empleado ===== */
+function renderShareLinks(){
+  const el = document.getElementById('share-links-panel');
+  const base = location.origin + location.pathname;
+  el.innerHTML = Object.keys(ACTIVE_PEOPLE).filter(k=>k!=='general').map(k=>{
+    const url = `${base}?persona=${k}`;
+    return `
+      <div class="ticket">
+        <div class="ticket-body">
+          <div class="ticket-text"><strong>${PEOPLE[k]}</strong><br><span style="font-size:12px;color:var(--ink-soft);word-break:break-all;">${url}</span></div>
+        </div>
+        <button class="edit-btn copy-link-btn" data-url="${url}" title="Copiar link">📋</button>
+      </div>
+    `;
+  }).join('');
+  el.querySelectorAll('.copy-link-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(btn.dataset.url);
+        setStatus('link copiado');
+      }catch(e){
+        window.prompt('Copiá este link:', btn.dataset.url);
+      }
+    });
+  });
+}
+
+document.getElementById('share-links-toggle').addEventListener('click', ()=>{
+  const panel = document.getElementById('share-links-panel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? '' : 'none';
+  if(isHidden) renderShareLinks();
+});
+
+function renderTeamPersonChips(){
+  const el = document.getElementById('team-person-chips');
+  if(!el) return;
+  el.innerHTML = Object.entries(ACTIVE_PEOPLE).map(([k,v])=>
+    `<div class="chip team-person-chip" data-person="${k}">${v}</div>`
+  ).join('');
+  el.querySelectorAll('.team-person-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{ chip.classList.toggle('active'); });
+  });
+}
+
+let teamNewTaskCategory = 'otro';
+function renderTeamCategoryChips(){
+  const el = document.getElementById('team-category-chips');
+  if(!el) return;
+  el.innerHTML = Object.entries(TASK_CATEGORIES).map(([k,v])=>
+    `<div class="chip team-category-chip ${k===teamNewTaskCategory?'active':''}" data-category="${k}">${v}</div>`
+  ).join('');
+  el.querySelectorAll('.team-category-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      teamNewTaskCategory = chip.dataset.category;
+      renderTeamCategoryChips();
+    });
+  });
+}
+
+async function addTeamTask(){
+  const textEl = document.getElementById('team-task-text');
+  const dueEl = document.getElementById('team-due-date');
+  const timeEl = document.getElementById('team-time-input');
+  const involveEl = document.getElementById('team-involve-me');
+  const repeatEl = document.getElementById('team-repeat');
+  const text = textEl.value.trim();
+  if(!text) return;
+  let selectedPeople = Array.from(document.querySelectorAll('.team-person-chip.active')).map(c=>c.dataset.person);
+  if(!selectedPeople.length) selectedPeople = ['general'];
+  const btn = document.getElementById('team-add-btn');
+  btn.disabled = true;
+  const dueDate = dueEl.value || '';
+  const time = timeEl.value || '';
+  const involveMe = involveEl.checked;
+  const repeat = repeatEl.value || 'none';
+  const category = teamNewTaskCategory;
+  const newTasks = selectedPeople.map(person => ({
+    id: 't' + Date.now() + Math.random().toString(36).slice(2,7),
+    person: person,
+    text: text,
+    category: category,
+    dueDate: dueDate,
+    time: time,
+    ts: Date.now(),
+    resolved: false,
+    repeat: repeat
+  }));
+  newTasks.forEach(t => teamTasks.push(t));
+  textEl.value = '';
+  timeEl.value = '';
+  document.querySelectorAll('.team-person-chip.active').forEach(c=>c.classList.remove('active'));
+  renderLists();
+  renderChecklist();
+  refreshCalendars();
+  await saveTeamTasks();
+  if(involveMe){
+    const linkedId = await addToMyTasksForDate(dueDate || todayKey(), time, text, newTasks[0].id, repeat==='daily');
+    newTasks[0].linkedPersonalTaskId = linkedId;
+    newTasks[0].sharedWithMe = true;
+    refreshCalendars();
+    await saveTeamTasks();
+    setStatus('guardado y agregado a tu día');
+  }
+  involveEl.checked = false;
+  repeatEl.value = 'none';
+  btn.disabled = false;
+  textEl.focus();
+}
+
+document.getElementById('team-add-btn').addEventListener('click', addTeamTask);
+document.getElementById('team-task-text').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addTeamTask();
+  }
+});
+
+/* ===== Vista de empleado: agregar su propia tarea ===== */
+let employeeNewTaskCategory = 'otro';
+function renderEmployeeCategoryChips(){
+  const el = document.getElementById('employee-category-chips');
+  if(!el) return;
+  el.innerHTML = Object.entries(TASK_CATEGORIES).map(([k,v])=>
+    `<div class="chip employee-category-chip ${k===employeeNewTaskCategory?'active':''}" data-category="${k}">${v}</div>`
+  ).join('');
+  el.querySelectorAll('.employee-category-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      employeeNewTaskCategory = chip.dataset.category;
+      renderEmployeeCategoryChips();
+    });
+  });
+}
+
+async function addEmployeeTask(){
+  const textEl = document.getElementById('employee-task-text');
+  const dueEl = document.getElementById('employee-due-date');
+  const timeEl = document.getElementById('employee-time-input');
+  const involveEl = document.getElementById('employee-involve-boss');
+  const repeatEl = document.getElementById('employee-repeat');
+  const text = textEl.value.trim();
+  if(!text) return;
+  const btn = document.getElementById('employee-add-btn');
+  btn.disabled = true;
+  const dueDate = dueEl.value || '';
+  const time = timeEl.value || '';
+  const involveBoss = involveEl.checked;
+  const repeat = repeatEl.value || 'none';
+  const newTeamTask = {
+    id: 't' + Date.now() + Math.random().toString(36).slice(2,7),
+    person: employeePersona,
+    text: text,
+    category: employeeNewTaskCategory,
+    dueDate: dueDate,
+    time: time,
+    ts: Date.now(),
+    resolved: false,
+    repeat: repeat
+  };
+  teamTasks.push(newTeamTask);
+  textEl.value = '';
+  timeEl.value = '';
+  renderEmployeeView();
+  refreshCalendars();
+  await saveTeamTasks();
+  if(involveBoss){
+    const linkedId = await addToMyTasksForDate(dueDate || todayKey(), time, text, newTeamTask.id, repeat==='daily');
+    newTeamTask.linkedPersonalTaskId = linkedId;
+    await saveTeamTasks();
+  }
+  involveEl.checked = false;
+  repeatEl.value = 'none';
+  btn.disabled = false;
+  textEl.focus();
+}
+
+document.getElementById('employee-add-btn').addEventListener('click', addEmployeeTask);
+document.getElementById('employee-task-text').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addEmployeeTask();
+  }
+});
+
+let editingTeamTaskId = null;
+let editingTeamTaskDateStr = null;
+
+function populateEditPersonSelect(){
+  const sel = document.getElementById('edit-task-person');
+  sel.innerHTML = Object.keys(ACTIVE_PEOPLE).map(k=>`<option value="${k}">${PEOPLE[k]}</option>`).join('');
+}
+
+function openEditTeamTask(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t) return;
+  editingTeamTaskId = id;
+  const calOpen = document.getElementById('cal-day-modal').classList.contains('open');
+  editingTeamTaskDateStr = (calOpen && calModalDateKey) ? calModalDateKey : todayKey();
+  populateEditPersonSelect();
+  document.getElementById('edit-task-person').value = t.person;
+  document.getElementById('edit-task-category').innerHTML = categorySelectOptionsHtml(t.category || 'otro');
+  document.getElementById('edit-task-due').value = t.dueDate || '';
+  document.getElementById('edit-task-time').value = t.time || '';
+  document.getElementById('edit-task-text').value = t.text;
+  document.getElementById('edit-task-status').innerHTML = taskStatusSelectHtml(t, editingTeamTaskDateStr);
+  document.getElementById('edit-task-repeat').innerHTML = repeatSelectOptionsHtml(taskRepeatType(t));
+  document.getElementById('edit-task-shared').checked = !!t.sharedWithMe;
+  document.getElementById('edit-task-person-field').style.display = employeePersona ? 'none' : '';
+  document.getElementById('edit-task-shared-field').style.display = employeePersona ? 'none' : '';
+  document.getElementById('edit-task-modal').classList.add('open');
+}
+
+function closeEditTeamTask(){
+  editingTeamTaskId = null;
+  document.getElementById('edit-task-modal').classList.remove('open');
+}
+
+async function saveEditTeamTask(){
+  const t = teamTasks.find(x=>x.id===editingTeamTaskId);
+  if(!t) return;
+  const newText = document.getElementById('edit-task-text').value.trim();
+  if(!newText) return;
+  t.text = newText;
+  t.person = employeePersona ? employeePersona : document.getElementById('edit-task-person').value;
+  t.category = document.getElementById('edit-task-category').value;
+  t.dueDate = document.getElementById('edit-task-due').value || '';
+  t.time = document.getElementById('edit-task-time').value || '';
+  t.repeat = document.getElementById('edit-task-repeat').value;
+  delete t.repeatDaily;
+  setTaskStatusForDate(t, editingTeamTaskDateStr || todayKey(), document.getElementById('edit-task-status').value);
+  if(!employeePersona){
+    const sharedNow = document.getElementById('edit-task-shared').checked;
+    if(sharedNow && !t.sharedWithMe){
+      const linkedId = await addToMyTasksForDate(t.dueDate || todayKey(), t.time || '', t.text, t.id, taskRepeatType(t)==='daily');
+      t.linkedPersonalTaskId = linkedId;
+    } else if(!sharedNow && t.sharedWithMe && t.linkedPersonalTaskId){
+      personalTasks = personalTasks.filter(p=>p.id!==t.linkedPersonalTaskId);
+      renderPersonalTasks();
+      await savePersonalTasks();
+      delete t.linkedPersonalTaskId;
+    }
+    t.sharedWithMe = sharedNow;
+  }
+  closeEditTeamTask();
+  if(employeePersona){
+    renderEmployeeView();
+  } else {
+    renderLists();
+    renderChecklist();
+  }
+  refreshCalendars();
+  refreshOpenCalDayModal();
+  await saveTeamTasks();
+}
+
+document.getElementById('edit-task-cancel').addEventListener('click', closeEditTeamTask);
+document.getElementById('edit-task-save').addEventListener('click', saveEditTeamTask);
+document.getElementById('edit-task-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'edit-task-modal') closeEditTeamTask();
+});
+
+(async function init(){
+  renderToday();
+  renderFilters();
+  renderTeamPersonChips();
+  renderTeamCategoryChips();
+  document.getElementById('team-repeat').innerHTML = repeatSelectOptionsHtml('none');
+  document.getElementById('team-due-date').value = todayKey();
+  setStatus('cargando...');
+  await loadPlan();
+  await loadEditMode();
+  await loadChecklistEditMode();
+  await loadChecklistConfig();
+  await loadChecklist();
+  await loadTeamTasks();
+  renderLists();
+  renderChecklist();
+  renderChecklistEditor();
+  setStatus('listo — se guarda solo en este dispositivo');
+  if(employeePersona){
+    document.getElementById('admin-wrap').style.display = 'none';
+    document.getElementById('employee-wrap').style.display = '';
+    document.getElementById('employee-due-date').value = todayKey();
+    renderEmployeeCategoryChips();
+    document.getElementById('employee-repeat').innerHTML = repeatSelectOptionsHtml('none');
+    renderEmployeeView();
+    setStatus('listo');
+  }
+})();
+
+/* ===== Mi Día (personal, tab 2) ===== */
+const AREAS = {
+  nina:'By Nina', embrujo:'Embrujo', diverso:'Diverso',
+  farb:'Farb', otros:'Otros clientes', personal:'Personal'
+};
+
+let currentDate = new Date();
+let personalTasks = [];
+let taskFilter = 'todas';
+
+function dateKey(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function fmtDateMain(d){
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  let s = d.toLocaleDateString('es-AR', opts);
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function isSameDay(d1,d2){
+  return dateKey(d1) === dateKey(d2);
+}
+
+async function addToMyTasksForDate(dateStr, time, text, linkedTeamTaskId, repeatDaily){
+  const newTask = {
+    id: 'tk' + Date.now() + Math.random().toString(36).slice(2,7),
+    area: 'nina',
+    text: text,
+    dueDate: dateStr,
+    time: time || '',
+    ts: Date.now(),
+    resolved: false,
+    repeatDaily: !!repeatDaily,
+    linkedTeamTaskId: linkedTeamTaskId || null
+  };
+  personalTasks.push(newTask);
+  if(dateStr === dateKey(currentDate)){
+    renderPersonalTasks();
+  }
+  await savePersonalTasks();
+  return newTask.id;
+}
+
+async function uploadToCloudinary(file){
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'By Nina');
+  const res = await fetch('https://api.cloudinary.com/v1_1/dt6ijkpyy/image/upload', {
+    method:'POST',
+    body: formData
+  });
+  const data = await res.json();
+  if(!data.secure_url) throw new Error('upload failed');
+  return data.secure_url;
+}
+
+function renderDateHeader(){
+  document.getElementById('date-main').textContent = fmtDateMain(currentDate);
+  document.getElementById('summary-section-title').textContent = isSameDay(currentDate, new Date()) ? 'Resumen de tu día' : 'Resumen del día';
+}
+
+async function goToDate(d){
+  currentDate = d;
+  renderDateHeader();
+  renderDaySummary();
+}
+
+document.getElementById('prev-day').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()-1);
+  goToDate(d);
+});
+document.getElementById('next-day').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()+1);
+  goToDate(d);
+});
+document.getElementById('go-today').addEventListener('click', ()=>{
+  goToDate(new Date());
+});
+
+const PERSONAL_TASKS_KEY = 'mi-dia:tasks';
+
+async function loadPersonalTasks(){
+  try{
+    const val = await fbGet('control_bynina/personal_tasks');
+    personalTasks = val ? JSON.parse(val) : [];
+  }catch(e){
+    personalTasks = [];
+  }
+}
+
+async function savePersonalTasks(){
+  try{
+    await fbSet('control_bynina/personal_tasks', JSON.stringify(personalTasks));
+  }catch(e){}
+}
+
+function renderTaskFilters(){
+  const el = document.getElementById('task-filters');
+  const keys = ['todas', ...Object.keys(AREAS)];
+  el.innerHTML = keys.map(k=>{
+    const label = k==='todas' ? 'Todas' : AREAS[k];
+    return `<div class="chip ${taskFilter===k?'active':''}" data-key="${k}">${label}</div>`;
+  }).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      taskFilter = c.dataset.key;
+      renderTaskFilters();
+      renderPersonalTasks();
+    });
+  });
+}
+
+function personalTaskHtml(t){
+  const done = isTaskDoneForDate(t, todayKey());
+  const overdue = !t.repeatDaily && isOverdue(t.dueDate, done);
+  const dueLabel = t.repeatDaily ? `<span class="due-badge repeat-badge">🔁 diario</span>` :
+    (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
+  const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
+  const postponeBtn = t.repeatDaily ? '' : `<button class="edit-btn ptask-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  return `
+    <div class="ticket ${done?'resolved':''}">
+      <div class="ticket-check ptask-check" data-id="${t.id}">${done?'✓':''}</div>
+      <div class="ticket-body">
+        <div class="ticket-meta">
+          <span class="tag ${t.area}">${AREAS[t.area] || t.area}</span>
+          ${timeLabel}
+          ${dueLabel}
+        </div>
+        <div class="ticket-text">${escapeHtml(t.text)}</div>
+        ${t.photoUrl ? `<img class="ptask-photo" src="${t.photoUrl}" data-full="${t.photoUrl}">` : ''}
+      </div>
+      <button class="edit-btn ptask-photo-btn" data-id="${t.id}" title="Agregar/cambiar foto">📷</button>
+      ${postponeBtn}
+      <button class="edit-btn ptask-edit" data-id="${t.id}" title="Editar">✎</button>
+      <button class="del-btn ptask-del" data-id="${t.id}" title="Eliminar">×</button>
+      <input type="file" accept="image/*" class="ptask-photo-input" data-id="${t.id}" style="display:none">
+    </div>
+  `;
+}
+
+function renderPersonalTasks(){
+  const el = document.getElementById('task-list');
+  const filtered = taskFilter==='todas' ? personalTasks : personalTasks.filter(t=>t.area===taskFilter);
+  const todayStr = todayKey();
+  const pending = filtered.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
+    if(a.dueDate && b.dueDate){
+      const cmp = a.dueDate.localeCompare(b.dueDate);
+      if(cmp !== 0) return cmp;
+      return (a.time||'').localeCompare(b.time||'');
+    }
+    if(a.dueDate) return -1;
+    if(b.dueDate) return 1;
+    return b.ts - a.ts;
+  });
+  const resolved = filtered.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
+  if(!filtered.length){
+    el.innerHTML = '<div class="empty">No hay tareas acá.</div>';
+    renderDaySummary();
+    return;
+  }
+  el.innerHTML = pending.map(personalTaskHtml).join('') + resolved.map(personalTaskHtml).join('');
+  el.querySelectorAll('.ptask-check').forEach(btn=>{
+    btn.addEventListener('click', ()=>togglePersonalTaskResolved(btn.dataset.id));
+  });
+  el.querySelectorAll('.ptask-postpone').forEach(btn=>{
+    btn.addEventListener('click', ()=>postponePersonalTask(btn.dataset.id));
+  });
+  el.querySelectorAll('.ptask-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openEditPersonalTask(btn.dataset.id);
+    });
+  });
+  el.querySelectorAll('.ptask-photo-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const input = el.querySelector(`.ptask-photo-input[data-id="${btn.dataset.id}"]`);
+      if(input) input.click();
+    });
+  });
+  el.querySelectorAll('.ptask-photo-input').forEach(input=>{
+    input.addEventListener('change', async ()=>{
+      const file = input.files[0];
+      if(!file) return;
+      const t = personalTasks.find(x=>x.id===input.dataset.id);
+      if(!t) return;
+      setStatus('subiendo foto...');
+      try{
+        const url = await uploadToCloudinary(file);
+        t.photoUrl = url;
+        renderPersonalTasks();
+        await savePersonalTasks();
+        setStatus('foto guardada');
+      }catch(e){
+        setStatus('no se pudo subir la foto, probá de nuevo');
+      }
+    });
+  });
+  el.querySelectorAll('.ptask-photo').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      window.open(img.dataset.full, '_blank');
+    });
+  });
+  el.querySelectorAll('.ptask-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      personalTasks = personalTasks.filter(x=>x.id!==btn.dataset.id);
+      renderPersonalTasks();
+      await savePersonalTasks();
+    });
+  });
+  renderDaySummary();
+}
+
+async function addPersonalTask(){
+  const textEl = document.getElementById('task-text-input');
+  const areaEl = document.getElementById('task-area');
+  const dueEl = document.getElementById('task-due-date');
+  const timeEl = document.getElementById('task-time-input');
+  const repeatEl = document.getElementById('task-repeat-daily');
+  const text = textEl.value.trim();
+  if(!text) return;
+  const btn = document.getElementById('task-add-btn');
+  btn.disabled = true;
+  personalTasks.push({
+    id: 'tk' + Date.now() + Math.random().toString(36).slice(2,7),
+    area: areaEl.value,
+    text: text,
+    dueDate: dueEl.value || '',
+    time: timeEl.value || '',
+    ts: Date.now(),
+    resolved: false,
+    repeatDaily: repeatEl.checked
+  });
+  textEl.value = '';
+  timeEl.value = '';
+  repeatEl.checked = false;
+  renderPersonalTasks();
+  await savePersonalTasks();
+  btn.disabled = false;
+  textEl.focus();
+}
+
+document.getElementById('task-add-btn').addEventListener('click', addPersonalTask);
+document.getElementById('task-text-input').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    addPersonalTask();
+  }
+});
+
+let editingPersonalTaskId = null;
+
+function openEditPersonalTask(id){
+  const t = personalTasks.find(x=>x.id===id);
+  if(!t) return;
+  editingPersonalTaskId = id;
+  document.getElementById('edit-ptask-area').value = t.area;
+  document.getElementById('edit-ptask-due').value = t.dueDate || '';
+  document.getElementById('edit-ptask-time').value = t.time || '';
+  document.getElementById('edit-ptask-text').value = t.text;
+  document.getElementById('edit-ptask-repeat').checked = !!t.repeatDaily;
+  document.getElementById('edit-ptask-modal').classList.add('open');
+}
+
+function closeEditPersonalTask(){
+  editingPersonalTaskId = null;
+  document.getElementById('edit-ptask-modal').classList.remove('open');
+}
+
+async function togglePersonalTaskResolved(id){
+  const t = personalTasks.find(x=>x.id===id);
+  if(!t) return;
+  const today = todayKey();
+  toggleTaskDoneForDate(t, today);
+  renderPersonalTasks();
+  await savePersonalTasks();
+  if(t.linkedTeamTaskId){
+    const tt = teamTasks.find(x=>x.id===t.linkedTeamTaskId);
+    if(tt && isTaskDoneForDate(tt, today) !== isTaskDoneForDate(t, today)){
+      toggleTaskDoneForDate(tt, today);
+      renderLists();
+      renderChecklist();
+      await saveTeamTasks();
+    }
+  }
+}
+
+async function postponePersonalTask(id){
+  const t = personalTasks.find(x=>x.id===id);
+  if(!t || taskRepeatType(t) !== 'none') return;
+  t.dueDate = nextDayKey(t.dueDate || dateKey(currentDate));
+  renderPersonalTasks();
+  await savePersonalTasks();
+  setStatus('pospuesta a mañana');
+}
+
+async function saveEditPersonalTask(){
+  const t = personalTasks.find(x=>x.id===editingPersonalTaskId);
+  if(!t) return;
+  const newText = document.getElementById('edit-ptask-text').value.trim();
+  if(!newText) return;
+  t.text = newText;
+  t.area = document.getElementById('edit-ptask-area').value;
+  t.dueDate = document.getElementById('edit-ptask-due').value || '';
+  t.time = document.getElementById('edit-ptask-time').value || '';
+  t.repeatDaily = document.getElementById('edit-ptask-repeat').checked;
+  closeEditPersonalTask();
+  renderPersonalTasks();
+  await savePersonalTasks();
+}
+
+document.getElementById('edit-ptask-cancel').addEventListener('click', closeEditPersonalTask);
+document.getElementById('edit-ptask-save').addEventListener('click', saveEditPersonalTask);
+document.getElementById('edit-ptask-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'edit-ptask-modal') closeEditPersonalTask();
+});
+
+let dragSummaryId = null;
+
+function renderDaySummary(){
+  const el = document.getElementById('day-summary');
+  if(!el) return;
+  const todayStr = dateKey(currentDate);
+  const dayTasks = (personalTasks||[]).filter(t => taskAppliesToDate(t, todayStr) && !isTaskDoneForDate(t, todayStr));
+  if(!dayTasks.length){
+    el.innerHTML = '<div class="empty">Sin pendientes para este día.</div>';
+    return;
+  }
+  const withTime = dayTasks.filter(t=>t.time).sort((a,b)=>{
+    const cmp = (a.dueDate||'').localeCompare(b.dueDate||'');
+    if(cmp !== 0) return cmp;
+    return a.time.localeCompare(b.time);
+  });
+  const noTime = dayTasks.filter(t=>!t.time).sort((a,b)=>{
+    const cmp = (a.dueDate||'').localeCompare(b.dueDate||'');
+    if(cmp !== 0) return cmp;
+    return (a.order ?? a.ts) - (b.order ?? b.ts);
+  });
+
+  const overdueLabel = (t) => (t.dueDate && t.dueDate !== todayStr) ?
+    `<span class="due-badge overdue">atrasada · venció ${fmtDue(t.dueDate)}</span>` : '';
+  const pendingLabel = (t) => (t.dueDate && t.dueDate !== todayStr) ?
+    `<span class="due-badge">pendiente</span>` : '';
+
+  let html = withTime.map(t => `
+    <div class="summary-row">
+      <div class="summary-check" data-id="${t.id}"></div>
+      <span class="summary-time">${t.time}</span>
+      <span class="summary-text">${escapeHtml(`${AREAS[t.area] || t.area} — ${t.text}`)}</span>
+      ${overdueLabel(t)}
+    </div>
+  `).join('');
+
+  if(noTime.length){
+    html += `<div class="summary-subtitle">Sin horario fijo — arrastrá para reordenar</div>`;
+    html += noTime.map(t => `
+      <div class="summary-row draggable-row" draggable="true" data-id="${t.id}">
+        <div class="summary-check" data-id="${t.id}"></div>
+        <span class="summary-text">${escapeHtml(`${AREAS[t.area] || t.area} — ${t.text}`)}</span>
+        ${pendingLabel(t)}
+      </div>
+    `).join('');
+  }
+  el.innerHTML = html;
+
+  el.querySelectorAll('.summary-check').forEach(chk=>{
+    chk.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      togglePersonalTaskResolved(chk.dataset.id);
+    });
+  });
+
+  el.querySelectorAll('.draggable-row').forEach(row=>{
+    row.addEventListener('dragstart', ()=>{
+      dragSummaryId = row.dataset.id;
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      dragSummaryId = null;
+    });
+    row.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+    });
+    row.addEventListener('drop', async (e)=>{
+      e.preventDefault();
+      const targetId = row.dataset.id;
+      if(!dragSummaryId || dragSummaryId === targetId) return;
+      await reorderNoTimeTasks(todayStr, dragSummaryId, targetId);
+    });
+  });
+}
+
+async function reorderNoTimeTasks(dateStr, draggedId, targetId){
+  const group = personalTasks
+    .filter(t => taskAppliesToDate(t, dateStr) && !isTaskDoneForDate(t, dateStr) && !t.time)
+    .sort((a,b)=>(a.order ?? a.ts) - (b.order ?? b.ts));
+  const fromIdx = group.findIndex(t=>t.id===draggedId);
+  const toIdx = group.findIndex(t=>t.id===targetId);
+  if(fromIdx === -1 || toIdx === -1) return;
+  const [moved] = group.splice(fromIdx,1);
+  group.splice(toIdx,0,moved);
+  group.forEach((t,i)=>{ t.order = i; });
+  renderDaySummary();
+  await savePersonalTasks();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+(async function initMiDia(){
+  document.getElementById('task-due-date').value = dateKey(new Date());
+  renderDateHeader();
+  renderTaskFilters();
+  await loadPersonalTasks();
+  renderPersonalTasks();
+})();
+
+/* ===== Calendario de contenido (compartido: Ariel + Stef) ===== */
+const CAL_TYPES = {reel:'Reel', foto:'Foto', story:'Story', carrusel:'Carrusel', video:'Video', otro:'Otro'};
+const CAL_STATUS = {idea:'Idea', grabado:'Grabado', editado:'Editado', publicado:'Publicado'};
+const CAL_STATUS_COLOR = {idea:'#847d70', grabado:'#8b4a2b', editado:'#5b4e9e', publicado:'#2f6b4f'};
+
+let contentCalendar = {};
+let calAdminDate = new Date();
+let calEmpDate = new Date();
+let calModalDateKey = null;
+let calModalScope = 'admin';
+let calAdminFilterPerson = 'todos';
+let calAdminFilterCategory = 'todos';
+
+function renderCalPersonFilter(){
+  const el = document.getElementById('cal-person-filter');
+  if(!el) return;
+  const options = [['todos','Todos'], ...Object.entries(ACTIVE_PEOPLE)];
+  el.innerHTML = options.map(([k,v])=>
+    `<div class="chip cal-filter-chip ${k===calAdminFilterPerson?'active':''}" data-person="${k}">${v}</div>`
+  ).join('');
+  el.querySelectorAll('.cal-filter-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      calAdminFilterPerson = chip.dataset.person;
+      renderCalPersonFilter();
+      renderCalendarMonth('admin');
+    });
+  });
+}
+
+function renderCalCategoryFilter(){
+  const el = document.getElementById('cal-category-filter');
+  if(!el) return;
+  const options = [['todos','Todos'], ...Object.entries(TASK_CATEGORIES)];
+  el.innerHTML = options.map(([k,v])=>
+    `<div class="chip cal-cat-filter-chip ${k===calAdminFilterCategory?'active':''}" data-category="${k}">${v}</div>`
+  ).join('');
+  el.querySelectorAll('.cal-cat-filter-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      calAdminFilterCategory = chip.dataset.category;
+      renderCalCategoryFilter();
+      renderCalendarMonth('admin');
+    });
+  });
+}
+
+async function loadContentCalendar(){
+  contentCalendar = (await fbGet('contentCalendar')) || {};
+}
+async function saveCalendarDay(dStr){
+  const items = contentCalendar[dStr];
+  if(items && items.length){
+    await fbSet('contentCalendar/'+dStr, items);
+  }else{
+    await fbSet('contentCalendar/'+dStr, null);
+    delete contentCalendar[dStr];
+  }
+}
+
+function calSelectOptionsHtml(map, selected){
+  return Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===selected?'selected':''}>${v}</option>`).join('');
+}
+
+function renderCalLegend(elId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.innerHTML = Object.entries(CAL_STATUS).map(([k,v])=>
+    `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${CAL_STATUS_COLOR[k]}"></span>${v}</div>`
+  ).join('');
+}
+
+function renderCalDow(elId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const names = ['D','L','M','M','J','V','S'];
+  el.innerHTML = names.map(n=>`<div class="cal-dow">${n}</div>`).join('');
+}
+
+function getTeamTasksForDate(dStr, scope){
+  let tasks = teamTasks.filter(t => taskRepeatType(t)!=='none' ? taskRecursOnDate(t, dStr) : t.dueDate === dStr);
+  if(scope === 'emp' && employeePersona){
+    tasks = tasks.filter(t => t.person === employeePersona || t.person === 'general');
+  }
+  if(scope === 'admin' && calAdminFilterPerson !== 'todos'){
+    tasks = tasks.filter(t => t.person === calAdminFilterPerson || t.sharedWithMe);
+  }
+  if(scope === 'admin' && calAdminFilterCategory !== 'todos'){
+    tasks = tasks.filter(t => (t.category || 'otro') === calAdminFilterCategory);
+  }
+  return tasks;
+}
+
+function renderCalendarMonth(scope){
+  const date = scope==='admin' ? calAdminDate : calEmpDate;
+  const gridId = scope==='admin' ? 'cal-grid' : 'ecal-grid';
+  const labelId = scope==='admin' ? 'cal-month-label' : 'ecal-month-label';
+  const legendId = scope==='admin' ? 'cal-legend' : 'ecal-legend';
+  const dowId = scope==='admin' ? 'cal-dow-row' : 'ecal-dow-row';
+  if(!document.getElementById(gridId)) return;
+
+  renderCalLegend(legendId);
+  renderCalDow(dowId);
+
+  const label = date.toLocaleDateString('es-AR',{month:'long', year:'numeric'});
+  document.getElementById(labelId).textContent = label.charAt(0).toUpperCase()+label.slice(1);
+
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const gridStart = new Date(year, month, 1 - startOffset);
+  const todayStr = dateKey(new Date());
+
+  let html = '';
+  for(let i=0;i<42;i++){
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate()+i);
+    const dStr = dateKey(d);
+    const contentItems = contentCalendar[dStr] || [];
+    const teamItems = getTeamTasksForDate(dStr, scope);
+    const isOtherMonth = d.getMonth() !== month;
+    const isToday = dStr === todayStr;
+
+    const taskChips = teamItems.map(t=>{
+      const done = isTaskDoneForDate(t, dStr);
+      const isShared = scope==='admin' && !!t.sharedWithMe;
+      const showWho = scope==='admin' && (calAdminFilterPerson === 'todos' || isShared) && PEOPLE[t.person];
+      const who = isShared ? `Responsable ${PEOPLE[t.person]||t.person}: ` : (showWho ? PEOPLE[t.person]+': ' : '');
+      const icon = isShared ? '👁️' : (taskRepeatType(t)!=='none' ? '🔁' : '📌');
+      const catColor = TASK_CATEGORY_COLOR[t.category] || TASK_CATEGORY_COLOR.otro;
+      return `<div class="cal-item-chip cal-task-chip ${done?'done':''} ${isShared?'cal-task-shared':''}"><span class="cal-item-dot" style="background:${catColor}"></span>${icon} ${escapeHtml(who)}${escapeHtml(t.text)}</div>`;
+    });
+    const contentChips = contentItems.map(it=>
+      `<div class="cal-item-chip"><span class="cal-item-dot" style="background:${CAL_STATUS_COLOR[it.status]||'#847d70'}"></span>${escapeHtml(it.title)}</div>`
+    );
+    const allChips = [...taskChips, ...contentChips];
+    const shown = allChips.slice(0,3);
+    const chipsHtml = shown.join('');
+    const moreHtml = allChips.length>3 ? `<div class="cal-more">+${allChips.length-3} más</div>` : '';
+    html += `<div class="cal-day ${isOtherMonth?'other-month':''} ${isToday?'today':''}" data-date="${dStr}">
+      <div class="cal-day-num">${d.getDate()}</div>
+      ${chipsHtml}${moreHtml}
+    </div>`;
+  }
+  document.getElementById(gridId).innerHTML = html;
+
+  document.getElementById(gridId).querySelectorAll('.cal-day').forEach(cell=>{
+    cell.addEventListener('click', ()=>{ openCalDayModal(cell.dataset.date, scope); });
+  });
+}
+
+function changeCalMonth(scope, delta){
+  if(scope==='admin'){ calAdminDate.setMonth(calAdminDate.getMonth()+delta); }
+  else{ calEmpDate.setMonth(calEmpDate.getMonth()+delta); }
+  renderCalendarMonth(scope);
+}
+
+function renderCalDaySummary(){
+  const el = document.getElementById('cal-day-summary');
+  if(!el) return;
+  const tasks = getTeamTasksForDate(calModalDateKey, calModalScope);
+  const counts = {pendiente:0, proceso:0, finalizado:0};
+  tasks.forEach(t=>{
+    const st = getTaskStatusForDate(t, calModalDateKey);
+    counts[st] = (counts[st]||0) + 1;
+  });
+  const contentItems = contentCalendar[calModalDateKey] || [];
+  const parts = [];
+  if(counts.pendiente) parts.push(`<span class="cal-summary-chip" style="background:${TASK_STATUS_COLOR.pendiente}22;color:${TASK_STATUS_COLOR.pendiente}">${counts.pendiente} pendiente${counts.pendiente===1?'':'s'}</span>`);
+  if(counts.proceso) parts.push(`<span class="cal-summary-chip" style="background:${TASK_STATUS_COLOR.proceso}22;color:${TASK_STATUS_COLOR.proceso}">${counts.proceso} en proceso</span>`);
+  if(counts.finalizado) parts.push(`<span class="cal-summary-chip" style="background:${TASK_STATUS_COLOR.finalizado}22;color:${TASK_STATUS_COLOR.finalizado}">${counts.finalizado} finalizada${counts.finalizado===1?'':'s'}</span>`);
+  if(contentItems.length) parts.push(`<span class="cal-summary-chip" style="background:#5b4e9e22;color:#5b4e9e">${contentItems.length} contenido${contentItems.length===1?'':'s'}</span>`);
+  el.innerHTML = parts.length ? parts.join('') : '<span class="cal-summary-empty">Sin tareas ni contenido cargado para este día.</span>';
+}
+
+function refreshOpenCalDayModal(){
+  if(document.getElementById('cal-day-modal').classList.contains('open') && calModalDateKey){
+    renderCalDaySummary();
+    renderCalDayTeamTasks();
+  }
+}
+
+async function deleteTeamTaskFromCalendar(id){
+  teamTasks = teamTasks.filter(x=>x.id!==id);
+  renderLists();
+  renderChecklist();
+  refreshCalendars();
+  refreshOpenCalDayModal();
+  await saveTeamTasks();
+}
+
+function renderCalDayTeamTasks(){
+  const el = document.getElementById('cal-day-team-tasks');
+  if(!el) return;
+  const tasks = getTeamTasksForDate(calModalDateKey, calModalScope);
+  if(!tasks.length){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `<div class="cal-day-team-tasks-label">Tareas del equipo ese día</div>` + tasks.map(t=>{
+    const who = PEOPLE[t.person] || t.person;
+    const isShared = !!t.sharedWithMe;
+    const icon = isShared ? '👁️' : (taskRepeatType(t)!=='none' ? '🔁' : '📌');
+    const label = isShared ? `Responsable: ${escapeHtml(who)}` : escapeHtml(who);
+    const catColor = TASK_CATEGORY_COLOR[t.category] || TASK_CATEGORY_COLOR.otro;
+    const catLabel = TASK_CATEGORIES[t.category] || TASK_CATEGORIES.otro;
+    return `<div class="cal-day-item-row cal-day-team-row ${isShared?'cal-task-shared':''}" data-id="${t.id}">
+      <span class="cal-item-dot" style="background:${catColor}"></span>
+      <div class="cal-day-item-main">
+        <div class="cal-day-item-title">${icon} ${label}: ${escapeHtml(t.text)} <span style="color:${catColor};font-size:10px;font-weight:600;">(${escapeHtml(catLabel)})</span></div>
+        <div class="cal-day-item-meta">
+          <select class="cal-team-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, calModalDateKey)}</select>
+        </div>
+      </div>
+      <div class="cal-day-team-actions">
+        <button class="cal-day-team-edit" data-id="${t.id}" title="Editar">✎</button>
+        <button class="cal-day-team-del" data-id="${t.id}" title="Eliminar">✕</button>
+      </div>
+    </div>`;
+  }).join('') + `<div class="cal-day-team-tasks-hint">También podés gestionarlas desde "Control equipo" / "Mis tareas"</div>`;
+
+  el.querySelectorAll('.cal-team-status-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const t = teamTasks.find(x=>x.id===sel.dataset.id);
+      if(!t) return;
+      setTaskStatusForDate(t, calModalDateKey, sel.value);
+      renderLists();
+      renderChecklist();
+      refreshCalendars();
+      renderCalDaySummary();
+      await saveTeamTasks();
+    });
+  });
+  el.querySelectorAll('.cal-day-team-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
+  });
+  el.querySelectorAll('.cal-day-team-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteTeamTaskFromCalendar(btn.dataset.id));
+  });
+}
+
+function renderCalDayItemsList(){
+  const items = contentCalendar[calModalDateKey] || [];
+  const el = document.getElementById('cal-day-items');
+  if(!items.length){
+    el.innerHTML = '<div class="empty">Sin contenido cargado para este día.</div>';
+    return;
+  }
+  el.innerHTML = items.map(it=>`
+    <div class="cal-day-item-row" data-id="${it.id}">
+      <span class="cal-item-dot" style="background:${CAL_STATUS_COLOR[it.status]||'#847d70'}"></span>
+      <div class="cal-day-item-main">
+        <div class="cal-day-item-title">${escapeHtml(it.title)}</div>
+        <div class="cal-day-item-meta">
+          <select class="cal-item-type-select" data-id="${it.id}">${calSelectOptionsHtml(CAL_TYPES, it.type)}</select>
+          <select class="cal-item-status-select" data-id="${it.id}">${calSelectOptionsHtml(CAL_STATUS, it.status)}</select>
+        </div>
+      </div>
+      <button class="cal-day-item-del" data-id="${it.id}">✕</button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.cal-item-type-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const item = (contentCalendar[calModalDateKey]||[]).find(x=>x.id===sel.dataset.id);
+      if(item){ item.type = sel.value; await saveCalendarDay(calModalDateKey); renderCalendarMonth('admin'); renderCalendarMonth('emp'); }
+    });
+  });
+  el.querySelectorAll('.cal-item-status-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const item = (contentCalendar[calModalDateKey]||[]).find(x=>x.id===sel.dataset.id);
+      if(item){ item.status = sel.value; await saveCalendarDay(calModalDateKey); renderCalendarMonth('admin'); renderCalendarMonth('emp'); }
+    });
+  });
+  el.querySelectorAll('.cal-day-item-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      contentCalendar[calModalDateKey] = (contentCalendar[calModalDateKey]||[]).filter(x=>x.id!==btn.dataset.id);
+      await saveCalendarDay(calModalDateKey);
+      renderCalDayItemsList();
+      renderCalDaySummary();
+      renderCalendarMonth('admin'); renderCalendarMonth('emp');
+    });
+  });
+}
+
+function openCalDayModal(dStr, scope){
+  calModalDateKey = dStr;
+  calModalScope = scope || 'admin';
+  const d = new Date(dStr+'T00:00:00');
+  const label = d.toLocaleDateString('es-AR',{weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('cal-day-modal-title').textContent = label.charAt(0).toUpperCase()+label.slice(1);
+  document.getElementById('cal-new-type').innerHTML = calSelectOptionsHtml(CAL_TYPES,'reel');
+  document.getElementById('cal-new-status').innerHTML = calSelectOptionsHtml(CAL_STATUS,'idea');
+  document.getElementById('cal-new-title').value = '';
+  renderCalDaySummary();
+  renderCalDayTeamTasks();
+  renderCalDayItemsList();
+  document.getElementById('cal-day-modal').classList.add('open');
+}
+
+function closeCalDayModal(){
+  document.getElementById('cal-day-modal').classList.remove('open');
+  calModalDateKey = null;
+}
+
+async function addCalItem(){
+  const title = document.getElementById('cal-new-title').value.trim();
+  if(!title) return;
+  const type = document.getElementById('cal-new-type').value;
+  const status = document.getElementById('cal-new-status').value;
+  if(!contentCalendar[calModalDateKey]) contentCalendar[calModalDateKey] = [];
+  contentCalendar[calModalDateKey].push({ id: genChecklistId('cal'), title, type, status });
+  await saveCalendarDay(calModalDateKey);
+  document.getElementById('cal-new-title').value = '';
+  renderCalDayItemsList();
+  renderCalDaySummary();
+  renderCalendarMonth('admin');
+  renderCalendarMonth('emp');
+}
+
+document.getElementById('cal-prev-month').addEventListener('click', ()=>changeCalMonth('admin',-1));
+document.getElementById('cal-next-month').addEventListener('click', ()=>changeCalMonth('admin',1));
+document.getElementById('ecal-prev-month').addEventListener('click', ()=>changeCalMonth('emp',-1));
+document.getElementById('ecal-next-month').addEventListener('click', ()=>changeCalMonth('emp',1));
+document.getElementById('cal-add-item-btn').addEventListener('click', addCalItem);
+document.getElementById('cal-day-modal-close').addEventListener('click', closeCalDayModal);
+document.getElementById('cal-day-modal').addEventListener('click',(e)=>{
+  if(e.target.id === 'cal-day-modal') closeCalDayModal();
+});
+
+document.querySelectorAll('.emp-tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.emp-tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('emp-tab-tareas').classList.remove('active');
+    document.getElementById('emp-tab-calendario').classList.remove('active');
+    document.getElementById('emp-tab-'+btn.dataset.empTab).classList.add('active');
+  });
+});
+
+(async function initContentCalendar(){
+  await loadContentCalendar();
+  renderCalPersonFilter();
+  renderCalendarMonth('admin');
+  renderCalendarMonth('emp');
+  if(employeePersona === 'stef'){
+    document.getElementById('employee-tab-nav').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>
