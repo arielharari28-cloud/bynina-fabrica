@@ -541,6 +541,14 @@
   .cal-add-form-row select{flex:1 1 100px;}
   .cal-add-form-row textarea{flex:1 1 100%;min-height:44px;}
 
+  .ptask-date-group{
+    font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;
+    margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);
+  }
+  .ptask-date-group:first-child{margin-top:0;}
+  .ptask-date-group-resolved{color:var(--green);}
+
   .empty{
     font-family:'Inter',sans-serif;
     font-size:13px;
@@ -864,6 +872,7 @@
   }
   .summary-check:hover{border-color:var(--green);}
   .summary-row:last-child{border-bottom:none;}
+  .summary-row.summary-row-shared{background:#faf8ff;}
   .summary-row.done .summary-text{
     text-decoration:line-through;
     color:var(--ink-soft);
@@ -1444,7 +1453,7 @@ function renderChecklist(){
     const done = sec.items.filter(it => checklistState[it.id]).length;
     const progressClass = done === 0 ? 'zero' : '';
     const personKey = Object.keys(PEOPLE).find(k => PEOPLE[k] === sec.person);
-    const pendingTeam = teamTasks.filter(t => !isTaskDoneForDate(t, todayKey()) && t.person === personKey)
+    const pendingTeam = teamTasks.filter(t => (taskRepeatType(t)!=='none' || !isTaskDoneForDate(t, todayKey())) && t.person === personKey)
       .sort((a,b)=>b.ts-a.ts);
     const teamBlock = pendingTeam.length ? `
       <div class="check-team-tasks">
@@ -1493,6 +1502,9 @@ function renderChecklist(){
   el.querySelectorAll('.team-postpone').forEach(btn=>{
     btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
   });
+  el.querySelectorAll('.task-undo').forEach(btn=>{
+    btn.addEventListener('click', ()=>undoTeamTaskCompletion(btn.dataset.id));
+  });
   el.querySelectorAll('.team-edit').forEach(btn=>{
     btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
   });
@@ -1500,7 +1512,7 @@ function renderChecklist(){
     sel.addEventListener('change', async ()=>{
       const t = teamTasks.find(x=>x.id===sel.dataset.id);
       if(!t) return;
-      setTaskStatusForDate(t, todayKey(), sel.value);
+      setTaskStatusForDate(t, nextRecurrence(t), sel.value);
       renderChecklist();
       renderLists();
       refreshCalendars();
@@ -1634,23 +1646,74 @@ function renderFilters(){
   });
 }
 
+// Para una tarea que se repite, busca la próxima fecha (desde hoy en adelante) en la que
+// "cae" según su frecuencia y todavía no está marcada como finalizada para ese día.
+// Al marcarla finalizada, la próxima vez que se calcule salta sola a la siguiente ocurrencia.
+function nextRecurrence(t, fromStr){
+  fromStr = fromStr || todayKey();
+  if(taskRepeatType(t) === 'none') return t.dueDate || fromStr;
+  let d = new Date(fromStr+'T00:00:00');
+  for(let i=0;i<400;i++){
+    const key = dateKey(d);
+    if(taskRecursOnDate(t, key) && getTaskStatusForDate(t, key) !== 'finalizado'){
+      return key;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return fromStr;
+}
+
+function effectiveDueKey(t){
+  // Para tareas que se repiten, lo relevante para ordenar es su próxima ocurrencia real
+  // (no la fecha ancla original en la que se crearon, ni "hoy" fijo).
+  if(taskRepeatType(t) !== 'none') return nextRecurrence(t);
+  return t.dueDate || '';
+}
+
+// Busca la fecha marcada como finalizada más reciente de una tarea recurrente, para poder deshacerla.
+function lastCompletedOccurrence(t){
+  if(!t.statusDates) return null;
+  const doneDates = Object.keys(t.statusDates).filter(d => t.statusDates[d] === 'finalizado');
+  if(!doneDates.length) return null;
+  doneDates.sort();
+  return doneDates[doneDates.length - 1];
+}
+
+async function undoTeamTaskCompletion(id){
+  const t = teamTasks.find(x=>x.id===id);
+  if(!t) return;
+  const last = lastCompletedOccurrence(t);
+  if(!last) return;
+  setTaskStatusForDate(t, last, 'pendiente');
+  if(employeePersona){
+    renderEmployeeView();
+  } else {
+    renderLists();
+    renderChecklist();
+  }
+  refreshCalendars();
+  refreshOpenCalDayModal();
+  await saveTeamTasks();
+}
+
 function renderLists(){
   const pendingEl = document.getElementById('pending-list');
   const resolvedEl = document.getElementById('resolved-list');
 
   const filtered = activeFilter==='todos' ? teamTasks : teamTasks.filter(t=>t.person===activeFilter);
   const todayStr = todayKey();
-  const pending = filtered.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
-    if(a.dueDate && b.dueDate){
-      const cmp = a.dueDate.localeCompare(b.dueDate);
+  const pending = filtered.filter(t=>taskRepeatType(t)!=='none' || !isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
+    const da = effectiveDueKey(a), db = effectiveDueKey(b);
+    if(da && db){
+      const cmp = da.localeCompare(db);
       if(cmp !== 0) return cmp;
       return (a.time||'').localeCompare(b.time||'');
     }
-    if(a.dueDate) return -1;
-    if(b.dueDate) return 1;
+    if(da) return -1;
+    if(db) return 1;
     return b.ts - a.ts;
   });
-  const resolved = filtered.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
+  const resolved = filtered.filter(t=>taskRepeatType(t)==='none' && isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
 
   pendingEl.innerHTML = pending.length ? pending.map(teamTicketHtml).join('') :
     '<div class="empty">No hay pendientes acá. Buen momento para respirar.</div>';
@@ -1669,11 +1732,14 @@ function renderLists(){
   document.querySelectorAll('#pending-list .team-postpone, #resolved-list .team-postpone').forEach(btn=>{
     btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
   });
+  document.querySelectorAll('#pending-list .task-undo, #resolved-list .task-undo').forEach(btn=>{
+    btn.addEventListener('click', ()=>undoTeamTaskCompletion(btn.dataset.id));
+  });
   document.querySelectorAll('#pending-list .task-status-select, #resolved-list .task-status-select').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
       const t = teamTasks.find(x=>x.id===sel.dataset.id);
       if(!t) return;
-      setTaskStatusForDate(t, todayKey(), sel.value);
+      setTaskStatusForDate(t, nextRecurrence(t), sel.value);
       renderLists();
       renderChecklist();
       refreshCalendars();
@@ -1698,7 +1764,7 @@ function refreshCalendars(){
 async function toggleTeamTaskResolved(id){
   const t = teamTasks.find(x=>x.id===id);
   if(!t) return;
-  const today = todayKey();
+  const today = nextRecurrence(t);
   toggleTaskDoneForDate(t, today);
   if(employeePersona){
     renderEmployeeView();
@@ -1900,17 +1966,20 @@ function categoryTagHtml(t){
 function repeatBadgeHtml(t){
   const type = taskRepeatType(t);
   if(type === 'none') return null;
-  return `<span class="due-badge repeat-badge">🔁 ${REPEAT_LABELS[type].toLowerCase()}</span>`;
+  const next = nextRecurrence(t);
+  const overdue = next < todayKey();
+  return `<span class="due-badge repeat-badge">🔁 ${REPEAT_LABELS[type].toLowerCase()}</span><span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(next)}</span>`;
 }
 
 function teamTicketHtml(t){
-  const done = isTaskDoneForDate(t, todayKey());
   const repType = taskRepeatType(t);
+  const done = repType!=='none' ? false : isTaskDoneForDate(t, todayKey());
   const overdue = repType==='none' && isOverdue(t.dueDate, done);
   const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
     (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
   const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
   const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn team-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  const undoBtn = (repType!=='none' && lastCompletedOccurrence(t)) ? `<button class="edit-btn task-undo" data-id="${t.id}" title="Deshacer última finalización">↩</button>` : '';
   return `
     <div class="ticket ${done?'resolved':''}">
       <div class="ticket-check team-check" data-id="${t.id}">${done?'✓':''}</div>
@@ -1919,13 +1988,14 @@ function teamTicketHtml(t){
           <span class="tag ${t.person}">${PEOPLE[t.person] || t.person}</span>
           ${categoryTagHtml(t)}
           ${t.sharedWithMe?'<span class="due-badge" style="background:#ede9fe;color:#5b4e9e">👁️ Compartida conmigo</span>':''}
-          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select>
+          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, nextRecurrence(t))}</select>
           <span class="ticket-time">${fmtTime(t.ts)}</span>
           ${timeLabel}
           ${dueLabel}
         </div>
         <div class="ticket-text">${escapeHtml(t.text)}</div>
       </div>
+      ${undoBtn}
       ${postponeBtn}
       <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
       <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
@@ -1934,17 +2004,19 @@ function teamTicketHtml(t){
 }
 
 function teamTaskRowHtml(t){
-  const done = isTaskDoneForDate(t, todayKey());
   const repType = taskRepeatType(t);
+  const done = repType!=='none' ? false : isTaskDoneForDate(t, todayKey());
   const overdue = repType==='none' && isOverdue(t.dueDate, done);
   const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
     (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
   const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
   const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn team-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  const undoBtn = (repType!=='none' && lastCompletedOccurrence(t)) ? `<button class="edit-btn task-undo" data-id="${t.id}" title="Deshacer última finalización">↩</button>` : '';
   return `
     <div class="check-item check-team-item">
       <div class="ticket-check team-check" data-id="${t.id}">${done?'✓':''}</div>
-      <label class="check-team-label">${categoryTagHtml(t)} <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select> ${escapeHtml(t.text)} ${timeLabel} ${dueLabel}</label>
+      <label class="check-team-label">${categoryTagHtml(t)} <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, nextRecurrence(t))}</select> ${escapeHtml(t.text)} ${timeLabel} ${dueLabel}</label>
+      ${undoBtn}
       ${postponeBtn}
       <button class="edit-btn team-edit" data-id="${t.id}" title="Editar">✎</button>
       <button class="del-btn team-del" data-id="${t.id}" title="Eliminar">×</button>
@@ -1954,25 +2026,27 @@ function teamTaskRowHtml(t){
 
 /* ===== Vista de empleado: solo sus tareas, sin editar/eliminar ===== */
 function employeeTicketHtml(t){
-  const done = isTaskDoneForDate(t, todayKey());
   const repType = taskRepeatType(t);
+  const done = repType!=='none' ? false : isTaskDoneForDate(t, todayKey());
   const overdue = repType==='none' && isOverdue(t.dueDate, done);
   const dueLabel = repType!=='none' ? repeatBadgeHtml(t) :
     (t.dueDate ? `<span class="due-badge ${overdue?'overdue':''}">${overdue?'venció ':'vence '}${fmtDue(t.dueDate)}</span>` : '');
   const timeLabel = t.time ? `<span class="due-badge time-badge">🕐 ${t.time}</span>` : '';
   const postponeBtn = repType!=='none' ? '' : `<button class="edit-btn employee-postpone" data-id="${t.id}" title="Posponer a mañana">⏭</button>`;
+  const undoBtn = (repType!=='none' && lastCompletedOccurrence(t)) ? `<button class="edit-btn task-undo" data-id="${t.id}" title="Deshacer última finalización">↩</button>` : '';
   return `
     <div class="ticket ${done?'resolved':''}">
       <div class="ticket-check employee-check" data-id="${t.id}">${done?'✓':''}</div>
       <div class="ticket-body">
         <div class="ticket-meta">
           ${categoryTagHtml(t)}
-          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, todayKey())}</select>
+          <select class="task-status-select" data-id="${t.id}">${taskStatusSelectHtml(t, nextRecurrence(t))}</select>
           ${timeLabel}
           ${dueLabel}
         </div>
         <div class="ticket-text">${escapeHtml(t.text)}</div>
       </div>
+      ${undoBtn}
       ${postponeBtn}
       <button class="edit-btn employee-edit" data-id="${t.id}" title="Editar">✎</button>
     </div>
@@ -2020,17 +2094,18 @@ function renderEmployeeView(){
 
   const mine = teamTasks.filter(t=>t.person===employeePersona);
   const todayStr = todayKey();
-  const pending = mine.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
-    if(a.dueDate && b.dueDate){
-      const cmp = a.dueDate.localeCompare(b.dueDate);
+  const pending = mine.filter(t=>taskRepeatType(t)!=='none' || !isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
+    const da = effectiveDueKey(a), db = effectiveDueKey(b);
+    if(da && db){
+      const cmp = da.localeCompare(db);
       if(cmp !== 0) return cmp;
       return (a.time||'').localeCompare(b.time||'');
     }
-    if(a.dueDate) return -1;
-    if(b.dueDate) return 1;
+    if(da) return -1;
+    if(db) return 1;
     return b.ts - a.ts;
   });
-  const resolved = mine.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
+  const resolved = mine.filter(t=>taskRepeatType(t)==='none' && isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
 
   const pendingEl = document.getElementById('employee-pending-list');
   const resolvedEl = document.getElementById('employee-resolved-list');
@@ -2045,6 +2120,9 @@ function renderEmployeeView(){
   document.querySelectorAll('#employee-pending-list .employee-postpone, #employee-resolved-list .employee-postpone').forEach(btn=>{
     btn.addEventListener('click', ()=>postponeTeamTask(btn.dataset.id));
   });
+  document.querySelectorAll('#employee-pending-list .task-undo, #employee-resolved-list .task-undo').forEach(btn=>{
+    btn.addEventListener('click', ()=>undoTeamTaskCompletion(btn.dataset.id));
+  });
   document.querySelectorAll('#employee-pending-list .employee-edit, #employee-resolved-list .employee-edit').forEach(btn=>{
     btn.addEventListener('click', ()=>openEditTeamTask(btn.dataset.id));
   });
@@ -2052,7 +2130,7 @@ function renderEmployeeView(){
     sel.addEventListener('change', async ()=>{
       const t = teamTasks.find(x=>x.id===sel.dataset.id);
       if(!t) return;
-      setTaskStatusForDate(t, todayKey(), sel.value);
+      setTaskStatusForDate(t, nextRecurrence(t), sel.value);
       renderEmployeeView();
       refreshCalendars();
       await saveTeamTasks();
@@ -2228,6 +2306,8 @@ async function addEmployeeTask(){
   if(involveBoss){
     const linkedId = await addToMyTasksForDate(dueDate || todayKey(), time, text, newTeamTask.id, repeat==='daily');
     newTeamTask.linkedPersonalTaskId = linkedId;
+    newTeamTask.sharedWithMe = true;
+    refreshCalendars();
     await saveTeamTasks();
   }
   involveEl.checked = false;
@@ -2257,11 +2337,11 @@ function openEditTeamTask(id){
   if(!t) return;
   editingTeamTaskId = id;
   const calOpen = document.getElementById('cal-day-modal').classList.contains('open');
-  editingTeamTaskDateStr = (calOpen && calModalDateKey) ? calModalDateKey : todayKey();
+  editingTeamTaskDateStr = (calOpen && calModalDateKey) ? calModalDateKey : nextRecurrence(t);
   populateEditPersonSelect();
   document.getElementById('edit-task-person').value = t.person;
   document.getElementById('edit-task-category').innerHTML = categorySelectOptionsHtml(t.category || 'otro');
-  document.getElementById('edit-task-due').value = t.dueDate || '';
+  document.getElementById('edit-task-due').value = taskRepeatType(t)!=='none' ? editingTeamTaskDateStr : (t.dueDate || '');
   document.getElementById('edit-task-time').value = t.time || '';
   document.getElementById('edit-task-text').value = t.text;
   document.getElementById('edit-task-status').innerHTML = taskStatusSelectHtml(t, editingTeamTaskDateStr);
@@ -2285,11 +2365,19 @@ async function saveEditTeamTask(){
   t.text = newText;
   t.person = employeePersona ? employeePersona : document.getElementById('edit-task-person').value;
   t.category = document.getElementById('edit-task-category').value;
-  t.dueDate = document.getElementById('edit-task-due').value || '';
+  const newDueDate = document.getElementById('edit-task-due').value || '';
+  const dueDateChanged = newDueDate !== (t.dueDate || '');
+  t.dueDate = newDueDate;
   t.time = document.getElementById('edit-task-time').value || '';
   t.repeat = document.getElementById('edit-task-repeat').value;
   delete t.repeatDaily;
-  setTaskStatusForDate(t, editingTeamTaskDateStr || todayKey(), document.getElementById('edit-task-status').value);
+  if(dueDateChanged && taskRepeatType(t) !== 'none'){
+    // Cambió el ancla de la repetición: el historial de "finalizado" viejo ya no aplica,
+    // si no se limpia puede bloquear justo la fecha que se acaba de elegir.
+    t.statusDates = {};
+    t.doneDates = {};
+  }
+  setTaskStatusForDate(t, dueDateChanged ? newDueDate : (editingTeamTaskDateStr || todayKey()), document.getElementById('edit-task-status').value);
   if(!employeePersona){
     const sharedNow = document.getElementById('edit-task-shared').checked;
     if(sharedNow && !t.sharedWithMe){
@@ -2504,27 +2592,68 @@ function personalTaskHtml(t){
   `;
 }
 
+function personalTaskResponsibleName(t){
+  if(t.linkedTeamTaskId){
+    const tt = teamTasks.find(x=>x.id===t.linkedTeamTaskId);
+    if(tt && tt.person && tt.person!=='general') return PEOPLE[tt.person] || tt.person;
+  }
+  return null;
+}
+
+function personalTaskDateGroupLabel(dStr, todayStr){
+  if(dStr < todayStr) return `⏰ Atrasadas — ${fmtDue(dStr)}`;
+  if(dStr === todayStr) return `Hoy — ${fmtDue(dStr)}`;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if(dStr === dateKey(tomorrow)) return `Mañana — ${fmtDue(dStr)}`;
+  return fmtDue(dStr);
+}
+
+function sortPersonalTaskGroup(arr){
+  return arr.slice().sort((a,b)=>{
+    const ra = personalTaskResponsibleName(a), rb = personalTaskResponsibleName(b);
+    if(!ra && rb) return -1;
+    if(ra && !rb) return 1;
+    if(ra && rb && ra !== rb) return ra.localeCompare(rb);
+    return (a.time||'').localeCompare(b.time||'');
+  });
+}
+
 function renderPersonalTasks(){
   const el = document.getElementById('task-list');
   const filtered = taskFilter==='todas' ? personalTasks : personalTasks.filter(t=>t.area===taskFilter);
   const todayStr = todayKey();
-  const pending = filtered.filter(t=>!isTaskDoneForDate(t, todayStr)).sort((a,b)=>{
-    if(a.dueDate && b.dueDate){
-      const cmp = a.dueDate.localeCompare(b.dueDate);
-      if(cmp !== 0) return cmp;
-      return (a.time||'').localeCompare(b.time||'');
-    }
-    if(a.dueDate) return -1;
-    if(b.dueDate) return 1;
-    return b.ts - a.ts;
-  });
+  const pending = filtered.filter(t=>!isTaskDoneForDate(t, todayStr));
   const resolved = filtered.filter(t=>isTaskDoneForDate(t, todayStr)).sort((a,b)=>b.ts-a.ts);
   if(!filtered.length){
     el.innerHTML = '<div class="empty">No hay tareas acá.</div>';
     renderDaySummary();
     return;
   }
-  el.innerHTML = pending.map(personalTaskHtml).join('') + resolved.map(personalTaskHtml).join('');
+
+  const groups = {};
+  pending.forEach(t=>{
+    const key = t.dueDate || '';
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+  const dateKeys = Object.keys(groups).filter(k=>k!=='').sort();
+  const noDateTasks = groups[''] || [];
+
+  let html = '';
+  dateKeys.forEach(dStr=>{
+    html += `<div class="ptask-date-group">${personalTaskDateGroupLabel(dStr, todayStr)}</div>`;
+    html += sortPersonalTaskGroup(groups[dStr]).map(personalTaskHtml).join('');
+  });
+  if(noDateTasks.length){
+    html += `<div class="ptask-date-group">Sin fecha fija</div>`;
+    html += sortPersonalTaskGroup(noDateTasks).map(personalTaskHtml).join('');
+  }
+  if(resolved.length){
+    html += `<div class="ptask-date-group ptask-date-group-resolved">Resueltas hoy</div>`;
+    html += resolved.map(personalTaskHtml).join('');
+  }
+  el.innerHTML = html;
   el.querySelectorAll('.ptask-check').forEach(btn=>{
     btn.addEventListener('click', ()=>togglePersonalTaskResolved(btn.dataset.id));
   });
@@ -2706,24 +2835,34 @@ function renderDaySummary(){
   const pendingLabel = (t) => (t.dueDate && t.dueDate !== todayStr) ?
     `<span class="due-badge">pendiente</span>` : '';
 
-  let html = withTime.map(t => `
-    <div class="summary-row">
+  let html = withTime.map(t => {
+    const responsableName = personalTaskResponsibleName(t);
+    const responsableLabel = responsableName ? `<span class="due-badge" style="background:#ede9fe;color:#5b4e9e">👁️ Responsable: ${escapeHtml(responsableName)}</span>` : '';
+    return `
+    <div class="summary-row ${responsableName?'summary-row-shared':''}">
       <div class="summary-check" data-id="${t.id}"></div>
       <span class="summary-time">${t.time}</span>
       <span class="summary-text">${escapeHtml(`${AREAS[t.area] || t.area} — ${t.text}`)}</span>
+      ${responsableLabel}
       ${overdueLabel(t)}
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   if(noTime.length){
     html += `<div class="summary-subtitle">Sin horario fijo — arrastrá para reordenar</div>`;
-    html += noTime.map(t => `
-      <div class="summary-row draggable-row" draggable="true" data-id="${t.id}">
+    html += noTime.map(t => {
+      const responsableName = personalTaskResponsibleName(t);
+      const responsableLabel = responsableName ? `<span class="due-badge" style="background:#ede9fe;color:#5b4e9e">👁️ Responsable: ${escapeHtml(responsableName)}</span>` : '';
+      return `
+      <div class="summary-row draggable-row ${responsableName?'summary-row-shared':''}" draggable="true" data-id="${t.id}">
         <div class="summary-check" data-id="${t.id}"></div>
         <span class="summary-text">${escapeHtml(`${AREAS[t.area] || t.area} — ${t.text}`)}</span>
+        ${responsableLabel}
         ${pendingLabel(t)}
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   el.innerHTML = html;
 
@@ -2869,7 +3008,7 @@ function getTeamTasksForDate(dStr, scope){
     tasks = tasks.filter(t => t.person === employeePersona || t.person === 'general');
   }
   if(scope === 'admin' && calAdminFilterPerson !== 'todos'){
-    tasks = tasks.filter(t => t.person === calAdminFilterPerson || t.sharedWithMe);
+    tasks = tasks.filter(t => t.person === calAdminFilterPerson);
   }
   if(scope === 'admin' && calAdminFilterCategory !== 'todos'){
     tasks = tasks.filter(t => (t.category || 'otro') === calAdminFilterCategory);
