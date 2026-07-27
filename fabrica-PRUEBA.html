@@ -452,9 +452,9 @@ function assignModelista(secId,itemId,nombre){
 function getResponsable(sec,item){
   const tipo=sec.tipo||'';
   if(tipo==='muestra_prep'){
-    if(!item.idea_ok) return 'Ariel';
-    if(!item.codigo_ok) return 'Peque';
-    if(!item.ficha_ok) return 'Ariel';
+    if(!item.code||!item.code.trim()) return 'Peque';
+    if(!item.ficha_link) return 'Peque';
+    if(!(item.control_ariel&&item.control_stef)) return 'Ariel';
     if(!item.modelista) return 'Peque';
     return item.modelista;
   }
@@ -501,7 +501,7 @@ const COLORS = {
 };
 
 const INITIAL_SECTIONS = {
-  [SEC_PREP]:{title:'Muestras — nueva (idea, código y ficha)',color:'purple',order:0.2,tipo:'muestra_prep',items:{}},
+  [SEC_PREP]:{title:'Nuevos Desarrollos',color:'purple',order:0.2,tipo:'muestra_prep',items:{}},
   [SEC_MOLD]:{title:'Muestras — en moldería',color:'accent',order:0.5,tipo:'muestra_molderia',items:{}},
   [SEC_PEND]:{title:'Muestras — pendiente corte',color:'danger',order:1,tipo:'muestra_pend',items:{
     i1:{code:'7421',name:'',done:false,avios:{}},
@@ -610,14 +610,13 @@ function startListening(){
         if(!data.sections[SEC_MOLD]) db.ref(`fabrica_v5/sections/${SEC_MOLD}`).set(INITIAL_SECTIONS[SEC_MOLD]);
         if(!data.sections[SEC_DISENO]) db.ref(`fabrica_v5/sections/${SEC_DISENO}`).set(INITIAL_SECTIONS[SEC_DISENO]);
         if(!data.sections[SEC_PREP]) db.ref(`fabrica_v5/sections/${SEC_PREP}`).set(INITIAL_SECTIONS[SEC_PREP]);
+        else db.ref(`fabrica_v5/sections/${SEC_PREP}/title`).set(INITIAL_SECTIONS[SEC_PREP].title);
         // Migración: si existían las 3 secciones viejas (idea/código/ficha separadas), fusionar sus ítems en SEC_PREP
         ['muestra_idea','muestra_codigo','muestra_ficha'].forEach(oldSecId=>{
           const oldSec=data.sections[oldSecId];
           if(oldSec && oldSec.items){
             Object.values(oldSec.items).forEach(oldItem=>{
               const migrado={...oldItem};
-              if(oldSecId==='muestra_codigo'){ migrado.codigo_ok=true; migrado.idea_ok=true; }
-              if(oldSecId==='muestra_ficha'){ migrado.codigo_ok=true; migrado.idea_ok=true; }
               db.ref(`fabrica_v5/sections/${SEC_PREP}/items`).push(migrado);
             });
           }
@@ -698,20 +697,14 @@ function diasDesde(timestamp){
   return Math.floor(ms / (1000*60*60*24));
 }
 
-// --- MUESTRA NUEVA (idea + código + ficha, todo en un mismo lugar) ---
-function toggleIdeaOk(secId,itemId){
+// --- MUESTRA NUEVA (Nuevos Desarrollos): nombre + código + ficha + control, todo en un lugar ---
+function editCodigoPrompt(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const nv=!(item.idea_ok||false);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/idea_ok`).set(nv);
-  logActivity(`Idea nueva ${nv?'✓':'✗'}`,item.code||item.name);
-}
-
-function toggleCodigoOk(secId,itemId){
-  const item=sectionsData[secId].items[itemId];
-  if(!item.code||!item.code.trim()){ showToast('Cargá el código antes de tildar esto'); return; }
-  const nv=!(item.codigo_ok||false);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/codigo_ok`).set(nv);
-  logActivity(`Código asignado ${nv?'✓':'✗'}`,item.code);
+  const val=prompt('Código de la prenda:',item.code||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/code`).set(val.trim());
+  logActivity('Editó código',val.trim()||'(vacío)');
+  showToast('✓ Código guardado');
 }
 
 function toggleNinox(secId,itemId){
@@ -719,14 +712,6 @@ function toggleNinox(secId,itemId){
   const nv=!(item.en_ninox||false);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/en_ninox`).set(nv);
   logActivity(`Ninox ${nv?'✓':'✗'}`,item.code||item.name);
-}
-
-function toggleFichaOk(secId,itemId){
-  const item=sectionsData[secId].items[itemId];
-  if(!item.ficha_link){ showToast('Cargá el link de la ficha antes de tildar esto'); return; }
-  const nv=!(item.ficha_ok||false);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_ok`).set(nv);
-  logActivity(`Ficha técnica ${nv?'✓':'✗'}`,item.code);
 }
 
 function toggleControlFicha(secId,itemId,campo){
@@ -1265,19 +1250,18 @@ function buildItem(secId,itemId,item,sec,idx,total){
     </div>`;
   }
 
-  // --- MUESTRA NUEVA: idea + código + ficha, todo en la misma tarjeta ---
+  // --- NUEVOS DESARROLLOS: nombre + código + ficha + control, todo en la misma tarjeta ---
   if(tipo==='muestra_prep'){
-    const ideaOk=item.idea_ok||false;
-    const codigoOk=item.codigo_ok||false;
     const ninox=item.en_ninox||false;
-    const fichaOk=item.ficha_ok||false;
     const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
+    const controlLabel=(cAriel&&cStef)?'Ambos ✓':cAriel?'Ariel ✓ (falta Stef)':cStef?'Stef ✓ (falta Ariel)':'Pendiente';
+    const controlDone=cAriel&&cStef;
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista;
+    const canControl=currentUser==='ariel';
     return `<div class="item">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
-          ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="idea-tela-row">
             ${item.foto_tela
@@ -1286,35 +1270,29 @@ function buildItem(secId,itemId,item,sec,idx,total){
             <span style="font-size:11px;color:var(--text2)">Tela base</span>
           </div>
 
-          <div class="cortada-row" style="padding:8px 0;border:none">
-            <div class="c-check ${ideaOk?'checked':''}" onclick="${canEdit?`toggleIdeaOk('${secId}','${itemId}')`:''}">${ideaOk?'✓':''}</div>
-            <span class="c-label ${ideaOk?'done':''}">Idea nueva</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+            <span class="modelista-label">Código:</span>
+            ${item.code?`<span class="item-code" style="margin-top:0">${item.code}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+            ${canEdit?`<button class="btn-sm" onclick="editCodigoPrompt('${secId}','${itemId}')">✏️ Editar código</button>`:''}
           </div>
-
-          <div class="cortada-row" style="padding:8px 0;border:none">
-            <div class="c-check ${codigoOk?'checked':''}" onclick="${canEdit?`toggleCodigoOk('${secId}','${itemId}')`:''}">${codigoOk?'✓':''}</div>
-            <span class="c-label ${codigoOk?'done':''}">Código asignado</span>
-          </div>
-          <div class="avio-item" style="padding-left:32px;border-top:none">
+          <div class="avio-item" style="padding-left:0;border-top:none">
             <div class="c-check ${ninox?'checked':''}" onclick="${canEdit?`toggleNinox('${secId}','${itemId}')`:''}">${ninox?'✓':''}</div>
             <span class="c-label ${ninox?'done':''}" style="font-size:11px">Cargado en Ninox</span>
           </div>
 
-          <div class="cortada-row" style="padding:8px 0;border:none">
-            <div class="c-check ${fichaOk?'checked':''}" onclick="${canEdit?`toggleFichaOk('${secId}','${itemId}')`:''}">${fichaOk?'✓':''}</div>
-            <span class="c-label ${fichaOk?'done':''}">Ficha técnica</span>
+          <div style="margin-top:10px">
+            <span class="modelista-label">Ficha técnica:</span>
             ${item.ficha_link
-              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:11px;margin-left:4px">🔗 Ver</a>`
-              : ''}
-            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar link':'+ Link'}</button>`:''}
+              ? `<span style="font-size:12px;font-weight:600;color:var(--accent)">Cargada ✓</span> <a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">🔗 Ver</a>`
+              : `<span style="font-size:12px;font-weight:600;color:var(--warn-text)">Pendiente</span> <span style="font-size:11px;color:var(--text2)">(responsable: Peque)</span>`}
+            ${canEdit?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar link':'+ Link'}</button>`:''}
           </div>
-          <div class="avio-item" style="padding-left:32px;border-top:none">
-            <div class="c-check ${cStef?'checked':''}" onclick="${canEdit?`toggleControlFicha('${secId}','${itemId}','control_stef')`:''}">${cStef?'✓':''}</div>
-            <span class="c-label ${cStef?'done':''}" style="font-size:11px">Controlada por Stef</span>
-          </div>
-          <div class="avio-item" style="padding-left:32px;border-top:none">
-            <div class="c-check ${cAriel?'checked':''}" onclick="${currentUser==='ariel'?`toggleControlFicha('${secId}','${itemId}','control_ariel')`:''}">${cAriel?'✓':''}</div>
-            <span class="c-label ${cAriel?'done':''}" style="font-size:11px">Controlada por Ariel</span>
+
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="modelista-label">Control de ficha:</span>
+            <span style="font-size:12px;font-weight:600;color:${controlDone?'var(--accent)':'var(--warn-text)'}">${controlLabel}</span>
+            ${canControl?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
+            <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>`:''}
           </div>
 
           ${buildModelistaHtml(secId,itemId,item)}
