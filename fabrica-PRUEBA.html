@@ -197,6 +197,7 @@
     <div class="login-title">Fábrica</div>
     <div class="login-sub">¿Quién sos?</div>
     <button class="user-btn" id="btn-ariel"><div class="user-avatar" style="background:#2d6a4f">A</div><div><div class="uname">Ariel</div><div class="urole">Administrador — acceso total</div></div></button>
+    <button class="user-btn" id="btn-stef"><div class="user-avatar" style="background:#9d174d">S</div><div><div class="uname">Stefany</div><div class="urole">Diseño — acceso total</div></div></button>
     <button class="user-btn" id="btn-peque"><div class="user-avatar" style="background:#5b21b6">P</div><div><div class="uname">Peque</div><div class="urole">Fábrica — acciones registradas</div></div></button>
     <button class="user-btn" id="btn-emir"><div class="user-avatar" style="background:#b45309">E</div><div><div class="uname">Emir</div><div class="urole">Depósito — recepción de avíos</div></div></button>
     <button class="user-btn" id="btn-nahuel"><div class="user-avatar" style="background:#1d4ed8">C</div><div><div class="uname">Cortador</div><div class="urole">Corte — pendientes y cortes realizados</div></div></button>
@@ -508,7 +509,7 @@ const SEC_TALLER = 'muestra_en_taller';
 const SEC_DISENO = 'muestra_diseno';
 
 // Nombre visible de cada login
-const USER_DISPLAY = {ariel:'Ariel',peque:'Peque',emir:'Emir',nahuel:'Cortador'};
+const USER_DISPLAY = {ariel:'Ariel',stef:'Stef',peque:'Peque',emir:'Emir',nahuel:'Cortador'};
 
 // Lista de modelistas (editable: se puede agregar una nueva directo desde la ficha)
 let modelistasList = ['Peque','Adela','Guada','Paula'];
@@ -576,6 +577,7 @@ function showToast(msg){
 
 // LOGIN
 document.getElementById('btn-ariel').onclick=()=>doLogin('ariel');
+document.getElementById('btn-stef').onclick=()=>doLogin('stef');
 document.getElementById('btn-peque').onclick=()=>doLogin('peque');
 document.getElementById('btn-emir').onclick=()=>doLogin('emir');
 document.getElementById('btn-nahuel').onclick=()=>doLogin('nahuel');
@@ -1041,12 +1043,12 @@ function renderSections(board){
     const secOrderBtns=currentUser==='ariel'?`
       <button title="Subir sección" ${secIdx===0?'disabled':''} onclick="moveSectionOrder('${secId}',-1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===0?'default':'pointer'};font-size:11px;opacity:${secIdx===0?'.4':'1'}">▲</button>
       <button title="Bajar sección" ${secIdx===entries.length-1?'disabled':''} onclick="moveSectionOrder('${secId}',1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===entries.length-1?'default':'pointer'};font-size:11px;opacity:${secIdx===entries.length-1?'.4':'1'}">▼</button>`:'';
-    const canAdd=(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
-    const canAddMold=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_MOLD;
-    const canAddPrep=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_PREP;
+    const canAdd=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
+    const canAddMold=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')&&secId===SEC_MOLD;
+    const canAddPrep=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')&&secId===SEC_PREP;
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const addRowPrep=canAddPrep?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
-    const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&!FIXED_SECS.includes(secId);
+    const canAddGeneral=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')&&!FIXED_SECS.includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
 
     div.innerHTML=`
@@ -1077,8 +1079,8 @@ function moveSectionOrder(secId,dir){
 }
 
 function buildItem(secId,itemId,item,sec){
-  const canEdit=currentUser==='ariel'||currentUser==='peque';
-  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const canEdit=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
+  const canCheck=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='emir';
   const tipo=sec.tipo||'';
 
   // --- MUESTRA PENDIENTE CORTE ---
@@ -1092,7 +1094,7 @@ function buildItem(secId,itemId,item,sec){
           ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
           ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
       </div>
     </div>`;
@@ -1161,7 +1163,7 @@ function buildItem(secId,itemId,item,sec){
         ${panel}
         <div class="item-actions">
           ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
       </div>
     </div>`;
@@ -1177,7 +1179,7 @@ function buildItem(secId,itemId,item,sec){
         <div class="listo-badge">🎉 Lista para sacar a taller</div>
         <div class="item-actions">
           ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
       </div>
     </div>`;
@@ -1193,7 +1195,7 @@ function buildItem(secId,itemId,item,sec){
       const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
         :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
         :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
-      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+      const btns=(currentUser==='emir'||(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')?
         (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
           :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
       return `<div class="avio-row-n">
@@ -1204,7 +1206,7 @@ function buildItem(secId,itemId,item,sec){
     }).join('')+'</div>';
   }
 
-  const canToggle=currentUser==='ariel'||currentUser==='peque';
+  const canToggle=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
   const moveOpts=buildMoveOpts(secId);
   return `<div class="item ${item.done?'done':''}">
     <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
@@ -1216,7 +1218,7 @@ function buildItem(secId,itemId,item,sec){
       <div class="item-actions">
         ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
         ${moveOpts}
-        ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+        ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
       </div>
     </div>
   </div>`;
@@ -1243,8 +1245,8 @@ function buildMoveOptsForItem(secId,itemId){
 
 // Rerender buildItem con move correcto
 function buildItem(secId,itemId,item,sec,idx,total){
-  const canEdit=currentUser==='ariel'||currentUser==='peque'||(currentUser==='nahuel'&&secId===SEC_PEND);
-  const canCheck=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir';
+  const canEdit=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||(currentUser==='nahuel'&&secId===SEC_PEND);
+  const canCheck=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='emir';
   const tipo=sec.tipo||'';
   const moveOpts=buildMoveOptsForItem(secId,itemId);
 
@@ -1264,7 +1266,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1327,7 +1329,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
           <div class="item-actions">
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1361,7 +1363,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1392,7 +1394,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canEdit?`<button class="btn-advance" onclick="marcarEntregada('${secId}','${itemId}')">✅ Entregada</button>`:''}
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1407,7 +1409,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     const controlDone=cAriel||cStef;
     const modelistaLocked=!(ninox&&controlDone);
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista;
-    const canControl=currentUser==='ariel';
+    const canControl=(currentUser==='ariel'||currentUser==='stef');
     return `<div class="item">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
@@ -1460,7 +1462,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Falta código, link de ficha o modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1499,7 +1501,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" ${item.foto_drive_ok?'':'disabled'} title="${item.foto_drive_ok?'':'Falta cargar la foto en Drive'}" onclick="enviarACorte('${secId}','${itemId}')">✂️ Enviar a corte</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1507,7 +1509,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   }
 
   if(tipo==='muestra_diseno'){
-    const canDesign=currentUser==='ariel'||currentUser==='peque';
+    const canDesign=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
     const fotos=Object.entries(item.fotos_prueba||{});
     return `<div class="item">
       <div class="item-with-photo">
@@ -1543,7 +1545,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canDesign?`<button class="btn-approve" onclick="marcarAprobada('${secId}','${itemId}')">✅ Aprobar</button>`:''}
             ${canDesign?`<button class="btn-revision" onclick="marcarRevision('${secId}','${itemId}')">🔁 A revisión</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1568,7 +1570,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canEdit?`<button class="btn-approve" onclick="marcarProductoPerfecto('${secId}','${itemId}')">✅ Producto Perfecto</button>`:''}
             ${canEdit?`<button class="btn-revision" onclick="marcarNecesitaMejora('${secId}','${itemId}')">🔧 Necesita mejora</button>`:''}
             ${moveOpts}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1619,7 +1621,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${(necesitaMuestra===true&&!resuelta&&canEdit)?`<button class="btn-advance" onclick="enviarMejoraANuevosDesarrollos('${secId}','${itemId}')">📤 Mandar a Nuevos Desarrollos</button>`:''}
             ${(!resuelta&&canEdit)?`<button class="btn-sm" onclick="toggleMejoraResuelta('${secId}','${itemId}')">✅ Marcar resuelta</button>`:''}
             ${(resuelta&&canEdit)?`<button class="btn-sm" onclick="toggleMejoraResuelta('${secId}','${itemId}')">↩ Reabrir</button>`:''}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1636,7 +1638,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
           <div class="item-actions">
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
       </div>
@@ -1653,7 +1655,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
       const badge=rec?`<span class="avio-badge" style="background:#dcfce7;color:#166534">✓ Recibido</span>`
         :hasDate?`<span class="avio-badge" style="background:#fef3c7;color:#92400e">Pedido ${avio.fecha_pedido}</span>`
         :`<span class="avio-badge" style="background:#fee2e2;color:#991b1b">Sin pedir</span>`;
-      const btns=(currentUser==='emir'||currentUser==='ariel'||currentUser==='peque')?
+      const btns=(currentUser==='emir'||(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')?
         (!rec?`<button class="avio-btn green" onclick="marcarRecibido('${secId}','${itemId}','${avioId}')">✓ Recibido</button>`
           :`<button class="avio-btn" onclick="desmarcarRecibido('${secId}','${itemId}','${avioId}')">↩ Deshacer</button>`):'';
       return `<div class="avio-row-n"><div class="avio-dot" style="background:${dot}"></div>
@@ -1662,9 +1664,9 @@ function buildItem(secId,itemId,item,sec,idx,total){
     }).join('')+'</div>';
   }
 
-  const canToggle=currentUser==='ariel'||currentUser==='peque';
-  const canCortar=secId==='s3'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
-  const canFicha=currentUser==='ariel'||currentUser==='peque'||currentUser==='emir'||currentUser==='nahuel';
+  const canToggle=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
+  const canCortar=secId==='s3'&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='nahuel');
+  const canFicha=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='emir'||currentUser==='nahuel';
   const checkHtml = secId==='s3'
     ? '' // en s3 no hay checkbox, se usa botón Marcar cortado
     : `<div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>`;
@@ -1682,9 +1684,9 @@ function buildItem(secId,itemId,item,sec,idx,total){
       ${canFicha?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
     </div>`;
   const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
-  const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
-  const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
-  const canEntregarRevision=secId==='sFIN'&&(currentUser==='ariel'||currentUser==='peque');
+  const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='nahuel');
+  const canSacarTaller=secId==='sLT'&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='emir');
+  const canEntregarRevision=secId==='sFIN'&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque');
   const flujoCorteHtml = secId==='s3' ? buildFlujoPreCorte(secId,itemId,item,canCortar) : '';
   const listoParaCortar = secId!=='s3' || !!item.encimado_terminado;
   const orderHtml = (secId==='s3'&&canEdit&&total>1) ? `<div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
@@ -1716,7 +1718,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${canFicha?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
           ${moveOpts}
-          ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
       </div>
     </div>
@@ -2075,7 +2077,7 @@ function openEditModal(secId,itemId){
         <div class="field"><label>Avío</label><input type="text" id="an-${avioId}" value="${avio.nombre||''}"></div>
         <div class="field"><label>Proveedor</label><input type="text" id="ap-${avioId}" value="${avio.proveedor||''}"></div>
         <div class="field"><label>Fecha pedido</label><input type="text" id="af-${avioId}" value="${avio.fecha_pedido||''}"></div>
-        ${currentUser==='ariel'?`<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteAvio('${secId}','${itemId}','${avioId}')">Eliminar avío</button>`:''}
+        ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteAvio('${secId}','${itemId}','${avioId}')">Eliminar avío</button>`:''}
       </div>`).join('')}
     </div>
     <button class="btn-sm" onclick="addAvioField()" style="width:100%;padding:8px">+ Agregar avío</button>`;
@@ -2269,7 +2271,7 @@ function renderPendientes(){
       grupos[resp].push({item,secTitle:sec.title});
     });
   });
-  const esAriel=currentUser==='ariel';
+  const esAriel=(currentUser==='ariel'||currentUser==='stef');
   const miNombre=USER_DISPLAY[currentUser];
   const nombres=esAriel?Object.keys(grupos).sort():[miNombre];
   let html='';
