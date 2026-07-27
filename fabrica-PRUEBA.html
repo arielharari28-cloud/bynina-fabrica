@@ -124,10 +124,21 @@
 
   /* FOTO */
   .item-with-photo{display:flex;gap:10px;width:100%}
-  .item-photo{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
-  .item-photo-wrap{position:relative;width:56px;height:56px;flex-shrink:0}
+  .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
+  .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+  .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
+  .item-photo-placeholder.small{width:56px;height:56px}
   .photo-edit-btn{position:absolute;bottom:-4px;right:-4px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);padding:0}
-  .item-photo-placeholder{width:56px;height:56px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text3)}
+  .item-photo-placeholder{width:100px;height:100px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:var(--text3)}
+  .idea-tela-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .modelista-row{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+  .modelista-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+  .modelista-select{font-size:12px;border:1px solid var(--border2);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text)}
+  .responsable-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;font-weight:600;background:var(--accent-bg);color:var(--accent);margin:4px 0}
+  .pendientes-group-title{font-size:13px;font-weight:700;margin:18px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+  .pendientes-group-title:first-child{margin-top:0}
+  .pendientes-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:8px}
+  .pendientes-etapa{font-size:11px;color:var(--text2);margin-top:2px}
   .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
   .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
   .photo-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer}
@@ -207,6 +218,7 @@
   <div class="main">
     <div class="tabs">
       <button class="tab active" id="tab-btn-tablero">Tablero</button>
+      <button class="tab" id="tab-btn-pendientes">Pendientes</button>
       <button class="tab" id="tab-btn-actividad">Actividad</button>
     </div>
     <div id="tab-tablero">
@@ -214,6 +226,7 @@
       <div id="sections-container"><div class="loading">Conectando...</div></div>
       <button class="add-sec-btn hidden" id="add-sec-btn">+ Nueva sección</button>
     </div>
+    <div id="tab-pendientes" class="hidden"><div id="pendientes-list"><div class="loading">Cargando...</div></div></div>
     <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
   </div>
 </div>
@@ -304,6 +317,28 @@ function triggerPhotoUpload(secId,itemId){
   input.click();
 }
 
+function triggerFotoTelaUpload(secId,itemId){
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';
+  input.onchange=(e)=>{ if(e.target.files[0]) uploadFotoTela(secId,itemId,e.target.files[0]); };
+  input.click();
+}
+
+async function uploadFotoTela(secId,itemId,file){
+  showToast('📤 Subiendo tela...');
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',CLOUDINARY_PRESET);
+  try{
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){
+      db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/foto_tela`).set(data.secure_url);
+      showToast('✓ Tela cargada');
+    } else showToast('✗ Error al subir tela');
+  }catch(e){ showToast('✗ Error al subir tela'); }
+}
+
 function saveItemName(secId,itemId,el){
   const newName = el.textContent.trim();
   const item = sectionsData[secId].items[itemId];
@@ -373,13 +408,82 @@ function buildCodeHtml(secId,itemId,item,canEdit){
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.code}</div>`;
 }
 
+function buildModelistaHtml(secId,itemId,item){
+  const opts=(modelistasList||[]).map(n=>`<option value="${n}" ${item.modelista===n?'selected':''}>${n}</option>`).join('');
+  return `<div class="modelista-row">
+    <span class="modelista-label">Modelista:</span>
+    <select class="modelista-select" onchange="onModelistaChange('${secId}','${itemId}',this)">
+      <option value="">— Sin asignar —</option>
+      ${opts}
+      <option value="__nueva__">+ Agregar nueva…</option>
+    </select>
+  </div>`;
+}
+
+function onModelistaChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nueva__'){
+    const nombre=prompt('Nombre de la nueva modelista:');
+    if(!nombre||!nombre.trim()){ sel.value=item.modelista||''; return; }
+    const limpio=nombre.trim();
+    if(!modelistasList.includes(limpio)){
+      modelistasList=[...modelistasList,limpio];
+      db.ref('fabrica_v5/modelistas').set(modelistasList);
+    }
+    assignModelista(secId,itemId,limpio);
+  } else {
+    assignModelista(secId,itemId,sel.value);
+  }
+}
+
+function assignModelista(secId,itemId,nombre){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/modelista`).set(nombre||null);
+  logActivity('Asignó modelista',`${item.code||item.name||''} → ${nombre||'sin asignar'}`);
+  showToast(nombre?`✓ Modelista: ${nombre}`:'Modelista quitada');
+}
+
+// Determina quién es responsable de la próxima acción sobre un ítem
+function getResponsable(sec,item){
+  const tipo=sec.tipo||'';
+  if(tipo==='muestra_idea') return 'Ariel';
+  if(tipo==='muestra_codigo') return 'Peque';
+  if(tipo==='muestra_ficha') return 'Ariel';
+  if(tipo==='muestra_molderia') return item.modelista||'Peque';
+  if(tipo==='muestra_diseno') return item.modelista||'Peque';
+  if(tipo==='muestra_pend') return 'Cortador';
+  if(tipo==='muestra_cort'){
+    if(item.lleva_avios===true){
+      const avios=Object.values(item.avios||{});
+      if(avios.length && !avios.every(a=>a.recibido)) return 'Emir';
+    }
+    return 'Peque';
+  }
+  return null;
+}
+
+function buildResponsableHtml(sec,item){
+  const nombre=getResponsable(sec,item);
+  if(!nombre) return '';
+  return `<div class="responsable-badge">👤 Responsable tarea: ${nombre}</div>`;
+}
+
 // IDs fijos para las secciones de muestras
+const SEC_IDEA   = 'muestra_idea';
+const SEC_CODIGO = 'muestra_codigo';
+const SEC_FICHA  = 'muestra_ficha';
 const SEC_MOLD  = 'muestra_molderia';
 const SEC_PEND  = 'muestra_pendiente';
 const SEC_CORT  = 'muestra_cortada';
 const SEC_LISTA = 'muestra_lista';
 const SEC_TALLER = 'muestra_en_taller';
 const SEC_DISENO = 'muestra_diseno';
+
+// Nombre visible de cada login
+const USER_DISPLAY = {ariel:'Ariel',peque:'Peque',emir:'Emir',nahuel:'Cortador'};
+
+// Lista de modelistas (editable: se puede agregar una nueva directo desde la ficha)
+let modelistasList = ['Peque','Adela','Guada','Paula'];
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -390,6 +494,9 @@ const COLORS = {
 };
 
 const INITIAL_SECTIONS = {
+  [SEC_IDEA]:{title:'Muestras — idea nueva',color:'purple',order:0.1,tipo:'muestra_idea',items:{}},
+  [SEC_CODIGO]:{title:'Muestras — código asignado',color:'purple',order:0.2,tipo:'muestra_codigo',items:{}},
+  [SEC_FICHA]:{title:'Muestras — ficha técnica',color:'purple',order:0.3,tipo:'muestra_ficha',items:{}},
   [SEC_MOLD]:{title:'Muestras — en moldería',color:'accent',order:0.5,tipo:'muestra_molderia',items:{}},
   [SEC_PEND]:{title:'Muestras — pendiente corte',color:'danger',order:1,tipo:'muestra_pend',items:{
     i1:{code:'7421',name:'',done:false,avios:{}},
@@ -492,12 +599,22 @@ function startListening(){
         // Secciones nuevas (Moldería / Diseño) que pueden no existir en cuentas ya en uso
         if(!data.sections[SEC_MOLD]) db.ref(`fabrica_v5/sections/${SEC_MOLD}`).set(INITIAL_SECTIONS[SEC_MOLD]);
         if(!data.sections[SEC_DISENO]) db.ref(`fabrica_v5/sections/${SEC_DISENO}`).set(INITIAL_SECTIONS[SEC_DISENO]);
+        if(!data.sections[SEC_IDEA]) db.ref(`fabrica_v5/sections/${SEC_IDEA}`).set(INITIAL_SECTIONS[SEC_IDEA]);
+        if(!data.sections[SEC_CODIGO]) db.ref(`fabrica_v5/sections/${SEC_CODIGO}`).set(INITIAL_SECTIONS[SEC_CODIGO]);
+        if(!data.sections[SEC_FICHA]) db.ref(`fabrica_v5/sections/${SEC_FICHA}`).set(INITIAL_SECTIONS[SEC_FICHA]);
       }
     }
   });
   db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
     renderSections();renderStats();
+    if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
+  });
+  db.ref('fabrica_v5/modelistas').on('value',snap=>{
+    const v=snap.val();
+    if(v){ modelistasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    else db.ref('fabrica_v5/modelistas').set(modelistasList);
+    renderSections();
   });
   db.ref('fabrica_v5/actividad').on('value',snap=>{
     actividadData=snap.val()||{};
@@ -558,6 +675,52 @@ function diasDesde(timestamp){
   if(!timestamp) return 0;
   const ms = Date.now() - timestamp;
   return Math.floor(ms / (1000*60*60*24));
+}
+
+// --- IDEA NUEVA → CÓDIGO ASIGNADO ---
+function pasarACodigo(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const newItem={...item};
+  db.ref(`fabrica_v5/sections/${SEC_CODIGO}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Pasó a asignar código',item.name||'(sin nombre)');
+  showToast('🔢 Pasó a Código asignado');
+}
+
+// --- CÓDIGO ASIGNADO ---
+function toggleNinox(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!(item.en_ninox||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/en_ninox`).set(nv);
+  logActivity(`Ninox ${nv?'✓':'✗'}`,item.code||item.name);
+}
+
+function pasarAFicha(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item.code||!item.code.trim()){ showToast('Asigná un código antes de continuar'); return; }
+  const newItem={...item};
+  db.ref(`fabrica_v5/sections/${SEC_FICHA}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Pasó a hacer ficha',item.code);
+  showToast('📋 Pasó a Ficha técnica');
+}
+
+// --- FICHA TÉCNICA ---
+function toggleControlFicha(secId,itemId,campo){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!(item[campo]||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/${campo}`).set(nv);
+  logActivity('Control de ficha',`${item.code} → ${campo}`);
+}
+
+function pasarAMolderia(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item.ficha_link||!item.modelista){ showToast('Falta el link de ficha o la modelista asignada'); return; }
+  const newItem={...item};
+  db.ref(`fabrica_v5/sections/${SEC_MOLD}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Enviada a moldería',item.code);
+  showToast(`🧵 ${item.code} pasó a Moldería`);
 }
 
 // --- MOLDERÍA ---
@@ -708,7 +871,8 @@ function renderSections(){
     const items=getSortedItems(sec);
     const count=items.length;
     const div=document.createElement('div');div.className='section';
-    const hBtns=currentUser==='ariel'&&![SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO].includes(secId)?`
+    const FIXED_SECS=[SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO,SEC_IDEA,SEC_CODIGO,SEC_FICHA];
+    const hBtns=currentUser==='ariel'&&!FIXED_SECS.includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
     const secOrderBtns=currentUser==='ariel'?`
@@ -716,8 +880,10 @@ function renderSections(){
       <button title="Bajar sección" ${secIdx===entries.length-1?'disabled':''} onclick="moveSectionOrder('${secId}',1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===entries.length-1?'default':'pointer'};font-size:11px;opacity:${secIdx===entries.length-1?'.4':'1'}">▼</button>`:'';
     const canAdd=(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
     const canAddMold=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_MOLD;
+    const canAddIdea=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_IDEA;
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
-    const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&![SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO].includes(secId);
+    const addRowIdea=canAddIdea?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&!FIXED_SECS.includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
 
     div.innerHTML=`
@@ -727,7 +893,7 @@ function renderSections(){
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
         ${items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')}
-        ${addRow}${addRowGeneral}
+        ${addRow}${addRowIdea}${addRowGeneral}
       </div>`;
     c.appendChild(div);
   });
@@ -1070,6 +1236,84 @@ function buildItem(secId,itemId,item,sec,idx,total){
     </div>`;
   }
 
+  // --- IDEA NUEVA ---
+  if(tipo==='muestra_idea'){
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="idea-tela-row">
+            ${item.foto_tela
+              ? `<div class="item-photo-wrap small"><img class="item-photo" src="${item.foto_tela}" onclick="openPhotoModal('${item.foto_tela}')">${canEdit?`<button class="photo-edit-btn" onclick="event.stopPropagation();triggerFotoTelaUpload('${secId}','${itemId}')" title="Cambiar tela">✏️</button>`:''}</div>`
+              : (canEdit?`<div class="item-photo-placeholder small" onclick="triggerFotoTelaUpload('${secId}','${itemId}')" title="Agregar tela base">🧵</div>`:'')}
+            <span style="font-size:11px;color:var(--text2)">Tela base</span>
+          </div>
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" onclick="pasarACodigo('${secId}','${itemId}')">🔢 Asignar código</button>`:''}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- CÓDIGO ASIGNADO (Ninox) ---
+  if(tipo==='muestra_codigo'){
+    const ninox=item.en_ninox||false;
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="cortada-row" style="padding:8px 0;border:none">
+            <div class="c-check ${ninox?'checked':''}" onclick="${canEdit?`toggleNinox('${secId}','${itemId}')`:''}">${ninox?'✓':''}</div>
+            <span class="c-label ${ninox?'done':''}">Cargado en Ninox</span>
+          </div>
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" onclick="pasarAFicha('${secId}','${itemId}')">📋 Hacer ficha</button>`:''}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- FICHA TÉCNICA ---
+  if(tipo==='muestra_ficha'){
+    const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
+    const puedeAvanzar=!!item.ficha_link&&!!item.modelista;
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            ${item.ficha_link
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+          </div>
+          <div class="cortada-row" style="padding:6px 0;border:none">
+            <div class="c-check ${cStef?'checked':''}" onclick="${canEdit?`toggleControlFicha('${secId}','${itemId}','control_stef')`:''}">${cStef?'✓':''}</div>
+            <span class="c-label ${cStef?'done':''}">Controlada por Stef</span>
+          </div>
+          <div class="cortada-row" style="padding:6px 0;border:none">
+            <div class="c-check ${cAriel?'checked':''}" onclick="${currentUser==='ariel'?`toggleControlFicha('${secId}','${itemId}','control_ariel')`:''}">${cAriel?'✓':''}</div>
+            <span class="c-label ${cAriel?'done':''}">Controlada por Ariel</span>
+          </div>
+          ${buildModelistaHtml(secId,itemId,item)}
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Cargá el link de ficha y asigná modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   if(tipo==='muestra_molderia'){
     const enRevision=item.estado==='modificaciones';
     const refBox=enRevision?`<div class="mod-ref-box">
@@ -1092,6 +1336,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
+          ${buildModelistaHtml(secId,itemId,item)}
+          ${buildResponsableHtml(sec,item)}
           ${refBox}
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" onclick="enviarACorte('${secId}','${itemId}')">✂️ Enviar a corte</button>`:''}
@@ -1504,8 +1750,13 @@ function quickAdd(secId){
   const inp=document.getElementById(`qa-${secId}`);
   const val=(inp.value||'').trim();if(!val)return;
   const sec=sectionsData[secId];
-  const ni={code:val,name:'',done:false,avios:{}};
-  if(sec.tipo==='muestra_pend'||sec.tipo==='muestra_cort'){ni.ficha=false;ni.lleva_avios=null;}
+  let ni;
+  if(sec.tipo==='muestra_idea'){
+    ni={code:'',name:val};
+  } else {
+    ni={code:val,name:'',done:false,avios:{}};
+    if(sec.tipo==='muestra_pend'||sec.tipo==='muestra_cort'){ni.ficha=false;ni.lleva_avios=null;}
+  }
   db.ref(`fabrica_v5/sections/${secId}/items`).push(ni);
   logActivity('Agregó ítem',val);inp.value='';showToast('Ítem agregado');
 }
@@ -1752,6 +2003,37 @@ function renderActividad(){
       ${currentUser==='ariel'&&!a.read?`<button class="notif-read-btn" onclick="markRead('${id}')">✓ Leído</button>`:''}
     </div>`).join('');
 }
+function renderPendientes(){
+  const cont=document.getElementById('pendientes-list');
+  const grupos={};
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
+    Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+      if(item.done) return;
+      const resp=getResponsable(sec,item);
+      if(!resp) return;
+      if(!grupos[resp]) grupos[resp]=[];
+      grupos[resp].push({item,secTitle:sec.title});
+    });
+  });
+  const esAriel=currentUser==='ariel';
+  const miNombre=USER_DISPLAY[currentUser];
+  const nombres=esAriel?Object.keys(grupos).sort():[miNombre];
+  let html='';
+  nombres.forEach(nombre=>{
+    const lista=grupos[nombre]||[];
+    if(!lista.length) return;
+    html+=`<div class="pendientes-group-title">${nombre}<span class="sec-count" style="background:var(--surface2);color:var(--text2)">${lista.length}</span></div>`;
+    lista.forEach(({item,secTitle})=>{
+      html+=`<div class="pendientes-card">
+        <div class="item-code">${item.code||item.name||'(sin código)'}</div>
+        ${item.name&&item.code?`<div class="item-name">${item.name}</div>`:''}
+        <div class="pendientes-etapa">${secTitle}</div>
+      </div>`;
+    });
+  });
+  cont.innerHTML=html||`<div class="empty-state">No hay pendientes por ahora 🎉</div>`;
+}
+
 function fmtTime(ts){
   if(!ts)return'';
   const d=new Date(ts);
@@ -1761,11 +2043,20 @@ function fmtTime(ts){
 // TABS
 document.getElementById('tab-btn-tablero').onclick=function(){
   document.getElementById('tab-tablero').classList.remove('hidden');
+  document.getElementById('tab-pendientes').classList.add('hidden');
   document.getElementById('tab-actividad').classList.add('hidden');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
 };
+document.getElementById('tab-btn-pendientes').onclick=function(){
+  document.getElementById('tab-tablero').classList.add('hidden');
+  document.getElementById('tab-pendientes').classList.remove('hidden');
+  document.getElementById('tab-actividad').classList.add('hidden');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
+  renderPendientes();
+};
 document.getElementById('tab-btn-actividad').onclick=function(){
   document.getElementById('tab-tablero').classList.add('hidden');
+  document.getElementById('tab-pendientes').classList.add('hidden');
   document.getElementById('tab-actividad').classList.remove('hidden');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');renderActividad();
 };
