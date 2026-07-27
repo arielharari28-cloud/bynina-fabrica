@@ -459,9 +459,15 @@ function assignModelista(secId,itemId,nombre){
   showToast(nombre?`✓ Modelista: ${nombre}`:'Modelista quitada');
 }
 
+function getSectionIdByTipo(tipo){
+  const found=Object.entries(sectionsData).find(([,s])=>s.tipo===tipo);
+  return found?found[0]:null;
+}
+
 // Determina quién es responsable de la próxima acción sobre un ítem
 function getResponsable(sec,item){
   const tipo=sec.tipo||'';
+  if(tipo==='mejora') return item.mejora_resuelta?null:'Peque';
   if(tipo==='muestra_prep'){
     if(!item.code||!item.code.trim()) return 'Peque';
     if(!item.en_ninox) return 'Peque';
@@ -623,6 +629,15 @@ function startListening(){
         });
         // Secciones nuevas (Moldería / Diseño) que pueden no existir en cuentas ya en uso
         if(!data.sections[SEC_MOLD]) db.ref(`fabrica_v5/sections/${SEC_MOLD}`).set(INITIAL_SECTIONS[SEC_MOLD]);
+        // Detectar por título las secciones de Revisión Final / Mejora / Productos Perfectos
+        // que Ariel ya había creado a mano, y darles su comportamiento especial (una sola vez)
+        Object.entries(data.sections).forEach(([id,s])=>{
+          if(s.tipo) return;
+          const t=s.title||'';
+          if(t.includes('Revisión Final')) db.ref(`fabrica_v5/sections/${id}/tipo`).set('revision_final');
+          else if(t.includes('Productos Perfectos')) db.ref(`fabrica_v5/sections/${id}/tipo`).set('producto_perfecto');
+          else if(t.trim()==='Mejora') db.ref(`fabrica_v5/sections/${id}/tipo`).set('mejora');
+        });
         if(!data.sections[SEC_DISENO]) db.ref(`fabrica_v5/sections/${SEC_DISENO}`).set(INITIAL_SECTIONS[SEC_DISENO]);
         if(!data.sections[SEC_PREP]) db.ref(`fabrica_v5/sections/${SEC_PREP}`).set(INITIAL_SECTIONS[SEC_PREP]);
         else db.ref(`fabrica_v5/sections/${SEC_PREP}/title`).set(INITIAL_SECTIONS[SEC_PREP].title);
@@ -761,6 +776,95 @@ function toggleFotoDriveOk(secId,itemId){
   const nv=!(item.foto_drive_ok||false);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/foto_drive_ok`).set(nv);
   logActivity(`Foto en Drive ${nv?'✓':'✗'}`,item.code);
+}
+
+// --- REVISIÓN FINAL (llegó el corte del taller) ---
+function marcarProductoPerfecto(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const perfSecId=getSectionIdByTipo('producto_perfecto');
+  if(!perfSecId){ showToast('No encontré la sección de Productos Perfectos'); return; }
+  const newItem={...item,fecha_perfecto:Date.now()};
+  db.ref(`fabrica_v5/sections/${perfSecId}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Producto perfecto',item.code);
+  showToast(`✅ ${item.code} — producto perfecto`);
+}
+
+function marcarNecesitaMejora(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nota=prompt('¿Qué hay que mejorar respecto a la muestra?');
+  if(nota===null||!nota.trim()){ showToast('Cargá una nota para continuar'); return; }
+  const mejoraSecId=getSectionIdByTipo('mejora');
+  if(!mejoraSecId){ showToast('No encontré la sección de Mejora'); return; }
+  const newItem={...item,mejora_nota:nota.trim(),mejora_resuelta:false,fecha_mejora:Date.now()};
+  db.ref(`fabrica_v5/sections/${mejoraSecId}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Necesita mejora',`${item.code}: ${nota.trim()}`);
+  showToast('🔧 Pasó a Mejora — cargale una foto ahí');
+}
+
+// --- MEJORA ---
+function saveMejoraNota(secId,itemId,el){
+  const val=el.value;
+  const item=sectionsData[secId].items[itemId];
+  if(val===(item.mejora_nota||'')) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/mejora_nota`).set(val);
+  logActivity('Editó nota de mejora',item.code);
+}
+
+function triggerMejoraFotoUpload(secId,itemId){
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';
+  input.onchange=(e)=>{ if(e.target.files[0]) uploadMejoraFoto(secId,itemId,e.target.files[0]); };
+  input.click();
+}
+
+async function uploadMejoraFoto(secId,itemId,file){
+  showToast('📤 Subiendo foto...');
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',CLOUDINARY_PRESET);
+  try{
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:formData});
+    const data=await res.json();
+    if(data.secure_url){
+      db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/mejora_foto`).set(data.secure_url);
+      showToast('✓ Foto cargada');
+    } else showToast('✗ Error al subir foto');
+  }catch(e){ showToast('✗ Error al subir foto'); }
+}
+
+function saveMejoraTipo(secId,itemId,val){
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/mejora_tipo`).set(val);
+  const item=sectionsData[secId].items[itemId];
+  logActivity('Tipo de modificación',`${item.code} → ${val||'(sin elegir)'}`);
+}
+
+function setNecesitaMuestra(secId,itemId,val){
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/necesita_muestra`).set(val);
+}
+
+function toggleMejoraResuelta(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!(item.mejora_resuelta||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/mejora_resuelta`).set(nv);
+  logActivity(`Mejora ${nv?'resuelta':'reabierta'}`,item.code);
+  showToast(nv?'✓ Mejora resuelta':'Mejora reabierta');
+}
+
+function enviarMejoraANuevosDesarrollos(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const prepSecId=getSectionIdByTipo('muestra_prep');
+  if(!prepSecId){ showToast('No encontré Nuevos Desarrollos'); return; }
+  const newItem={
+    code:'',
+    name:`${item.name||item.code||''} (mejora)`.trim(),
+    foto:item.foto||null,
+    origen_mejora:item.mejora_nota||''
+  };
+  db.ref(`fabrica_v5/sections/${prepSecId}/items`).push(newItem);
+  logActivity('Mejora → Nuevos Desarrollos',item.code);
+  showToast('📤 Se creó un nuevo desarrollo a partir de esta mejora');
 }
 
 // --- MOLDERÍA ---
@@ -1296,6 +1400,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
+          ${item.origen_mejora?`<div style="font-size:11px;background:var(--warn-bg);color:var(--warn-text);border-radius:6px;padding:4px 8px;margin-bottom:6px">🔧 <strong>Viene de una mejora:</strong> ${item.origen_mejora}</div>`:''}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="idea-tela-row">
             ${item.foto_tela
@@ -1426,6 +1531,99 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canDesign?`<button class="btn-approve" onclick="marcarAprobada('${secId}','${itemId}')">✅ Aprobar</button>`:''}
             ${canDesign?`<button class="btn-revision" onclick="marcarRevision('${secId}','${itemId}')">🔁 A revisión</button>`:''}
             ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- REVISIÓN FINAL: llegó el corte del taller, comparar contra la muestra ---
+  if(tipo==='revision_final'){
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            ${item.ficha_link
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Compará contra la muestra aprobada.</div>
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-approve" onclick="marcarProductoPerfecto('${secId}','${itemId}')">✅ Producto Perfecto</button>`:''}
+            ${canEdit?`<button class="btn-revision" onclick="marcarNecesitaMejora('${secId}','${itemId}')">🔧 Necesita mejora</button>`:''}
+            ${moveOpts}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- MEJORA: nota + foto + tipo de modificación + responsable Peque + ¿necesita muestra nueva? ---
+  if(tipo==='mejora'){
+    const resuelta=item.mejora_resuelta||false;
+    const necesitaMuestra=item.necesita_muestra;
+    return `<div class="item ${resuelta?'done':''}">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${resuelta?`<div class="mod-badge" style="background:var(--green-bg);color:var(--green-text)">✓ Resuelta</div>`:''}
+          <div style="margin-top:8px">
+            <div class="diseno-field-label">Qué hay que mejorar</div>
+            ${canEdit
+              ? `<textarea class="mod-textarea" placeholder="Detalle de la mejora..." onblur="saveMejoraNota('${secId}','${itemId}',this)">${item.mejora_nota||''}</textarea>`
+              : `<div style="font-size:12px;color:var(--text2);margin-top:4px">${item.mejora_nota||'—'}</div>`}
+          </div>
+          <div style="margin-top:8px">
+            <div class="diseno-field-label">Foto del problema</div>
+            <div class="diseno-fotos-grid" style="margin-top:6px">
+              ${item.mejora_foto?`<div class="diseno-foto-item"><img src="${item.mejora_foto}" onclick="openPhotoModal('${item.mejora_foto}')"></div>`:''}
+              ${canEdit?`<div class="diseno-add-foto" onclick="triggerMejoraFotoUpload('${secId}','${itemId}')" title="Agregar foto">📷</div>`:''}
+            </div>
+          </div>
+          <div class="modelista-row">
+            <span class="modelista-label">Modificación:</span>
+            <select class="modelista-select" ${canEdit?'':'disabled'} onchange="saveMejoraTipo('${secId}','${itemId}',this.value)">
+              <option value="">— Elegir —</option>
+              <option value="Molde" ${item.mejora_tipo==='Molde'?'selected':''}>Molde</option>
+              <option value="Ficha" ${item.mejora_tipo==='Ficha'?'selected':''}>Ficha</option>
+              <option value="Otro" ${item.mejora_tipo==='Otro'?'selected':''}>Otro</option>
+            </select>
+          </div>
+          ${buildResponsableHtml(sec,item)}
+          <div class="modelista-row">
+            <span class="modelista-label">¿Necesita muestra nueva?</span>
+            ${canEdit?`<button class="radio-btn ${necesitaMuestra===true?'selected':''}" onclick="setNecesitaMuestra('${secId}','${itemId}',true)">Sí</button>
+            <button class="radio-btn ${necesitaMuestra===false?'selected':''}" onclick="setNecesitaMuestra('${secId}','${itemId}',false)">No</button>`
+            :`<span style="font-size:12px;color:var(--text2)">${necesitaMuestra===true?'Sí':necesitaMuestra===false?'No':'— Sin definir —'}</span>`}
+          </div>
+          <div class="item-actions">
+            ${(necesitaMuestra===true&&!resuelta&&canEdit)?`<button class="btn-advance" onclick="enviarMejoraANuevosDesarrollos('${secId}','${itemId}')">📤 Mandar a Nuevos Desarrollos</button>`:''}
+            ${(!resuelta&&canEdit)?`<button class="btn-sm" onclick="toggleMejoraResuelta('${secId}','${itemId}')">✅ Marcar resuelta</button>`:''}
+            ${(resuelta&&canEdit)?`<button class="btn-sm" onclick="toggleMejoraResuelta('${secId}','${itemId}')">↩ Reabrir</button>`:''}
+            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- PRODUCTOS PERFECTOS: archivo, ciclo cerrado ---
+  if(tipo==='producto_perfecto'){
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,canEdit)}
+        <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
+          ${buildNameHtml(secId,itemId,item,canEdit)}
+          <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
+          <div class="item-actions">
             ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
