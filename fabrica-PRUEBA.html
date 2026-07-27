@@ -413,7 +413,13 @@ function buildCodeHtml(secId,itemId,item,canEdit){
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.code}</div>`;
 }
 
-function buildModelistaHtml(secId,itemId,item){
+function buildModelistaHtml(secId,itemId,item,locked,lockedMsg){
+  if(locked){
+    return `<div class="modelista-row">
+      <span class="modelista-label">Modelista:</span>
+      <span style="font-size:11px;color:var(--text3);font-style:italic">${lockedMsg||'Completá los pasos anteriores primero'}</span>
+    </div>`;
+  }
   const opts=(modelistasList||[]).map(n=>`<option value="${n}" ${item.modelista===n?'selected':''}>${n}</option>`).join('');
   return `<div class="modelista-row">
     <span class="modelista-label">Modelista:</span>
@@ -443,6 +449,11 @@ function onModelistaChange(secId,itemId,sel){
 
 function assignModelista(secId,itemId,nombre){
   const item=sectionsData[secId].items[itemId];
+  const sec=sectionsData[secId];
+  if(sec.tipo==='muestra_prep'&&nombre&&!(item.en_ninox&&(item.control_ariel||item.control_stef))){
+    showToast('Falta tildar Ninox y el control de ficha antes de asignar modelista');
+    return;
+  }
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/modelista`).set(nombre||null);
   logActivity('Asignó modelista',`${item.code||item.name||''} → ${nombre||'sin asignar'}`);
   showToast(nombre?`✓ Modelista: ${nombre}`:'Modelista quitada');
@@ -453,12 +464,16 @@ function getResponsable(sec,item){
   const tipo=sec.tipo||'';
   if(tipo==='muestra_prep'){
     if(!item.code||!item.code.trim()) return 'Peque';
+    if(!item.en_ninox) return 'Peque';
     if(!item.ficha_link) return 'Peque';
-    if(!(item.control_ariel&&item.control_stef)) return 'Ariel';
+    if(!(item.control_ariel||item.control_stef)) return 'Ariel';
     if(!item.modelista) return 'Peque';
     return item.modelista;
   }
-  if(tipo==='muestra_molderia') return item.modelista||'Peque';
+  if(tipo==='muestra_molderia'){
+    if(!item.foto_drive_ok) return 'Peque';
+    return item.modelista||'Peque';
+  }
   if(tipo==='muestra_diseno') return item.modelista||'Peque';
   if(tipo==='muestra_pend') return 'Cortador';
   if(tipo==='muestra_cort'){
@@ -707,8 +722,18 @@ function editCodigoPrompt(secId,itemId){
   showToast('✓ Código guardado');
 }
 
+function editRefLink(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const link=prompt('Pegá el link de referencia (Drive, Pinterest, etc):',item.ref_link||'');
+  if(link===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ref_link`).set(link.trim());
+  logActivity('Cargó link de referencia',item.code||item.name);
+  showToast(link.trim()?'✓ Link guardado':'Link eliminado');
+}
+
 function toggleNinox(secId,itemId){
   const item=sectionsData[secId].items[itemId];
+  if(!item.code||!item.code.trim()){ showToast('Cargá el código antes de tildar Ninox'); return; }
   const nv=!(item.en_ninox||false);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/en_ninox`).set(nv);
   logActivity(`Ninox ${nv?'✓':'✗'}`,item.code||item.name);
@@ -731,9 +756,17 @@ function pasarAMolderia(secId,itemId){
   showToast(`🧵 ${item.code} pasó a Moldería`);
 }
 
+function toggleFotoDriveOk(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!(item.foto_drive_ok||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/foto_drive_ok`).set(nv);
+  logActivity(`Foto en Drive ${nv?'✓':'✗'}`,item.code);
+}
+
 // --- MOLDERÍA ---
 function enviarACorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
+  if(!item.foto_drive_ok){ showToast('Falta cargar la foto en Drive antes de enviar a corte'); return; }
   const newItem={...item};
   delete newItem.estado; // limpia el flag de "modificaciones" al reingresar al circuito
   db.ref(`fabrica_v5/sections/${SEC_PEND}/items`).push(newItem);
@@ -1254,8 +1287,9 @@ function buildItem(secId,itemId,item,sec,idx,total){
   if(tipo==='muestra_prep'){
     const ninox=item.en_ninox||false;
     const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
-    const controlLabel=(cAriel&&cStef)?'Ambos ✓':cAriel?'Ariel ✓ (falta Stef)':cStef?'Stef ✓ (falta Ariel)':'Pendiente';
-    const controlDone=cAriel&&cStef;
+    const controlLabel=(cAriel&&cStef)?'Ambos ✓':cAriel?'Ariel ✓':cStef?'Stef ✓':'Pendiente';
+    const controlDone=cAriel||cStef;
+    const modelistaLocked=!(ninox&&controlDone);
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista;
     const canControl=currentUser==='ariel';
     return `<div class="item">
@@ -1268,6 +1302,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
               ? `<div class="item-photo-wrap small"><img class="item-photo" src="${item.foto_tela}" onclick="openPhotoModal('${item.foto_tela}')">${canEdit?`<button class="photo-edit-btn" onclick="event.stopPropagation();triggerFotoTelaUpload('${secId}','${itemId}')" title="Cambiar tela">✏️</button>`:''}</div>`
               : (canEdit?`<div class="item-photo-placeholder small" onclick="triggerFotoTelaUpload('${secId}','${itemId}')" title="Agregar tela base">🧵</div>`:'')}
             <span style="font-size:11px;color:var(--text2)">Tela base</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+            <span class="modelista-label">Link:</span>
+            ${item.ref_link
+              ? `<a href="${item.ref_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">🔗 Ver</a>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin link</span>`}
+            ${canEdit?`<button class="btn-sm" onclick="editRefLink('${secId}','${itemId}')">${item.ref_link?'🔗 Editar link':'+ Link'}</button>`:''}
           </div>
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
@@ -1284,18 +1326,19 @@ function buildItem(secId,itemId,item,sec,idx,total){
             <span class="modelista-label">Ficha técnica:</span>
             ${item.ficha_link
               ? `<span style="font-size:12px;font-weight:600;color:var(--accent)">Cargada ✓</span> <a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">🔗 Ver</a>`
-              : `<span style="font-size:12px;font-weight:600;color:var(--warn-text)">Pendiente</span> <span style="font-size:11px;color:var(--text2)">(responsable: Peque)</span>`}
+              : `<span style="font-size:12px;font-weight:600;color:var(--warn-text)">Pendiente</span>`}
             ${canEdit?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar link':'+ Link'}</button>`:''}
           </div>
 
           <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="modelista-label">Control de ficha:</span>
             <span style="font-size:12px;font-weight:600;color:${controlDone?'var(--accent)':'var(--warn-text)'}">${controlLabel}</span>
-            ${canControl?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
+            ${canControl&&item.ficha_link?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
             <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>`:''}
+            ${canControl&&!item.ficha_link?`<span style="font-size:11px;color:var(--text3);font-style:italic">Cargá la ficha primero</span>`:''}
           </div>
 
-          ${buildModelistaHtml(secId,itemId,item)}
+          ${buildModelistaHtml(secId,itemId,item,modelistaLocked,'Falta tildar Ninox y el control de ficha')}
           ${buildResponsableHtml(sec,item)}
 
           <div class="item-actions">
@@ -1331,9 +1374,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
           ${buildModelistaHtml(secId,itemId,item)}
           ${buildResponsableHtml(sec,item)}
+          <div class="cortada-row" style="padding:6px 0;border:none">
+            <div class="c-check ${item.foto_drive_ok?'checked':''}" onclick="${canEdit?`toggleFotoDriveOk('${secId}','${itemId}')`:''}">${item.foto_drive_ok?'✓':''}</div>
+            <span class="c-label ${item.foto_drive_ok?'done':''}">Cargar foto en Drive con nombre prenda y código <span style="font-size:10px;color:var(--text3)">(Peque)</span></span>
+          </div>
           ${refBox}
           <div class="item-actions">
-            ${canEdit?`<button class="btn-advance" onclick="enviarACorte('${secId}','${itemId}')">✂️ Enviar a corte</button>`:''}
+            ${canEdit?`<button class="btn-advance" ${item.foto_drive_ok?'':'disabled'} title="${item.foto_drive_ok?'':'Falta cargar la foto en Drive'}" onclick="enviarACorte('${secId}','${itemId}')">✂️ Enviar a corte</button>`:''}
             ${moveOpts}
             ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
