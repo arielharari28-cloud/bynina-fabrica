@@ -217,14 +217,19 @@
   </div>
   <div class="main">
     <div class="tabs">
-      <button class="tab active" id="tab-btn-tablero">Tablero</button>
+      <button class="tab active" id="tab-btn-diseno">Diseño</button>
+      <button class="tab" id="tab-btn-fabrica">Fábrica</button>
       <button class="tab" id="tab-btn-pendientes">Pendientes</button>
       <button class="tab" id="tab-btn-actividad">Actividad</button>
     </div>
-    <div id="tab-tablero">
+    <div id="tab-diseno">
       <div class="stats-bar" id="stats-bar"></div>
-      <div id="sections-container"><div class="loading">Conectando...</div></div>
-      <button class="add-sec-btn hidden" id="add-sec-btn">+ Nueva sección</button>
+      <div id="sections-container-diseno"><div class="loading">Conectando...</div></div>
+      <button class="add-sec-btn hidden" id="add-sec-btn-diseno">+ Nueva sección</button>
+    </div>
+    <div id="tab-fabrica" class="hidden">
+      <div id="sections-container-fabrica"><div class="loading">Conectando...</div></div>
+      <button class="add-sec-btn hidden" id="add-sec-btn-fabrica">+ Nueva sección</button>
     </div>
     <div id="tab-pendientes" class="hidden"><div id="pendientes-list"><div class="loading">Cargando...</div></div></div>
     <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
@@ -562,11 +567,15 @@ function doLogin(user){
   document.getElementById('user-chip').innerHTML=user.charAt(0).toUpperCase()+user.slice(1)+' <span style="opacity:.4">salir</span>';
   if(user==='ariel'){
     document.getElementById('notif-btn').classList.remove('hidden');
-    document.getElementById('add-sec-btn').classList.remove('hidden');
+    document.getElementById('add-sec-btn-diseno').classList.remove('hidden');
+    document.getElementById('add-sec-btn-fabrica').classList.remove('hidden');
   }
   if(user==='nahuel'){
     document.getElementById('stats-bar').classList.add('hidden');
     document.querySelector('.tabs').classList.add('hidden');
+    // Cortador ve ambos tableros juntos, sin pestañas para elegir
+    document.getElementById('tab-diseno').classList.remove('hidden');
+    document.getElementById('tab-fabrica').classList.remove('hidden');
   }
   startListening();
 }
@@ -575,7 +584,8 @@ function doLogout(){
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('notif-btn').classList.add('hidden');
-  document.getElementById('add-sec-btn').classList.add('hidden');
+  document.getElementById('add-sec-btn-diseno').classList.add('hidden');
+  document.getElementById('add-sec-btn-fabrica').classList.add('hidden');
 }
 
 function startListening(){
@@ -618,14 +628,14 @@ function startListening(){
   });
   db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
-    renderSections();renderStats();
+    renderSections('diseno');renderSections('fabrica');renderStats();
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
   });
   db.ref('fabrica_v5/modelistas').on('value',snap=>{
     const v=snap.val();
     if(v){ modelistasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
     else db.ref('fabrica_v5/modelistas').set(modelistasList);
-    renderSections();
+    renderSections('diseno');renderSections('fabrica');
   });
   db.ref('fabrica_v5/actividad').on('value',snap=>{
     actividadData=snap.val()||{};
@@ -873,9 +883,15 @@ function getSortedItems(sec){
   });
 }
 
-function renderSections(){
-  const c=document.getElementById('sections-container');c.innerHTML='';
-  let entries=Object.entries(sectionsData).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+function getBoard(sec){
+  if(sec.board) return sec.board;
+  return (sec.tipo||'').startsWith('muestra_') ? 'diseno' : 'fabrica';
+}
+
+function renderSections(board){
+  const containerId = board==='diseno' ? 'sections-container-diseno' : 'sections-container-fabrica';
+  const c=document.getElementById(containerId);c.innerHTML='';
+  let entries=Object.entries(sectionsData).filter(([,sec])=>getBoard(sec)===board).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   if(currentUser==='nahuel'){
     entries=entries.filter(([secId])=>secId===SEC_PEND||secId==='s3'||secId==='s3b');
   }
@@ -1957,13 +1973,15 @@ function deleteAvio(secId,itemId,avioId){
 }
 
 // SECTION MODAL
-document.getElementById('add-sec-btn').onclick=()=>{document.getElementById('new-sec-name').value='';document.getElementById('modal-sec').classList.remove('hidden')};
+let nuevaSecBoard='diseno';
+document.getElementById('add-sec-btn-diseno').onclick=()=>{nuevaSecBoard='diseno';document.getElementById('new-sec-name').value='';document.getElementById('modal-sec').classList.remove('hidden')};
+document.getElementById('add-sec-btn-fabrica').onclick=()=>{nuevaSecBoard='fabrica';document.getElementById('new-sec-name').value='';document.getElementById('modal-sec').classList.remove('hidden')};
 document.getElementById('save-modal-sec').onclick=()=>{
   const name=document.getElementById('new-sec-name').value.trim();
   const color=document.getElementById('new-sec-color').value;
   if(!name)return;
   const maxOrder=Math.max(0,...Object.values(sectionsData).map(s=>s.order||0));
-  db.ref('fabrica_v5/sections').push({title:name,color,order:maxOrder+1,collapsed:false,items:{}});
+  db.ref('fabrica_v5/sections').push({title:name,color,order:maxOrder+1,collapsed:false,board:nuevaSecBoard,items:{}});
   document.getElementById('modal-sec').classList.add('hidden');
 };
 
@@ -2040,24 +2058,29 @@ function fmtTime(ts){
 }
 
 // TABS
-document.getElementById('tab-btn-tablero').onclick=function(){
-  document.getElementById('tab-tablero').classList.remove('hidden');
-  document.getElementById('tab-pendientes').classList.add('hidden');
-  document.getElementById('tab-actividad').classList.add('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
+function ocultarTabsMenosActiva(activo){
+  ['tab-diseno','tab-fabrica','tab-pendientes','tab-actividad'].forEach(id=>{
+    document.getElementById(id).classList.toggle('hidden', id!==activo);
+  });
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+}
+document.getElementById('tab-btn-diseno').onclick=function(){
+  ocultarTabsMenosActiva('tab-diseno');
+  this.classList.add('active');
+};
+document.getElementById('tab-btn-fabrica').onclick=function(){
+  ocultarTabsMenosActiva('tab-fabrica');
+  this.classList.add('active');
 };
 document.getElementById('tab-btn-pendientes').onclick=function(){
-  document.getElementById('tab-tablero').classList.add('hidden');
-  document.getElementById('tab-pendientes').classList.remove('hidden');
-  document.getElementById('tab-actividad').classList.add('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
+  ocultarTabsMenosActiva('tab-pendientes');
+  this.classList.add('active');
   renderPendientes();
 };
 document.getElementById('tab-btn-actividad').onclick=function(){
-  document.getElementById('tab-tablero').classList.add('hidden');
-  document.getElementById('tab-pendientes').classList.add('hidden');
-  document.getElementById('tab-actividad').classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');renderActividad();
+  ocultarTabsMenosActiva('tab-actividad');
+  this.classList.add('active');
+  renderActividad();
 };
 document.getElementById('close-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
 document.getElementById('cancel-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
