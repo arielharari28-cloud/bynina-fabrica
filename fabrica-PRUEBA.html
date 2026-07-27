@@ -778,6 +778,18 @@ function toggleFotoDriveOk(secId,itemId){
   logActivity(`Foto en Drive ${nv?'✓':'✗'}`,item.code);
 }
 
+// --- CORTES FINALIZADOS → REVISIÓN FINAL ---
+function marcarEntregadoCorte(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const revSecId=getSectionIdByTipo('revision_final');
+  if(!revSecId){ showToast('No encontré la sección de Revisión Final'); return; }
+  const newItem={...item,fecha_entregado_revision:Date.now()};
+  db.ref(`fabrica_v5/sections/${revSecId}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Entregado a revisión',item.code);
+  showToast(`✅ ${item.code} pasó a Revisión Final`);
+}
+
 // --- REVISIÓN FINAL (llegó el corte del taller) ---
 function marcarProductoPerfecto(secId,itemId){
   const item=sectionsData[secId].items[itemId];
@@ -1672,6 +1684,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const notaHtml = item.nota ? `<div style="font-size:11px;color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px;margin-top:4px">📝 <strong>Aclaración:</strong> ${item.nota}</div>` : '';
   const canDeshacer=secId!=='s3'&&secId!=='sFIN'&&!!item.fecha_corte&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel');
   const canSacarTaller=secId==='sLT'&&(currentUser==='ariel'||currentUser==='peque'||currentUser==='emir');
+  const canEntregarRevision=secId==='sFIN'&&(currentUser==='ariel'||currentUser==='peque');
   const flujoCorteHtml = secId==='s3' ? buildFlujoPreCorte(secId,itemId,item,canCortar) : '';
   const listoParaCortar = secId!=='s3' || !!item.encimado_terminado;
   const orderHtml = (secId==='s3'&&canEdit&&total>1) ? `<div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
@@ -1698,6 +1711,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-actions">
           ${(canCortar&&listoParaCortar)?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
+          ${canEntregarRevision?`<button class="btn-advance" onclick="marcarEntregadoCorte('${secId}','${itemId}')">✅ Entregado → Revisión</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
           ${canFicha?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
