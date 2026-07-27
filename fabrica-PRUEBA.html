@@ -446,9 +446,13 @@ function assignModelista(secId,itemId,nombre){
 // Determina quién es responsable de la próxima acción sobre un ítem
 function getResponsable(sec,item){
   const tipo=sec.tipo||'';
-  if(tipo==='muestra_idea') return 'Ariel';
-  if(tipo==='muestra_codigo') return 'Peque';
-  if(tipo==='muestra_ficha') return 'Ariel';
+  if(tipo==='muestra_prep'){
+    if(!item.idea_ok) return 'Ariel';
+    if(!item.codigo_ok) return 'Peque';
+    if(!item.ficha_ok) return 'Ariel';
+    if(!item.modelista) return 'Peque';
+    return item.modelista;
+  }
   if(tipo==='muestra_molderia') return item.modelista||'Peque';
   if(tipo==='muestra_diseno') return item.modelista||'Peque';
   if(tipo==='muestra_pend') return 'Cortador';
@@ -469,9 +473,7 @@ function buildResponsableHtml(sec,item){
 }
 
 // IDs fijos para las secciones de muestras
-const SEC_IDEA   = 'muestra_idea';
-const SEC_CODIGO = 'muestra_codigo';
-const SEC_FICHA  = 'muestra_ficha';
+const SEC_PREP  = 'muestra_prep';
 const SEC_MOLD  = 'muestra_molderia';
 const SEC_PEND  = 'muestra_pendiente';
 const SEC_CORT  = 'muestra_cortada';
@@ -494,9 +496,7 @@ const COLORS = {
 };
 
 const INITIAL_SECTIONS = {
-  [SEC_IDEA]:{title:'Muestras — idea nueva',color:'purple',order:0.1,tipo:'muestra_idea',items:{}},
-  [SEC_CODIGO]:{title:'Muestras — código asignado',color:'purple',order:0.2,tipo:'muestra_codigo',items:{}},
-  [SEC_FICHA]:{title:'Muestras — ficha técnica',color:'purple',order:0.3,tipo:'muestra_ficha',items:{}},
+  [SEC_PREP]:{title:'Muestras — nueva (idea, código y ficha)',color:'purple',order:0.2,tipo:'muestra_prep',items:{}},
   [SEC_MOLD]:{title:'Muestras — en moldería',color:'accent',order:0.5,tipo:'muestra_molderia',items:{}},
   [SEC_PEND]:{title:'Muestras — pendiente corte',color:'danger',order:1,tipo:'muestra_pend',items:{
     i1:{code:'7421',name:'',done:false,avios:{}},
@@ -599,9 +599,20 @@ function startListening(){
         // Secciones nuevas (Moldería / Diseño) que pueden no existir en cuentas ya en uso
         if(!data.sections[SEC_MOLD]) db.ref(`fabrica_v5/sections/${SEC_MOLD}`).set(INITIAL_SECTIONS[SEC_MOLD]);
         if(!data.sections[SEC_DISENO]) db.ref(`fabrica_v5/sections/${SEC_DISENO}`).set(INITIAL_SECTIONS[SEC_DISENO]);
-        if(!data.sections[SEC_IDEA]) db.ref(`fabrica_v5/sections/${SEC_IDEA}`).set(INITIAL_SECTIONS[SEC_IDEA]);
-        if(!data.sections[SEC_CODIGO]) db.ref(`fabrica_v5/sections/${SEC_CODIGO}`).set(INITIAL_SECTIONS[SEC_CODIGO]);
-        if(!data.sections[SEC_FICHA]) db.ref(`fabrica_v5/sections/${SEC_FICHA}`).set(INITIAL_SECTIONS[SEC_FICHA]);
+        if(!data.sections[SEC_PREP]) db.ref(`fabrica_v5/sections/${SEC_PREP}`).set(INITIAL_SECTIONS[SEC_PREP]);
+        // Migración: si existían las 3 secciones viejas (idea/código/ficha separadas), fusionar sus ítems en SEC_PREP
+        ['muestra_idea','muestra_codigo','muestra_ficha'].forEach(oldSecId=>{
+          const oldSec=data.sections[oldSecId];
+          if(oldSec && oldSec.items){
+            Object.values(oldSec.items).forEach(oldItem=>{
+              const migrado={...oldItem};
+              if(oldSecId==='muestra_codigo'){ migrado.codigo_ok=true; migrado.idea_ok=true; }
+              if(oldSecId==='muestra_ficha'){ migrado.codigo_ok=true; migrado.idea_ok=true; }
+              db.ref(`fabrica_v5/sections/${SEC_PREP}/items`).push(migrado);
+            });
+          }
+          if(oldSec) db.ref(`fabrica_v5/sections/${oldSecId}`).remove();
+        });
       }
     }
   });
@@ -677,17 +688,22 @@ function diasDesde(timestamp){
   return Math.floor(ms / (1000*60*60*24));
 }
 
-// --- IDEA NUEVA → CÓDIGO ASIGNADO ---
-function pasarACodigo(secId,itemId){
+// --- MUESTRA NUEVA (idea + código + ficha, todo en un mismo lugar) ---
+function toggleIdeaOk(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item};
-  db.ref(`fabrica_v5/sections/${SEC_CODIGO}/items`).push(newItem);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Pasó a asignar código',item.name||'(sin nombre)');
-  showToast('🔢 Pasó a Código asignado');
+  const nv=!(item.idea_ok||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/idea_ok`).set(nv);
+  logActivity(`Idea nueva ${nv?'✓':'✗'}`,item.code||item.name);
 }
 
-// --- CÓDIGO ASIGNADO ---
+function toggleCodigoOk(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item.code||!item.code.trim()){ showToast('Cargá el código antes de tildar esto'); return; }
+  const nv=!(item.codigo_ok||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/codigo_ok`).set(nv);
+  logActivity(`Código asignado ${nv?'✓':'✗'}`,item.code);
+}
+
 function toggleNinox(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const nv=!(item.en_ninox||false);
@@ -695,17 +711,14 @@ function toggleNinox(secId,itemId){
   logActivity(`Ninox ${nv?'✓':'✗'}`,item.code||item.name);
 }
 
-function pasarAFicha(secId,itemId){
+function toggleFichaOk(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  if(!item.code||!item.code.trim()){ showToast('Asigná un código antes de continuar'); return; }
-  const newItem={...item};
-  db.ref(`fabrica_v5/sections/${SEC_FICHA}/items`).push(newItem);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Pasó a hacer ficha',item.code);
-  showToast('📋 Pasó a Ficha técnica');
+  if(!item.ficha_link){ showToast('Cargá el link de la ficha antes de tildar esto'); return; }
+  const nv=!(item.ficha_ok||false);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_ok`).set(nv);
+  logActivity(`Ficha técnica ${nv?'✓':'✗'}`,item.code);
 }
 
-// --- FICHA TÉCNICA ---
 function toggleControlFicha(secId,itemId,campo){
   const item=sectionsData[secId].items[itemId];
   const nv=!(item[campo]||false);
@@ -715,7 +728,7 @@ function toggleControlFicha(secId,itemId,campo){
 
 function pasarAMolderia(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  if(!item.ficha_link||!item.modelista){ showToast('Falta el link de ficha o la modelista asignada'); return; }
+  if(!item.code||!item.ficha_link||!item.modelista){ showToast('Falta código, link de ficha o modelista asignada'); return; }
   const newItem={...item};
   db.ref(`fabrica_v5/sections/${SEC_MOLD}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
@@ -871,7 +884,7 @@ function renderSections(){
     const items=getSortedItems(sec);
     const count=items.length;
     const div=document.createElement('div');div.className='section';
-    const FIXED_SECS=[SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO,SEC_IDEA,SEC_CODIGO,SEC_FICHA];
+    const FIXED_SECS=[SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO,SEC_PREP];
     const hBtns=currentUser==='ariel'&&!FIXED_SECS.includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
@@ -880,9 +893,9 @@ function renderSections(){
       <button title="Bajar sección" ${secIdx===entries.length-1?'disabled':''} onclick="moveSectionOrder('${secId}',1)" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:${secIdx===entries.length-1?'default':'pointer'};font-size:11px;opacity:${secIdx===entries.length-1?'.4':'1'}">▼</button>`:'';
     const canAdd=(currentUser==='ariel'||currentUser==='peque'||currentUser==='nahuel')&&secId===SEC_PEND;
     const canAddMold=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_MOLD;
-    const canAddIdea=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_IDEA;
+    const canAddPrep=(currentUser==='ariel'||currentUser==='peque')&&secId===SEC_PREP;
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
-    const addRowIdea=canAddIdea?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const addRowPrep=canAddPrep?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const canAddGeneral=(currentUser==='ariel'||currentUser==='peque')&&!FIXED_SECS.includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
 
@@ -893,7 +906,7 @@ function renderSections(){
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
         ${items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')}
-        ${addRow}${addRowIdea}${addRowGeneral}
+        ${addRow}${addRowPrep}${addRowGeneral}
       </div>`;
     c.appendChild(div);
   });
@@ -1236,12 +1249,19 @@ function buildItem(secId,itemId,item,sec,idx,total){
     </div>`;
   }
 
-  // --- IDEA NUEVA ---
-  if(tipo==='muestra_idea'){
+  // --- MUESTRA NUEVA: idea + código + ficha, todo en la misma tarjeta ---
+  if(tipo==='muestra_prep'){
+    const ideaOk=item.idea_ok||false;
+    const codigoOk=item.codigo_ok||false;
+    const ninox=item.en_ninox||false;
+    const fichaOk=item.ficha_ok||false;
+    const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
+    const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista;
     return `<div class="item">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
+          ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="idea-tela-row">
             ${item.foto_tela
@@ -1249,64 +1269,43 @@ function buildItem(secId,itemId,item,sec,idx,total){
               : (canEdit?`<div class="item-photo-placeholder small" onclick="triggerFotoTelaUpload('${secId}','${itemId}')" title="Agregar tela base">🧵</div>`:'')}
             <span style="font-size:11px;color:var(--text2)">Tela base</span>
           </div>
-          <div class="item-actions">
-            ${canEdit?`<button class="btn-advance" onclick="pasarACodigo('${secId}','${itemId}')">🔢 Asignar código</button>`:''}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
 
-  // --- CÓDIGO ASIGNADO (Ninox) ---
-  if(tipo==='muestra_codigo'){
-    const ninox=item.en_ninox||false;
-    return `<div class="item">
-      <div class="item-with-photo">
-        ${buildPhotoHtml(secId,itemId,item,canEdit)}
-        <div class="item-body">
-          ${buildCodeHtml(secId,itemId,item,canEdit)}
-          ${buildNameHtml(secId,itemId,item,canEdit)}
           <div class="cortada-row" style="padding:8px 0;border:none">
-            <div class="c-check ${ninox?'checked':''}" onclick="${canEdit?`toggleNinox('${secId}','${itemId}')`:''}">${ninox?'✓':''}</div>
-            <span class="c-label ${ninox?'done':''}">Cargado en Ninox</span>
+            <div class="c-check ${ideaOk?'checked':''}" onclick="${canEdit?`toggleIdeaOk('${secId}','${itemId}')`:''}">${ideaOk?'✓':''}</div>
+            <span class="c-label ${ideaOk?'done':''}">Idea nueva</span>
           </div>
-          <div class="item-actions">
-            ${canEdit?`<button class="btn-advance" onclick="pasarAFicha('${secId}','${itemId}')">📋 Hacer ficha</button>`:''}
-            ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
 
-  // --- FICHA TÉCNICA ---
-  if(tipo==='muestra_ficha'){
-    const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
-    const puedeAvanzar=!!item.ficha_link&&!!item.modelista;
-    return `<div class="item">
-      <div class="item-with-photo">
-        ${buildPhotoHtml(secId,itemId,item,canEdit)}
-        <div class="item-body">
-          ${buildCodeHtml(secId,itemId,item,canEdit)}
-          ${buildNameHtml(secId,itemId,item,canEdit)}
-          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+          <div class="cortada-row" style="padding:8px 0;border:none">
+            <div class="c-check ${codigoOk?'checked':''}" onclick="${canEdit?`toggleCodigoOk('${secId}','${itemId}')`:''}">${codigoOk?'✓':''}</div>
+            <span class="c-label ${codigoOk?'done':''}">Código asignado</span>
+          </div>
+          <div class="avio-item" style="padding-left:32px;border-top:none">
+            <div class="c-check ${ninox?'checked':''}" onclick="${canEdit?`toggleNinox('${secId}','${itemId}')`:''}">${ninox?'✓':''}</div>
+            <span class="c-label ${ninox?'done':''}" style="font-size:11px">Cargado en Ninox</span>
+          </div>
+
+          <div class="cortada-row" style="padding:8px 0;border:none">
+            <div class="c-check ${fichaOk?'checked':''}" onclick="${canEdit?`toggleFichaOk('${secId}','${itemId}')`:''}">${fichaOk?'✓':''}</div>
+            <span class="c-label ${fichaOk?'done':''}">Ficha técnica</span>
             ${item.ficha_link
-              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
-              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
-            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
+              ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:11px;margin-left:4px">🔗 Ver</a>`
+              : ''}
+            ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar link':'+ Link'}</button>`:''}
           </div>
-          <div class="cortada-row" style="padding:6px 0;border:none">
+          <div class="avio-item" style="padding-left:32px;border-top:none">
             <div class="c-check ${cStef?'checked':''}" onclick="${canEdit?`toggleControlFicha('${secId}','${itemId}','control_stef')`:''}">${cStef?'✓':''}</div>
-            <span class="c-label ${cStef?'done':''}">Controlada por Stef</span>
+            <span class="c-label ${cStef?'done':''}" style="font-size:11px">Controlada por Stef</span>
           </div>
-          <div class="cortada-row" style="padding:6px 0;border:none">
+          <div class="avio-item" style="padding-left:32px;border-top:none">
             <div class="c-check ${cAriel?'checked':''}" onclick="${currentUser==='ariel'?`toggleControlFicha('${secId}','${itemId}','control_ariel')`:''}">${cAriel?'✓':''}</div>
-            <span class="c-label ${cAriel?'done':''}">Controlada por Ariel</span>
+            <span class="c-label ${cAriel?'done':''}" style="font-size:11px">Controlada por Ariel</span>
           </div>
+
           ${buildModelistaHtml(secId,itemId,item)}
+          ${buildResponsableHtml(sec,item)}
+
           <div class="item-actions">
-            ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Cargá el link de ficha y asigná modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
+            ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Falta código, link de ficha o modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
             ${currentUser==='ariel'?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1751,7 +1750,7 @@ function quickAdd(secId){
   const val=(inp.value||'').trim();if(!val)return;
   const sec=sectionsData[secId];
   let ni;
-  if(sec.tipo==='muestra_idea'){
+  if(sec.tipo==='muestra_prep'){
     ni={code:'',name:val};
   } else {
     ni={code:val,name:'',done:false,avios:{}};
