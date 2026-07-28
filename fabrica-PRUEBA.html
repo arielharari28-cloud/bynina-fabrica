@@ -720,8 +720,24 @@ function startListening(){
       }
     }
   });
-  db.ref('fabrica_v5/sections').on('value',snap=>{
+  let fechasBackfillDone=false;
+function backfillFechasIngreso(){
+  if(fechasBackfillDone) return;
+  if(!(currentUser==='ariel'||currentUser==='stef')) return;
+  fechasBackfillDone=true;
+  const ahora=Date.now();
+  const updates={};
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
+    Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+      if(!item.fecha_ingreso) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_ingreso`]=ahora;
+      if(!item.fecha_etapa) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_etapa`]=ahora;
+    });
+  });
+  if(Object.keys(updates).length) db.ref().update(updates);
+}
+db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
+    backfillFechasIngreso();
     renderSections('diseno');renderSections('fabrica');renderStats();
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
   });
