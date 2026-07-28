@@ -231,10 +231,14 @@
       <button class="add-sec-btn hidden" id="add-sec-btn-diseno">+ Nueva sección</button>
     </div>
     <div id="tab-fabrica" class="hidden">
+      <div id="marca-filter-bar-fabrica" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div id="sections-container-fabrica"><div class="loading">Conectando...</div></div>
       <button class="add-sec-btn hidden" id="add-sec-btn-fabrica">+ Nueva sección</button>
     </div>
-    <div id="tab-pendientes" class="hidden"><div id="pendientes-list"><div class="loading">Cargando...</div></div></div>
+    <div id="tab-pendientes" class="hidden">
+      <div id="marca-filter-bar-pendientes" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div id="pendientes-list"><div class="loading">Cargando...</div></div>
+    </div>
     <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
   </div>
 </div>
@@ -502,20 +506,24 @@ function assignMarca(secId,itemId,nombre){
 }
 
 function renderMarcaFilterBar(){
-  const el=document.getElementById('marca-filter-bar');
-  if(!el) return;
   const chips=['',...marcasList];
-  el.innerHTML=chips.map(m=>{
+  const html=chips.map(m=>{
     const label=m===''?'Todas':m;
     const active=filtroMarca===m?'selected':'';
     return `<button class="radio-btn ${active}" onclick="setFiltroMarca('${m.replace(/'/g,"\\'")}')">${label}</button>`;
   }).join('');
+  ['marca-filter-bar','marca-filter-bar-fabrica','marca-filter-bar-pendientes'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=html;
+  });
 }
 
 function setFiltroMarca(marca){
   filtroMarca=marca;
   renderMarcaFilterBar();
   renderSections('diseno');
+  renderSections('fabrica');
+  if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
 }
 
 // Determina quién es responsable de la próxima acción sobre un ítem
@@ -771,8 +779,13 @@ function logActivity(action,details){
 function cancelarMuestra(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item) return;
-  const motivo=prompt('¿Por qué se cancela esta muestra? (opcional)','');
-  if(motivo===null) return;
+  let motivo=null;
+  while(true){
+    motivo=prompt('¿Por qué se cancela esta muestra? (obligatorio)',motivo||'');
+    if(motivo===null) return; // el usuario canceló el prompt, se aborta la cancelación
+    if(motivo.trim()) break;
+    alert('El motivo es obligatorio para cancelar la muestra.');
+  }
   const origen=sectionsData[secId].title||'';
   const newItem={...item,motivo_cancelacion:motivo.trim(),cancelada_desde:origen,fecha_cancelacion:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_CANCEL}/items`).push(newItem);
@@ -1196,7 +1209,7 @@ function renderSections(board){
   entries.forEach(([secId,sec],secIdx)=>{
     const col=COLORS[sec.color]||COLORS.accent;
     let items=getSortedItems(sec);
-    if(board==='diseno'&&filtroMarca){
+    if(filtroMarca){
       items=items.filter(([,item])=>(item.marca||marcasList[0]||'By Nina')===filtroMarca);
     }
     const count=items.length;
@@ -2531,6 +2544,7 @@ function renderPendientes(){
   Object.entries(sectionsData).forEach(([secId,sec])=>{
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
       if(item.done) return;
+      if(filtroMarca&&(item.marca||marcasList[0]||'By Nina')!==filtroMarca) return;
       const resp=getResponsable(sec,item);
       if(!resp) return;
       if(!grupos[resp]) grupos[resp]=[];
