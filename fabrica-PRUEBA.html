@@ -676,8 +676,8 @@ function startListening(){
 }
 
 function logActivity(action,details){
-  if(currentUser!=='peque') return;
-  db.ref('fabrica_v5/actividad').push({user:'Peque',action,details,timestamp:Date.now(),read:false});
+  const userName=USER_DISPLAY[currentUser]||currentUser||'Alguien';
+  db.ref('fabrica_v5/actividad').push({user:userName,action,details,timestamp:Date.now(),read:false});
 }
 
 // AUTO-MOVE muestra: de pendiente → cortada
@@ -755,6 +755,15 @@ function editColorPrompt(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/color`).set(val.trim());
   logActivity('Editó color',val.trim()||'(vacío)');
   showToast('✓ Color guardado');
+}
+
+function editNotasPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Notas / observaciones:',item.notas||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/notas`).set(val.trim());
+  logActivity('Editó notas',(val.trim()||'(vacío)').slice(0,60));
+  showToast('✓ Nota guardada');
 }
 
 function editRefLink(secId,itemId){
@@ -1490,6 +1499,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
           ${buildModelistaHtml(secId,itemId,item,modelistaLocked,'Falta tildar Ninox y el control de ficha')}
           ${buildResponsableHtml(sec,item)}
+
+          <div style="margin-top:10px">
+            <span class="modelista-label">Notas:</span>
+            ${item.notas
+              ? `<div style="font-size:12px;color:var(--text);background:var(--surface2);border-radius:6px;padding:6px 8px;margin-top:4px;white-space:pre-wrap">${item.notas}</div>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic;margin-left:6px">Sin notas</span>`}
+            ${canEdit?`<div style="margin-top:4px"><button class="btn-sm" onclick="editNotasPrompt('${secId}','${itemId}')">${item.notas?'✏️ Editar notas':'+ Nota'}</button></div>`:''}
+          </div>
 
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Falta código, link de ficha o modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
@@ -2290,6 +2307,12 @@ function renderActividad(){
       ${currentUser==='ariel'&&!a.read?`<button class="notif-read-btn" onclick="markRead('${id}')">✓ Leído</button>`:''}
     </div>`).join('');
 }
+function colorForPersonName(name){
+  const palette=['#8b4a2b','#5b4e9e','#2f6b4f','#b45309','#0e7490','#9d174d','#4d7c0f','#6d28d9'];
+  let hash=0;
+  for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
+  return palette[Math.abs(hash)%palette.length];
+}
 function renderPendientes(){
   const cont=document.getElementById('pendientes-list');
   const grupos={};
@@ -2309,9 +2332,10 @@ function renderPendientes(){
   nombres.forEach(nombre=>{
     const lista=grupos[nombre]||[];
     if(!lista.length) return;
-    html+=`<div class="pendientes-group-title">${nombre}<span class="sec-count" style="background:var(--surface2);color:var(--text2)">${lista.length}</span></div>`;
+    const color=colorForPersonName(nombre);
+    html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span></div>`;
     lista.forEach(({item,secTitle})=>{
-      html+=`<div class="pendientes-card">
+      html+=`<div class="pendientes-card" style="border-left:4px solid ${color}">
         <div class="item-code">${item.code||item.name||'(sin código)'}</div>
         ${item.name&&item.code?`<div class="item-name">${item.name}</div>`:''}
         <div class="pendientes-etapa">${secTitle}</div>
