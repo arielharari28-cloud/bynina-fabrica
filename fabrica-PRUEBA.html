@@ -225,6 +225,7 @@
     </div>
     <div id="tab-diseno">
       <div class="stats-bar" id="stats-bar"></div>
+      <div id="marca-filter-bar" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div id="sections-container-diseno"><div class="loading">Conectando...</div></div>
       <button class="add-sec-btn hidden" id="add-sec-btn-diseno">+ Nueva sección</button>
     </div>
@@ -465,6 +466,57 @@ function getSectionIdByTipo(tipo){
   return found?found[0]:null;
 }
 
+function buildMarcaHtml(secId,itemId,item){
+  const opts=(marcasList||[]).map(n=>`<option value="${n}" ${item.marca===n?'selected':''}>${n}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+    <span class="modelista-label">Marca:</span>
+    <select class="modelista-select" onchange="onMarcaChange('${secId}','${itemId}',this)">
+      ${opts}
+      <option value="__nueva__">+ Agregar nueva…</option>
+    </select>
+  </div>`;
+}
+
+function onMarcaChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nueva__'){
+    const nombre=prompt('Nombre de la nueva marca / cliente:');
+    if(!nombre||!nombre.trim()){ sel.value=item.marca||marcasList[0]||'By Nina'; return; }
+    const limpio=nombre.trim();
+    if(!marcasList.includes(limpio)){
+      marcasList=[...marcasList,limpio];
+      db.ref('fabrica_v5/marcas').set(marcasList);
+    }
+    assignMarca(secId,itemId,limpio);
+  } else {
+    assignMarca(secId,itemId,sel.value);
+  }
+}
+
+function assignMarca(secId,itemId,nombre){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/marca`).set(nombre||null);
+  logActivity('Asignó marca',`${item.code||item.name||''} → ${nombre||'sin asignar'}`);
+  showToast(`✓ Marca: ${nombre}`);
+}
+
+function renderMarcaFilterBar(){
+  const el=document.getElementById('marca-filter-bar');
+  if(!el) return;
+  const chips=['',...marcasList];
+  el.innerHTML=chips.map(m=>{
+    const label=m===''?'Todas':m;
+    const active=filtroMarca===m?'selected':'';
+    return `<button class="radio-btn ${active}" onclick="setFiltroMarca('${m.replace(/'/g,"\\'")}')">${label}</button>`;
+  }).join('');
+}
+
+function setFiltroMarca(marca){
+  filtroMarca=marca;
+  renderMarcaFilterBar();
+  renderSections('diseno');
+}
+
 // Determina quién es responsable de la próxima acción sobre un ítem
 function getResponsable(sec,item){
   const tipo=sec.tipo||'';
@@ -507,12 +559,16 @@ const SEC_CORT  = 'muestra_cortada';
 const SEC_LISTA = 'muestra_lista';
 const SEC_TALLER = 'muestra_en_taller';
 const SEC_DISENO = 'muestra_diseno';
+const SEC_CANCEL = 'muestra_cancelada';
 
 // Nombre visible de cada login
 const USER_DISPLAY = {ariel:'Ariel',stef:'Stef',peque:'Peque',emir:'Emir',nahuel:'Cortador'};
 
 // Lista de modelistas (editable: se puede agregar una nueva directo desde la ficha)
 let modelistasList = ['Peque','Adela','Guada','Paula'];
+// Marcas/clientes para los que trabaja la fábrica (editable igual que modelistas)
+let marcasList = ['By Nina'];
+let filtroMarca = '';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -536,6 +592,7 @@ const INITIAL_SECTIONS = {
   [SEC_LISTA]:{title:'Muestras — listas para taller',color:'green',order:3,tipo:'muestra_lista',items:{}},
   [SEC_TALLER]:{title:'Muestras — en taller',color:'purple',order:4,tipo:'muestra_en_taller',items:{}},
   [SEC_DISENO]:{title:'Diseño — probar muestra',color:'warn',order:4.3,tipo:'muestra_diseno',items:{}},
+  [SEC_CANCEL]:{title:'Muestras — canceladas',color:'danger',order:4.6,tipo:'muestra_cancelada',items:{}},
   s3:{title:'Cortes próximos a sacar',color:'accent',order:4,items:{
     i1:{code:'#104',name:'Blazer Corto Paño Rayado',sub:'Cortado',done:false,avios:{}},
     i2:{code:'#105 · 7226A',name:'Campera Bomber Paño Rayado Ana',sub:'',done:false,avios:{a1:{nombre:'Botón Jeanero',proveedor:'',fecha_pedido:'',recibido:false}}},
@@ -641,6 +698,7 @@ function startListening(){
           else if(t.trim()==='Mejora') db.ref(`fabrica_v5/sections/${id}/tipo`).set('mejora');
         });
         if(!data.sections[SEC_DISENO]) db.ref(`fabrica_v5/sections/${SEC_DISENO}`).set(INITIAL_SECTIONS[SEC_DISENO]);
+        if(!data.sections[SEC_CANCEL]) db.ref(`fabrica_v5/sections/${SEC_CANCEL}`).set(INITIAL_SECTIONS[SEC_CANCEL]);
         if(!data.sections[SEC_PREP]) db.ref(`fabrica_v5/sections/${SEC_PREP}`).set(INITIAL_SECTIONS[SEC_PREP]);
         else db.ref(`fabrica_v5/sections/${SEC_PREP}/title`).set(INITIAL_SECTIONS[SEC_PREP].title);
         // Migración: si existían las 3 secciones viejas (idea/código/ficha separadas), fusionar sus ítems en SEC_PREP
@@ -668,6 +726,13 @@ function startListening(){
     else db.ref('fabrica_v5/modelistas').set(modelistasList);
     renderSections('diseno');renderSections('fabrica');
   });
+  db.ref('fabrica_v5/marcas').on('value',snap=>{
+    const v=snap.val();
+    if(v){ marcasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    else db.ref('fabrica_v5/marcas').set(marcasList);
+    renderMarcaFilterBar();
+    renderSections('diseno');
+  });
   db.ref('fabrica_v5/actividad').on('value',snap=>{
     actividadData=snap.val()||{};
     renderNotifBadge();renderNotifPanel();
@@ -681,6 +746,33 @@ function logActivity(action,details){
 }
 
 // AUTO-MOVE muestra: de pendiente → cortada
+// --- CANCELAR MUESTRA: se saca del flujo normal y queda archivada en "Canceladas" ---
+function cancelarMuestra(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item) return;
+  const motivo=prompt('¿Por qué se cancela esta muestra? (opcional)','');
+  if(motivo===null) return;
+  const origen=sectionsData[secId].title||'';
+  const newItem={...item,motivo_cancelacion:motivo.trim(),cancelada_desde:origen,fecha_cancelacion:Date.now()};
+  db.ref(`fabrica_v5/sections/${SEC_CANCEL}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Muestra cancelada',`${item.code||item.name||''}${motivo.trim()?' — '+motivo.trim():''}`);
+  showToast('🚫 Muestra cancelada');
+}
+
+function reactivarMuestra(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item) return;
+  const newItem={...item};
+  delete newItem.motivo_cancelacion;
+  delete newItem.cancelada_desde;
+  delete newItem.fecha_cancelacion;
+  db.ref(`fabrica_v5/sections/${SEC_PREP}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Reactivó muestra cancelada',item.code||item.name||'');
+  showToast('↩ Vuelve a Nuevos Desarrollos');
+}
+
 function moverACortada(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const newItem={...item,ficha:false,lleva_avios:null,avios:item.avios||{}};
@@ -1060,10 +1152,13 @@ function renderSections(board){
   }
   entries.forEach(([secId,sec],secIdx)=>{
     const col=COLORS[sec.color]||COLORS.accent;
-    const items=getSortedItems(sec);
+    let items=getSortedItems(sec);
+    if(board==='diseno'&&filtroMarca){
+      items=items.filter(([,item])=>(item.marca||marcasList[0]||'By Nina')===filtroMarca);
+    }
     const count=items.length;
     const div=document.createElement('div');div.className='section';
-    const FIXED_SECS=[SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO,SEC_PREP];
+    const FIXED_SECS=[SEC_PEND,SEC_CORT,SEC_LISTA,SEC_MOLD,SEC_DISENO,SEC_PREP,SEC_CANCEL];
     const hBtns=currentUser==='ariel'&&!FIXED_SECS.includes(secId)?`
       <button onclick="editSecTitle('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">✏️</button>
       <button onclick="deleteSec('${secId}')" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:3px 7px;color:#fff;cursor:pointer;font-size:11px">🗑</button>`:'';
@@ -1300,6 +1395,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" onclick="moverACortada('${secId}','${itemId}')">✂️ Marcar cortada</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1363,6 +1459,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
           <div class="item-actions">
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1397,6 +1494,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1428,7 +1526,31 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canEdit?`<button class="btn-advance" onclick="marcarEntregada('${secId}','${itemId}')">✅ Entregada</button>`:''}
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // --- CANCELADAS: archivo de muestras que no llegaron a aprobarse ---
+  if(tipo==='muestra_cancelada'){
+    return `<div class="item">
+      <div class="item-with-photo">
+        ${buildPhotoHtml(secId,itemId,item,false)}
+        <div class="item-body">
+          ${buildNameHtml(secId,itemId,item,false)}
+          ${item.code?`<div class="item-code" style="margin-top:0">${item.code}</div>`:''}
+          <div style="font-size:11px;color:var(--text2);margin-top:6px">Estaba en: ${item.cancelada_desde||'—'}</div>
+          ${item.fecha_cancelacion?`<div style="font-size:11px;color:var(--text2)">Cancelada: ${fmtFecha(item.fecha_cancelacion)}</div>`:''}
+          <div style="margin-top:8px">
+            <span class="modelista-label">Motivo:</span>
+            ${item.motivo_cancelacion?`<div style="font-size:12px;color:var(--text);background:var(--surface2);border-radius:6px;padding:6px 8px;margin-top:4px;white-space:pre-wrap">${item.motivo_cancelacion}</div>`:`<span style="font-size:12px;color:var(--text3);font-style:italic;margin-left:6px">Sin motivo cargado</span>`}
+          </div>
+          <div class="item-actions">
+            ${canEdit?`<button class="btn-advance" onclick="reactivarMuestra('${secId}','${itemId}')">↩ Reactivar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar definitivo</button>`:''}
           </div>
         </div>
       </div>
@@ -1462,6 +1584,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
             </div>
             ${canEdit?`<button class="btn-sm" onclick="editTelaNombre('${secId}','${itemId}')">${item.tela_nombre?'✏️ Editar':'+ Nombre'}</button>`:''}
           </div>
+
+          ${canEdit?buildMarcaHtml(secId,itemId,item):''}
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
             <span class="modelista-label">Link:</span>
@@ -1510,6 +1634,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" ${puedeAvanzar?'':'disabled'} title="${puedeAvanzar?'':'Falta código, link de ficha o modelista'}" onclick="pasarAMolderia('${secId}','${itemId}')">🧵 Enviar a moldería</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1549,6 +1674,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="item-actions">
             ${canEdit?`<button class="btn-advance" ${item.foto_drive_ok?'':'disabled'} title="${item.foto_drive_ok?'':'Falta cargar la foto en Drive'}" onclick="enviarACorte('${secId}','${itemId}')">✂️ Enviar a corte</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1593,6 +1719,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canDesign?`<button class="btn-approve" onclick="marcarAprobada('${secId}','${itemId}')">✅ Aprobar</button>`:''}
             ${canDesign?`<button class="btn-revision" onclick="marcarRevision('${secId}','${itemId}')">🔁 A revisión</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
@@ -1618,6 +1745,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canEdit?`<button class="btn-approve" onclick="marcarProductoPerfecto('${secId}','${itemId}')">✅ Producto Perfecto</button>`:''}
             ${canEdit?`<button class="btn-revision" onclick="marcarNecesitaMejora('${secId}','${itemId}')">🔧 Necesita mejora</button>`:''}
             ${moveOpts}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="cancelarMuestra('${secId}','${itemId}')">🚫 Cancelar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
