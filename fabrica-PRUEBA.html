@@ -739,6 +739,24 @@ function editCodigoPrompt(secId,itemId){
   showToast('✓ Código guardado');
 }
 
+function editTelaNombre(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Nombre de la tela:',item.tela_nombre||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/tela_nombre`).set(val.trim());
+  logActivity('Editó nombre de tela',val.trim()||'(vacío)');
+  showToast('✓ Tela guardada');
+}
+
+function editColorPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Color de la muestra:',item.color||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/color`).set(val.trim());
+  logActivity('Editó color',val.trim()||'(vacío)');
+  showToast('✓ Color guardado');
+}
+
 function editRefLink(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const link=prompt('Pegá el link de referencia (Drive, Pinterest, etc):',item.ref_link||'');
@@ -1258,6 +1276,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+            <span class="modelista-label">Color:</span>
+            ${item.color
+              ? `<span style="font-size:12px;font-weight:600">${item.color}</span>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin color</span>`}
+            ${canCheck?`<button class="btn-sm" onclick="editColorPrompt('${secId}','${itemId}')">${item.color?'✏️ Editar':'+ Color'}</button>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
@@ -1420,7 +1445,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${item.foto_tela
               ? `<div class="item-photo-wrap small"><img class="item-photo" src="${item.foto_tela}" onclick="openPhotoModal('${item.foto_tela}')">${canEdit?`<button class="photo-edit-btn" onclick="event.stopPropagation();triggerFotoTelaUpload('${secId}','${itemId}')" title="Cambiar tela">✏️</button>`:''}</div>`
               : (canEdit?`<div class="item-photo-placeholder small" onclick="triggerFotoTelaUpload('${secId}','${itemId}')" title="Agregar tela base">🧵</div>`:'')}
-            <span style="font-size:11px;color:var(--text2)">Tela base</span>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:11px;color:var(--text2)">Tela base</span>
+              ${item.tela_nombre
+                ? `<span style="font-size:12px;font-weight:600">${item.tela_nombre}</span>`
+                : `<span style="font-size:11px;color:var(--text3);font-style:italic">Sin nombre cargado</span>`}
+            </div>
+            ${canEdit?`<button class="btn-sm" onclick="editTelaNombre('${secId}','${itemId}')">${item.tela_nombre?'✏️ Editar':'+ Nombre'}</button>`:''}
           </div>
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
