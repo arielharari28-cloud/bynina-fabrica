@@ -1226,7 +1226,7 @@ function renderSections(board){
     const canAddPrep=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')&&secId===SEC_PREP;
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const addRowPrep=canAddPrep?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
-    const canAddGeneral=((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque')&&!FIXED_SECS.includes(secId);
+    const canAddGeneral=currentUser==='ariel'&&!FIXED_SECS.includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
 
     div.innerHTML=`
