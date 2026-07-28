@@ -208,6 +208,7 @@
   <div class="topbar">
     <div class="topbar-left"><span class="topbar-logo">By Nina</span><span class="topbar-title">· Fábrica</span></div>
     <div style="display:flex;align-items:center">
+      <button class="notif-btn hidden" id="backup-btn" title="Descargar backup de todos los datos">💾</button>
       <button class="notif-btn hidden" id="notif-btn">🔔<span class="notif-badge hidden" id="notif-badge">0</span></button>
       <div class="user-chip" id="user-chip">— <span style="opacity:.4">salir</span></div>
     </div>
@@ -650,6 +651,9 @@ function doLogin(user){
     document.getElementById('add-sec-btn-diseno').classList.remove('hidden');
     document.getElementById('add-sec-btn-fabrica').classList.remove('hidden');
   }
+  if(user==='ariel'||user==='stef'){
+    document.getElementById('backup-btn').classList.remove('hidden');
+  }
   if(user==='nahuel'){
     document.getElementById('stats-bar').classList.add('hidden');
     document.querySelector('.tabs').classList.add('hidden');
@@ -664,6 +668,7 @@ function doLogout(){
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('notif-btn').classList.add('hidden');
+  document.getElementById('backup-btn').classList.add('hidden');
   document.getElementById('add-sec-btn-diseno').classList.add('hidden');
   document.getElementById('add-sec-btn-fabrica').classList.add('hidden');
 }
@@ -753,7 +758,7 @@ function cancelarMuestra(secId,itemId){
   const motivo=prompt('¿Por qué se cancela esta muestra? (opcional)','');
   if(motivo===null) return;
   const origen=sectionsData[secId].title||'';
-  const newItem={...item,motivo_cancelacion:motivo.trim(),cancelada_desde:origen,fecha_cancelacion:Date.now()};
+  const newItem={...item,motivo_cancelacion:motivo.trim(),cancelada_desde:origen,fecha_cancelacion:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_CANCEL}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Muestra cancelada',`${item.code||item.name||''}${motivo.trim()?' — '+motivo.trim():''}`);
@@ -763,7 +768,7 @@ function cancelarMuestra(secId,itemId){
 function reactivarMuestra(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item) return;
-  const newItem={...item};
+  const newItem={...item,fecha_etapa:Date.now()};
   delete newItem.motivo_cancelacion;
   delete newItem.cancelada_desde;
   delete newItem.fecha_cancelacion;
@@ -775,7 +780,7 @@ function reactivarMuestra(secId,itemId){
 
 function moverACortada(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item,ficha:false,lleva_avios:null,avios:item.avios||{}};
+  const newItem={...item,ficha:false,lleva_avios:null,avios:item.avios||{},fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_CORT}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Muestra cortada',item.code);
@@ -786,7 +791,7 @@ const TALLERISTAS_MUESTRA = ['Adela', 'Willy Ramos'];
 
 function moverALista(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item};
+  const newItem={...item,fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_LISTA}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Muestra lista para taller',item.code);
@@ -796,7 +801,7 @@ function moverALista(secId,itemId){
 function enviarATaller(secId,itemId,tallerista){
   if(!tallerista||!tallerista.trim()) return;
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item, tallerista:tallerista.trim(), fecha_envio_taller:Date.now()};
+  const newItem={...item, tallerista:tallerista.trim(), fecha_envio_taller:Date.now(), fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_TALLER}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Enviada a taller',`${item.code} → ${tallerista.trim()}`);
@@ -885,7 +890,7 @@ function toggleControlFicha(secId,itemId,campo){
 function pasarAMolderia(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item.code||!item.ficha_link||!item.modelista){ showToast('Falta código, link de ficha o modelista asignada'); return; }
-  const newItem={...item};
+  const newItem={...item,fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_MOLD}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Enviada a moldería',item.code);
@@ -904,7 +909,7 @@ function marcarEntregadoCorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const revSecId=getSectionIdByTipo('revision_final');
   if(!revSecId){ showToast('No encontré la sección de Revisión Final'); return; }
-  const newItem={...item,fecha_entregado_revision:Date.now()};
+  const newItem={...item,fecha_entregado_revision:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${revSecId}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Entregado a revisión',item.code);
@@ -916,7 +921,7 @@ function marcarProductoPerfecto(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const perfSecId=getSectionIdByTipo('producto_perfecto');
   if(!perfSecId){ showToast('No encontré la sección de Productos Perfectos'); return; }
-  const newItem={...item,fecha_perfecto:Date.now()};
+  const newItem={...item,fecha_perfecto:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${perfSecId}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Producto perfecto',item.code);
@@ -929,7 +934,7 @@ function marcarNecesitaMejora(secId,itemId){
   if(nota===null||!nota.trim()){ showToast('Cargá una nota para continuar'); return; }
   const mejoraSecId=getSectionIdByTipo('mejora');
   if(!mejoraSecId){ showToast('No encontré la sección de Mejora'); return; }
-  const newItem={...item,mejora_nota:nota.trim(),mejora_resuelta:false,fecha_mejora:Date.now()};
+  const newItem={...item,mejora_nota:nota.trim(),mejora_resuelta:false,fecha_mejora:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${mejoraSecId}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Necesita mejora',`${item.code}: ${nota.trim()}`);
@@ -993,7 +998,9 @@ function enviarMejoraANuevosDesarrollos(secId,itemId){
     code:'',
     name:`${item.name||item.code||''} (mejora)`.trim(),
     foto:item.foto||null,
-    origen_mejora:item.mejora_nota||''
+    origen_mejora:item.mejora_nota||'',
+    fecha_ingreso:Date.now(),
+    fecha_etapa:Date.now()
   };
   db.ref(`fabrica_v5/sections/${prepSecId}/items`).push(newItem);
   logActivity('Mejora → Nuevos Desarrollos',item.code);
@@ -1004,7 +1011,7 @@ function enviarMejoraANuevosDesarrollos(secId,itemId){
 function enviarACorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item.foto_drive_ok){ showToast('Falta cargar la foto en Drive antes de enviar a corte'); return; }
-  const newItem={...item};
+  const newItem={...item,fecha_etapa:Date.now()};
   delete newItem.estado; // limpia el flag de "modificaciones" al reingresar al circuito
   db.ref(`fabrica_v5/sections/${SEC_PEND}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
@@ -1015,7 +1022,7 @@ function enviarACorte(secId,itemId){
 // --- ENTREGA DE TALLER → DISEÑO ---
 function marcarEntregada(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item, fecha_entregada:Date.now()};
+  const newItem={...item, fecha_entregada:Date.now(), fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_DISENO}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Muestra entregada',item.code);
@@ -1084,7 +1091,7 @@ function marcarRevision(secId,itemId){
     showToast('Cargá las modificaciones antes de mandar a revisión');
     return;
   }
-  const newItem={...item, estado:'modificaciones'};
+  const newItem={...item, estado:'modificaciones', fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${SEC_MOLD}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Muestra a revisión',item.code);
@@ -1095,6 +1102,26 @@ function fmtFecha(timestamp){
   if(!timestamp) return '';
   const d = new Date(timestamp);
   return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function diasEntre(ts){
+  if(!ts) return null;
+  return Math.floor((Date.now()-ts)/(1000*60*60*24));
+}
+
+// Muestra "Ingresó: fecha · hace X días" y "En esta etapa: hace Y días" en la tarjeta
+function procesoInfoHtml(item){
+  const parts=[];
+  if(item.fecha_ingreso){
+    const d=diasEntre(item.fecha_ingreso);
+    parts.push(`📅 Ingresó ${fmtFecha(item.fecha_ingreso)} · hace ${d} día${d!==1?'s':''}`);
+  }
+  if(item.fecha_etapa){
+    const d=diasEntre(item.fecha_etapa);
+    parts.push(`⏱ En esta etapa hace ${d} día${d!==1?'s':''}`);
+  }
+  if(!parts.length) return '';
+  return `<div style="font-size:11px;color:var(--text2);margin-top:4px">${parts.join(' &nbsp;·&nbsp; ')}</div>`;
 }
 
 function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
@@ -1379,6 +1406,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             <span class="modelista-label">Color:</span>
             ${item.color
@@ -1436,6 +1464,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div class="cortada-panel">
             <div class="cortada-row">
               <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
@@ -1475,6 +1504,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -1511,6 +1541,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -1572,6 +1603,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${item.origen_mejora?`<div style="font-size:11px;background:var(--warn-bg);color:var(--warn-text);border-radius:6px;padding:4px 8px;margin-bottom:6px">🔧 <strong>Viene de una mejora:</strong> ${item.origen_mejora}</div>`:''}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div class="idea-tela-row">
             ${item.foto_tela
               ? `<div class="item-photo-wrap small"><img class="item-photo" src="${item.foto_tela}" onclick="openPhotoModal('${item.foto_tela}')">${canEdit?`<button class="photo-edit-btn" onclick="event.stopPropagation();triggerFotoTelaUpload('${secId}','${itemId}')" title="Cambiar tela">✏️</button>`:''}</div>`
@@ -1657,6 +1689,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           ${enRevision?`<div class="mod-badge">🔁 Modificaciones pendientes</div>`:''}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
@@ -1691,6 +1724,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -1735,6 +1769,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -1763,6 +1798,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           ${resuelta?`<div class="mod-badge" style="background:var(--green-bg);color:var(--green-text)">✓ Resuelta</div>`:''}
           <div style="margin-top:8px">
             <div class="diseno-field-label">Qué hay que mejorar</div>
@@ -1812,6 +1848,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
+          ${procesoInfoHtml(item)}
           <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
           <div class="item-actions">
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
@@ -2181,10 +2218,11 @@ function quickAdd(secId){
   const val=(inp.value||'').trim();if(!val)return;
   const sec=sectionsData[secId];
   let ni;
+  const ahora=Date.now();
   if(sec.tipo==='muestra_prep'){
-    ni={code:'',name:val};
+    ni={code:'',name:val,fecha_ingreso:ahora,fecha_etapa:ahora};
   } else {
-    ni={code:val,name:'',done:false,avios:{}};
+    ni={code:val,name:'',done:false,avios:{},fecha_ingreso:ahora,fecha_etapa:ahora};
     if(sec.tipo==='muestra_pend'||sec.tipo==='muestra_cort'){ni.ficha=false;ni.lleva_avios=null;}
   }
   db.ref(`fabrica_v5/sections/${secId}/items`).push(ni);
@@ -2194,7 +2232,7 @@ function quickAdd(secId){
 function moveItem(secId,itemId,targetSecId){
   if(!targetSecId||!itemId)return;
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v5/sections/${targetSecId}/items`).push(item);
+  db.ref(`fabrica_v5/sections/${targetSecId}/items`).push({...item,fecha_etapa:Date.now()});
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Movió ítem',`${item.code} → ${sectionsData[targetSecId].title}`);
   showToast('Ítem movido');
@@ -2402,6 +2440,27 @@ document.getElementById('save-modal-sec').onclick=()=>{
 
 // NOTIFS
 document.getElementById('notif-btn').onclick=()=>{document.getElementById('notif-panel').classList.toggle('hidden');renderNotifPanel()};
+document.getElementById('backup-btn').onclick=descargarBackup;
+async function descargarBackup(){
+  try{
+    showToast('Generando backup...');
+    const snap=await db.ref('fabrica_v5').once('value');
+    const data=snap.val()||{};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const fecha=new Date().toISOString().slice(0,10);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`backup-fabrica-${fecha}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('✓ Backup descargado');
+  }catch(e){
+    showToast('Error al generar el backup');
+  }
+}
 document.getElementById('mark-all-btn').onclick=()=>{
   Object.entries(actividadData).forEach(([id,a])=>{if(!a.read)db.ref(`fabrica_v5/actividad/${id}/read`).set(true)});
 };
