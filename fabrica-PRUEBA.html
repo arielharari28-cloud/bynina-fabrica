@@ -137,7 +137,8 @@
   .responsable-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;font-weight:600;background:var(--accent-bg);color:var(--accent);margin:4px 0}
   .pendientes-group-title{font-size:13px;font-weight:700;margin:18px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
   .pendientes-group-title:first-child{margin-top:0}
-  .pendientes-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:8px}
+  .pendientes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+  .pendientes-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:0}
   .pendientes-etapa{font-size:11px;color:var(--text2);margin-top:2px}
   .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
   .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
@@ -152,6 +153,9 @@
   .item-name-edit-input{font-size:12px;border:1px solid var(--accent);border-radius:4px;padding:2px 6px;width:100%;margin-top:2px;background:var(--surface)}
 
   .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .search-input{width:100%;box-sizing:border-box;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:var(--bg);color:var(--text);margin-bottom:10px}
+  .search-input:focus{outline:none;border-color:var(--accent)}
+  .alert-banner-item{font-size:12px;font-weight:600;border-radius:8px;padding:8px 12px;margin-bottom:8px}
   .stat-card{background:var(--surface);border-radius:var(--radius);padding:10px 12px;text-align:center;box-shadow:var(--shadow)}
   .stat-num{font-size:22px;font-weight:700}.stat-label{font-size:10px;color:var(--text3);margin-top:2px}
 
@@ -225,12 +229,15 @@
       <button class="tab" id="tab-btn-actividad">Actividad</button>
     </div>
     <div id="tab-diseno">
+      <div id="alert-banner"></div>
       <div class="stats-bar" id="stats-bar"></div>
+      <input type="text" class="search-input" id="search-input-diseno" placeholder="Buscador por código o nombre" oninput="onSearchInput('diseno',this.value)">
       <div id="marca-filter-bar" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div id="sections-container-diseno"><div class="loading">Conectando...</div></div>
       <button class="add-sec-btn hidden" id="add-sec-btn-diseno">+ Nueva sección</button>
     </div>
     <div id="tab-fabrica" class="hidden">
+      <input type="text" class="search-input" id="search-input-fabrica" placeholder="Buscador por código o nombre" oninput="onSearchInput('fabrica',this.value)">
       <div id="marca-filter-bar-fabrica" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div id="sections-container-fabrica"><div class="loading">Conectando...</div></div>
       <button class="add-sec-btn hidden" id="add-sec-btn-fabrica">+ Nueva sección</button>
@@ -526,6 +533,11 @@ function setFiltroMarca(marca){
   if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
 }
 
+function onSearchInput(board,value){
+  searchQuery=value||'';
+  renderSections(board);
+}
+
 // Determina quién es responsable de la próxima acción sobre un ítem
 function getResponsable(sec,item){
   const tipo=sec.tipo||'';
@@ -578,6 +590,7 @@ let modelistasList = ['Peque','Adela','Guada','Paula'];
 // Marcas/clientes para los que trabaja la fábrica (editable igual que modelistas)
 let marcasList = ['By Nina'];
 let filtroMarca = '';
+let searchQuery = '';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -746,7 +759,7 @@ function backfillFechasIngreso(){
 db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
     backfillFechasIngreso();
-    renderSections('diseno');renderSections('fabrica');renderStats();
+    renderSections('diseno');renderSections('fabrica');renderStats();renderAlertBanner();
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
   });
   db.ref('fabrica_v5/modelistas').on('value',snap=>{
@@ -827,17 +840,15 @@ function moverALista(secId,itemId){
   showToast('🎉 ¡Lista para sacar a taller!');
 }
 
-function enviarATaller(secId,itemId,tallerista){
+function elegirTaller(secId,itemId,tallerista){
   if(!tallerista||!tallerista.trim()) return;
   const item=sectionsData[secId].items[itemId];
-  const newItem={...item, tallerista:tallerista.trim(), fecha_envio_taller:Date.now(), fecha_etapa:Date.now()};
-  db.ref(`fabrica_v5/sections/${SEC_TALLER}/items`).push(newItem);
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Enviada a taller',`${item.code} → ${tallerista.trim()}`);
-  showToast(`📦 Enviada a ${tallerista.trim()}`);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/taller_elegido`).set(tallerista.trim());
+  logActivity('Eligió taller',`${item.code} → ${tallerista.trim()}`);
+  showToast(`✓ Taller elegido: ${tallerista.trim()} — falta marcar enviado`);
 }
 
-function confirmarEnvioTaller(secId,itemId){
+function confirmarEleccionTaller(secId,itemId){
   const sel = document.getElementById(`taller-sel-${itemId}`);
   let val = sel.value;
   if(!val){ showToast('Elegí un taller primero'); return; }
@@ -846,7 +857,19 @@ function confirmarEnvioTaller(secId,itemId){
     if(!nuevo||!nuevo.trim()) return;
     val = nuevo.trim();
   }
-  enviarATaller(secId,itemId,val);
+  elegirTaller(secId,itemId,val);
+}
+
+function marcarEnviadoTaller(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const tallerista=item.taller_elegido;
+  if(!tallerista){ showToast('Todavía no se eligió el taller'); return; }
+  const newItem={...item, tallerista, fecha_envio_taller:Date.now(), fecha_etapa:Date.now()};
+  delete newItem.taller_elegido;
+  db.ref(`fabrica_v5/sections/${SEC_TALLER}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Enviada a taller',`${item.code} → ${tallerista}`);
+  showToast(`📦 Enviada a ${tallerista}`);
 }
 
 function diasDesde(timestamp){
@@ -874,12 +897,24 @@ function editTelaNombre(secId,itemId){
   showToast('✓ Tela guardada');
 }
 
+function editTelaProveedor(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Proveedor de la tela:',item.tela_proveedor||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/tela_proveedor`).set(val.trim());
+  logActivity('Editó proveedor de tela',val.trim()||'(vacío)');
+  showToast('✓ Proveedor guardado');
+}
+
 function editColorPrompt(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const val=prompt('Color de la muestra:',item.color||'');
   if(val===null) return;
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/color`).set(val.trim());
-  logActivity('Editó color',val.trim()||'(vacío)');
+  const trimmed=val.trim();
+  const updates={color:trimmed};
+  updates.color_set_by = trimmed ? (USER_DISPLAY[currentUser]||currentUser) : null;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Editó color',trimmed||'(vacío)');
   showToast('✓ Color guardado');
 }
 
@@ -1167,6 +1202,25 @@ function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
   }
 }
 
+function renderAlertBanner(){
+  const el=document.getElementById('alert-banner');
+  if(!el) return;
+  let html='';
+  if(currentUser==='ariel'||currentUser==='stef'){
+    const sinColor=Object.values(sectionsData[SEC_PEND]?.items||{}).filter(it=>!it.color).length;
+    if(sinColor>0){
+      html+=`<div class="alert-banner-item" style="background:var(--warn-bg);color:var(--warn-text)">⚠️ ${sinColor} muestra${sinColor!==1?'s':''} sin color asignado</div>`;
+    }
+  }
+  if(currentUser==='emir'||currentUser==='ariel'||currentUser==='stef'){
+    const conTaller=Object.values(sectionsData[SEC_LISTA]?.items||{}).filter(it=>it.taller_elegido).length;
+    if(conTaller>0){
+      html+=`<div class="alert-banner-item" style="background:var(--green-bg);color:var(--green-text)">📦 ${conTaller} muestra${conTaller!==1?'s':''} con taller elegido, list${conTaller!==1?'as':'a'} para marcar enviado</div>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
 function renderStats(){
   let total=0,done=0,bloq=0,listas=0,enTaller=0;
   Object.entries(sectionsData).forEach(([secId,sec])=>{
@@ -1199,6 +1253,11 @@ function getBoard(sec){
   return (sec.tipo||'').startsWith('muestra_') ? 'diseno' : 'fabrica';
 }
 
+function extractCorteNumber(item){
+  const m = (item.code||'').match(/(\d+)/);
+  return m ? parseInt(m[1],10) : 999999;
+}
+
 function renderSections(board){
   const containerId = board==='diseno' ? 'sections-container-diseno' : 'sections-container-fabrica';
   const c=document.getElementById(containerId);c.innerHTML='';
@@ -1211,6 +1270,10 @@ function renderSections(board){
     let items=getSortedItems(sec);
     if(filtroMarca){
       items=items.filter(([,item])=>(item.marca||marcasList[0]||'By Nina')===filtroMarca);
+    }
+    if(searchQuery){
+      const q=searchQuery.trim().toLowerCase();
+      items=items.filter(([,item])=>(item.code||'').toLowerCase().includes(q)||(item.name||'').toLowerCase().includes(q));
     }
     const count=items.length;
     const div=document.createElement('div');div.className='section';
@@ -1229,13 +1292,37 @@ function renderSections(board){
     const canAddGeneral=currentUser==='ariel'&&!FIXED_SECS.includes(secId);
     const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
 
+    // Productos Perfectos: agrupar el mismo modelo (mismo nombre) junto, ordenado por N° de corte.
+    let itemsHtml;
+    if(sec.tipo==='producto_perfecto'){
+      const nameCounts={};
+      items.forEach(([,item])=>{ const n=(item.name||'').trim().toLowerCase(); nameCounts[n]=(nameCounts[n]||0)+1; });
+      const sortedItems=items.slice().sort((a,b)=>{
+        const na=(a[1].name||'').trim().toLowerCase(), nb=(b[1].name||'').trim().toLowerCase();
+        if(na!==nb) return na.localeCompare(nb);
+        return extractCorteNumber(a[1])-extractCorteNumber(b[1]);
+      });
+      let lastName=null;
+      itemsHtml=sortedItems.map(([itemId,item],idx)=>{
+        const n=(item.name||'').trim().toLowerCase();
+        let header='';
+        if(n!==lastName && nameCounts[n]>1){
+          header=`<div class="group-header" style="font-size:12px;font-weight:700;color:var(--text2);margin:10px 0 2px;padding-bottom:4px;border-bottom:1px dashed var(--border)">${item.name||'(sin nombre)'} — ${nameCounts[n]} cortes</div>`;
+        }
+        lastName=n;
+        return header+buildItem(secId,itemId,item,sec,idx,sortedItems.length);
+      }).join('');
+    } else {
+      itemsHtml=items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
+    }
+
     div.innerHTML=`
       <div class="sec-header" style="background:${col.secBg}" onclick="toggleSec('${secId}')">
         <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${count}</span></div>
         <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${secOrderBtns}${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
       </div>
       <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
-        ${items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')}
+        ${itemsHtml}
         ${addRow}${addRowPrep}${addRowGeneral}
       </div>`;
     c.appendChild(div);
@@ -1403,7 +1490,7 @@ function buildItem(secId,itemId,item,sec){
 }
 
 function buildMoveOpts(secId){
-  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  if(currentUser!=='ariel') return '';
   const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   if(!targets.length) return '';
   const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
@@ -1414,7 +1501,7 @@ function buildMoveOpts(secId){
 
 // Necesito itemId en el select, lo pongo como data
 function buildMoveOptsForItem(secId,itemId){
-  if(currentUser!=='ariel'&&currentUser!=='peque') return '';
+  if(currentUser!=='ariel') return '';
   const targets=Object.entries(sectionsData).filter(([id])=>id!==secId).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   if(!targets.length) return '';
   const opts=targets.map(([id,s])=>`<option value="${id}">${s.title}</option>`).join('');
@@ -1440,8 +1527,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             <span class="modelista-label">Color:</span>
             ${item.color
-              ? `<span style="font-size:12px;font-weight:600">${item.color}</span>`
-              : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin color</span>`}
+              ? `<span style="font-size:12px;font-weight:600">${item.color}</span><span style="font-size:10px;color:var(--text3)">(cargado por ${item.color_set_by||'—'})</span>`
+              : `<span style="font-size:12px;color:var(--warn-text);font-style:italic">⚠️ Sin color</span>`}
             ${canCheck?`<button class="btn-sm" onclick="editColorPrompt('${secId}','${itemId}')">${item.color?'✏️ Editar':'+ Color'}</button>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
@@ -1529,6 +1616,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
   if(tipo==='muestra_lista'){
     const tallerOpts=TALLERISTAS_MUESTRA.map(t=>`<option value="${t}">${t}</option>`).join('');
+    const tallerElegido=item.taller_elegido;
+    const canMarcarEnviado=canEdit||currentUser==='emir';
     return `<div class="item">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
@@ -1544,14 +1633,19 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
           <div class="listo-badge">🎉 Lista para sacar a taller</div>
-          ${canEdit?`
+          ${(!tallerElegido&&canEdit)?`
           <div class="enviar-taller-row">
             <select class="move-select" id="taller-sel-${itemId}">
               <option value="">Elegir taller...</option>
               ${tallerOpts}
               <option value="__nuevo__">+ Otro...</option>
             </select>
-            <button class="btn-advance" onclick="confirmarEnvioTaller('${secId}','${itemId}')">📦 Enviar a taller</button>
+            <button class="btn-advance" onclick="confirmarEleccionTaller('${secId}','${itemId}')">Elegir taller</button>
+          </div>`:''}
+          ${tallerElegido?`
+          <div class="enviar-taller-row" style="align-items:center">
+            <span style="font-size:12px;color:var(--text2)">Taller elegido: <strong>${tallerElegido}</strong></span>
+            ${canMarcarEnviado?`<button class="btn-advance" onclick="marcarEnviadoTaller('${secId}','${itemId}')">✅ Enviado</button>`:''}
           </div>`:''}
           <div class="item-actions">
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Avíos</button>`:''}
@@ -1648,6 +1742,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
                 : `<span style="font-size:11px;color:var(--text3);font-style:italic">Sin nombre cargado</span>`}
             </div>
             ${canEdit?`<button class="btn-sm" onclick="editTelaNombre('${secId}','${itemId}')">${item.tela_nombre?'✏️ Editar':'+ Nombre'}</button>`:''}
+            <div style="display:flex;flex-direction:column;gap:2px;margin-left:10px">
+              <span style="font-size:11px;color:var(--text2)">Proveedor</span>
+              ${item.tela_proveedor
+                ? `<span style="font-size:12px;font-weight:600">${item.tela_proveedor}</span>`
+                : `<span style="font-size:11px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+            </div>
+            ${canEdit?`<button class="btn-sm" onclick="editTelaProveedor('${secId}','${itemId}')">${item.tela_proveedor?'✏️ Editar':'+ Proveedor'}</button>`:''}
           </div>
 
           ${canEdit?buildMarcaHtml(secId,itemId,item):''}
@@ -1887,7 +1988,15 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+          ${item.modelista?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🧵 Moldería: <strong>${item.modelista}</strong></div>`:''}
           <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
+          <div style="margin-top:8px">
+            <span class="modelista-label">Nota:</span>
+            ${item.notas
+              ? `<div style="font-size:12px;color:var(--text);background:var(--surface2);border-radius:6px;padding:6px 8px;margin-top:4px;white-space:pre-wrap">${item.notas}</div>`
+              : `<span style="font-size:12px;color:var(--text3);font-style:italic;margin-left:6px">Sin notas</span>`}
+            ${canEdit?`<div style="margin-top:4px"><button class="btn-sm" onclick="editNotasPrompt('${secId}','${itemId}')">${item.notas?'✏️ Editar nota':'+ Nota'}</button></div>`:''}
+          </div>
           <div class="item-actions">
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
@@ -1953,7 +2062,22 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${fichaHtml}
+        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--text2)">Curva:</span>
+          ${item.curva?`<span style="font-size:12px;font-weight:600">${item.curva}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+          ${canFicha?`<button class="btn-sm" onclick="editCurvaPrompt('${secId}','${itemId}')">${item.curva?'✏️':'+ Curva'}</button>`:''}
+          <span style="font-size:11px;color:var(--text2);margin-left:6px">Ancho:</span>
+          ${item.ancho?`<span style="font-size:12px;font-weight:600">${item.ancho}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px">
+          <div class="c-check ${item.control_piezas?'checked':''}" onclick="${canFicha?`toggleControlPiezas('${secId}','${itemId}')`:''}">${item.control_piezas?'✓':''}</div>
+          <span class="c-label ${item.control_piezas?'done':''}" style="font-size:11px">Control de piezas</span>
+          ${item.control_piezas_link?`<a href="${item.control_piezas_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:11px">🔗 Ver</a>`:''}
+          ${canFicha?`<button class="btn-sm" onclick="editControlPiezasLink('${secId}','${itemId}')">${item.control_piezas_link?'🔗 Editar link':'+ Link'}</button>`:''}
+        </div>
         ${numeroCorteHtml}
         ${capasHtml}
         ${flujoCorteHtml}
@@ -1968,6 +2092,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
           ${canFicha?`<button class="btn-sm" onclick="editNotaCorte('${secId}','${itemId}')">📝 ${item.nota?'Editar nota':'Agregar nota'}</button>`:''}
           ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+          ${canEdit?`<button class="btn-advance" onclick="siguientePaso('${secId}','${itemId}')">▶ Siguiente paso</button>`:''}
           ${moveOpts}
           ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
@@ -2199,6 +2324,53 @@ function editNotaCorte(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/nota`).set(nota.trim());
   logActivity('Nota de corte',`${item.code}: ${nota.trim()}`);
   showToast(nota.trim()?'✓ Nota guardada':'Nota eliminada');
+}
+
+function editCurvaPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Curva (ej: S-M-L-XL, misma cant.):',item.curva||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/curva`).set(val.trim());
+  logActivity('Editó curva',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
+  showToast('✓ Curva guardada');
+}
+
+function editAnchoPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Ancho:',item.ancho||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ancho`).set(val.trim());
+  logActivity('Editó ancho',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
+  showToast('✓ Ancho guardado');
+}
+
+function toggleControlPiezas(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nuevo=!item.control_piezas;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/control_piezas`).set(nuevo);
+  logActivity('Control de piezas',`${item.code||item.name||''}: ${nuevo?'hecho':'deshecho'}`);
+  showToast(nuevo?'✓ Control de piezas hecho':'↩ Control de piezas deshecho');
+}
+
+function editControlPiezasLink(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Link de Control de piezas:',item.control_piezas_link||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/control_piezas_link`).set(val.trim());
+  showToast('✓ Link guardado');
+}
+
+// Mueve el ítem a la siguiente sección (según el orden de columnas del mismo tablero),
+// para no depender siempre del desplegable "Mover a..."
+function siguientePaso(secId,itemId){
+  const sec=sectionsData[secId];
+  if(!sec) return;
+  const board=getBoard(sec);
+  const entries=Object.entries(sectionsData).filter(([,s])=>getBoard(s)===board).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const idx=entries.findIndex(([id])=>id===secId);
+  if(idx===-1||idx>=entries.length-1){ showToast('Ya está en el último paso'); return; }
+  const nextId=entries[idx+1][0];
+  moveItem(secId,itemId,nextId);
 }
 
 function toggleFicha(secId,itemId){
@@ -2560,6 +2732,7 @@ function renderPendientes(){
     if(!lista.length) return;
     const color=colorForPersonName(nombre);
     html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span></div>`;
+    html+=`<div class="pendientes-grid">`;
     lista.forEach(({item,secTitle})=>{
       html+=`<div class="pendientes-card" style="border-left:4px solid ${color}">
         <div class="item-code">${item.code||item.name||'(sin código)'}</div>
@@ -2567,6 +2740,7 @@ function renderPendientes(){
         <div class="pendientes-etapa">${secTitle}</div>
       </div>`;
     });
+    html+=`</div>`;
   });
   cont.innerHTML=html||`<div class="empty-state">No hay pendientes por ahora 🎉</div>`;
 }
