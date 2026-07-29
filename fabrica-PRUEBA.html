@@ -212,10 +212,15 @@
   <div class="topbar">
     <div class="topbar-left"><span class="topbar-logo">By Nina</span><span class="topbar-title">· Fábrica</span></div>
     <div style="display:flex;align-items:center">
+      <button class="notif-btn hidden" id="pins-btn" title="Cambiar PIN de usuarios">🔑</button>
       <button class="notif-btn hidden" id="backup-btn" title="Descargar backup de todos los datos">💾</button>
       <button class="notif-btn hidden" id="notif-btn">🔔<span class="notif-badge hidden" id="notif-badge">0</span></button>
       <div class="user-chip" id="user-chip">— <span style="opacity:.4">salir</span></div>
     </div>
+  </div>
+  <div class="notif-panel hidden" id="pins-panel">
+    <div class="notif-panel-header"><span style="font-size:13px;font-weight:700">Cambiar PIN</span></div>
+    <div class="notif-list" id="pins-list"></div>
   </div>
   <div class="notif-panel hidden" id="notif-panel">
     <div class="notif-panel-header"><span style="font-size:13px;font-weight:700">Actividad de Peque</span><button class="mark-all-btn" id="mark-all-btn">Marcar todo leído</button></div>
@@ -290,6 +295,41 @@ firebase.initializeApp({
   appId:"1:1059883614729:web:bynina"
 });
 const db = firebase.database();
+
+// --- PIN por usuario ---
+// Arranca con estos valores por defecto; se guardan en Firebase la primera vez,
+// y desde ahí Ariel/Stef los pueden cambiar sin tocar código.
+let userPins = {ariel:'2801', stef:'1611', peque:'2907', emir:'2916', nahuel:'0633'};
+let pinsReady = false;
+db.ref('fabrica_v5/pins').once('value',snap=>{
+  if(snap.exists()){
+    userPins = {...userPins, ...snap.val()};
+  } else {
+    db.ref('fabrica_v5/pins').set(userPins);
+  }
+  pinsReady = true;
+});
+
+function attemptLogin(user){
+  const tryPin = () => {
+    const val = prompt(`PIN de ${USER_DISPLAY[user]||user}:`);
+    if(val===null) return; // canceló
+    if(val === userPins[user]){
+      doLogin(user);
+    } else {
+      alert('PIN incorrecto');
+    }
+  };
+  if(pinsReady){
+    tryPin();
+  } else {
+    // Todavía no llegaron los PIN desde Firebase (recién abriendo la página); esperamos un toque.
+    setTimeout(()=>{
+      if(pinsReady) tryPin();
+      else alert('Todavía está cargando, esperá un segundo y probá de nuevo');
+    }, 600);
+  }
+}
 
 // Cloudinary config (mismo que otras apps By Nina)
 const CLOUDINARY_CLOUD = 'dt6ijkpyy';
@@ -655,11 +695,11 @@ function showToast(msg){
 }
 
 // LOGIN
-document.getElementById('btn-ariel').onclick=()=>doLogin('ariel');
-document.getElementById('btn-stef').onclick=()=>doLogin('stef');
-document.getElementById('btn-peque').onclick=()=>doLogin('peque');
-document.getElementById('btn-emir').onclick=()=>doLogin('emir');
-document.getElementById('btn-nahuel').onclick=()=>doLogin('nahuel');
+document.getElementById('btn-ariel').onclick=()=>attemptLogin('ariel');
+document.getElementById('btn-stef').onclick=()=>attemptLogin('stef');
+document.getElementById('btn-peque').onclick=()=>attemptLogin('peque');
+document.getElementById('btn-emir').onclick=()=>attemptLogin('emir');
+document.getElementById('btn-nahuel').onclick=()=>attemptLogin('nahuel');
 document.getElementById('user-chip').onclick=doLogout;
 
 function doLogin(user){
@@ -674,6 +714,7 @@ function doLogin(user){
   }
   if(user==='ariel'||user==='stef'){
     document.getElementById('backup-btn').classList.remove('hidden');
+    document.getElementById('pins-btn').classList.remove('hidden');
   }
   if(user==='nahuel'){
     document.getElementById('stats-bar').classList.add('hidden');
@@ -690,6 +731,8 @@ function doLogout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('notif-btn').classList.add('hidden');
   document.getElementById('backup-btn').classList.add('hidden');
+  document.getElementById('pins-btn').classList.add('hidden');
+  document.getElementById('pins-panel').classList.add('hidden');
   document.getElementById('add-sec-btn-diseno').classList.add('hidden');
   document.getElementById('add-sec-btn-fabrica').classList.add('hidden');
 }
@@ -2653,6 +2696,29 @@ document.getElementById('save-modal-sec').onclick=()=>{
 
 // NOTIFS
 document.getElementById('notif-btn').onclick=()=>{document.getElementById('notif-panel').classList.toggle('hidden');renderNotifPanel()};
+document.getElementById('pins-btn').onclick=()=>{document.getElementById('pins-panel').classList.toggle('hidden');renderPinsPanel()};
+
+function renderPinsPanel(){
+  const el=document.getElementById('pins-list');
+  const users=['ariel','stef','peque','emir','nahuel'];
+  el.innerHTML=users.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;flex:1">${USER_DISPLAY[u]||u}</span>
+      <input type="text" id="pin-input-${u}" value="${userPins[u]||''}" style="width:70px;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--bg);color:var(--text)">
+      <button class="btn-sm" onclick="savePin('${u}')">Guardar</button>
+    </div>
+  `).join('');
+}
+
+function savePin(user){
+  const input=document.getElementById(`pin-input-${user}`);
+  const val=(input.value||'').trim();
+  if(!val){ showToast('El PIN no puede estar vacío'); return; }
+  userPins={...userPins,[user]:val};
+  db.ref(`fabrica_v5/pins/${user}`).set(val);
+  showToast(`✓ PIN de ${USER_DISPLAY[user]||user} actualizado`);
+}
+
 document.getElementById('backup-btn').onclick=descargarBackup;
 async function descargarBackup(){
   try{
