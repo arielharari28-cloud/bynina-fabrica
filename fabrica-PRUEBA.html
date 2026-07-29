@@ -1254,7 +1254,8 @@ function getBoard(sec){
 }
 
 function extractCorteNumber(item){
-  const m = (item.code||'').match(/(\d+)/);
+  const src = item.numero_corte || item.code || '';
+  const m = src.match(/(\d+)/);
   return m ? parseInt(m[1],10) : 999999;
 }
 
@@ -1987,6 +1988,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
+          ${item.numero_corte?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>`:''}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${item.modelista?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🧵 Moldería: <strong>${item.modelista}</strong></div>`:''}
           <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
@@ -1998,6 +2000,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canEdit?`<div style="margin-top:4px"><button class="btn-sm" onclick="editNotasPrompt('${secId}','${itemId}')">${item.notas?'✏️ Editar nota':'+ Nota'}</button></div>`:''}
           </div>
           <div class="item-actions">
+            ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
