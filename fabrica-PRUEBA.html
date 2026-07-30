@@ -296,6 +296,25 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
+// Aviso confiable de "sin conexión" (ruta especial de Firebase que sabe si el
+// navegador está realmente conectado, no solo si falló un guardado puntual).
+db.ref('.info/connected').on('value', snap=>{
+  const conectado = snap.val() === true;
+  let banner = document.getElementById('conn-banner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'conn-banner';
+    banner.style.cssText = 'position:sticky;top:0;z-index:500;background:#c0392b;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:8px;display:none;';
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
+  if(conectado){
+    banner.style.display = 'none';
+  } else {
+    banner.textContent = '⚠️ Sin conexión — lo que marques ahora se va a guardar solo cuando vuelva la señal. No cierres esta pantalla hasta que el cartel desaparezca.';
+    banner.style.display = 'block';
+  }
+});
+
 // --- PIN por usuario ---
 // Arranca con estos valores por defecto; se guardan en Firebase la primera vez,
 // y desde ahí Ariel/Stef los pueden cambiar sin tocar código.
