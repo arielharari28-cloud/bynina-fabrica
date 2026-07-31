@@ -1013,6 +1013,41 @@ function toggleControlFicha(secId,itemId,campo){
   logActivity('Control de ficha',`${item.code} → ${campo}`);
 }
 
+function pedirModificacionFicha(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item.ficha_link){ showToast('Cargá el link de la ficha primero'); return; }
+  let notas=null;
+  while(true){
+    notas=prompt('¿Qué hay que modificar en la ficha técnica? (obligatorio)',notas||'');
+    if(notas===null) return; // canceló, no se manda nada
+    if(notas.trim()) break;
+    alert('Contame qué modificar antes de enviarla.');
+  }
+  const updates={
+    ficha_estado:'modificar',
+    ficha_mod_notas:notas.trim(),
+    ficha_mod_por:USER_DISPLAY[currentUser]||currentUser,
+    ficha_mod_fecha:Date.now(),
+    control_ariel:false,
+    control_stef:false
+  };
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Pidió modificar ficha',`${item.code}: ${notas.trim().slice(0,60)}`);
+  showToast('🔁 Se pidió modificar la ficha técnica');
+}
+
+function marcarFichaCorregida(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!item.ficha_link){ showToast('Cargá el link de la ficha corregida primero'); return; }
+  const updates={
+    ficha_estado:'modificada',
+    ficha_resuelta_fecha:Date.now()
+  };
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Corrigió ficha',item.code);
+  showToast('✓ Ficha corregida — falta que Ariel/Stef la vuelvan a controlar');
+}
+
 function pasarAMolderia(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item.code||!item.ficha_link||!item.modelista){ showToast('Falta código, link de ficha o modelista asignada'); return; }
@@ -1268,6 +1303,12 @@ function renderAlertBanner(){
   const el=document.getElementById('alert-banner');
   if(!el) return;
   let html='';
+  if(currentUser==='peque'||currentUser==='ariel'||currentUser==='stef'){
+    const fichasModificar=Object.values(sectionsData[SEC_PREP]?.items||{}).filter(it=>it.ficha_estado==='modificar').length;
+    if(fichasModificar>0){
+      html+=`<div class="alert-banner-item" style="background:var(--danger-bg);color:var(--danger)">🔧 ${fichasModificar} ficha${fichasModificar!==1?'s':''} técnica${fichasModificar!==1?'s':''} para modificar</div>`;
+    }
+  }
   if(currentUser==='ariel'||currentUser==='stef'){
     const sinColor=Object.values(sectionsData[SEC_PEND]?.items||{}).filter(it=>!it.color).length;
     if(sinColor>0){
@@ -1782,10 +1823,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
   if(tipo==='muestra_prep'){
     const ninox=item.en_ninox||false;
     const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
-    const controlLabel=(cAriel&&cStef)?'Ambos ✓':cAriel?'Ariel ✓':cStef?'Stef ✓':'Pendiente';
     const controlDone=cAriel||cStef;
-    const modelistaLocked=!(ninox&&controlDone);
-    const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista;
+    const fichaModPendiente=item.ficha_estado==='modificar';
+    const fichaStatusLabel=fichaModPendiente
+      ? '🔁 Pendiente modificar ficha'
+      : (controlDone ? (item.ficha_estado==='modificada' ? '✅ Ficha Técnica Modificada' : '✅ Ficha Técnica Aprobada') : 'Pendiente');
+    const fichaStatusColor=(fichaModPendiente||!controlDone) ? 'var(--warn-text)' : 'var(--accent)';
+    const modelistaLocked=!(ninox&&controlDone)||fichaModPendiente;
+    const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista&&!fichaModPendiente;
     const canControl=(currentUser==='ariel'||currentUser==='stef');
     return `<div class="item">
       <div class="item-with-photo">
@@ -1844,13 +1889,19 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
           <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="modelista-label">Control de ficha:</span>
-            <span style="font-size:12px;font-weight:600;color:${controlDone?'var(--accent)':'var(--warn-text)'}">${controlLabel}</span>
-            ${canControl&&item.ficha_link?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
-            <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>`:''}
+            <span style="font-size:12px;font-weight:600;color:${fichaStatusColor}">${fichaStatusLabel}</span>
+            ${canControl&&item.ficha_link&&!fichaModPendiente?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
+            <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>
+            <button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="pedirModificacionFicha('${secId}','${itemId}')">🔧 Pedir modificación</button>`:''}
             ${canControl&&!item.ficha_link?`<span style="font-size:11px;color:var(--text3);font-style:italic">Cargá la ficha primero</span>`:''}
           </div>
+          ${fichaModPendiente?`<div class="mod-ref-box">
+            <div class="mod-ref-title">🔧 Modificación pedida${item.ficha_mod_por?` por ${item.ficha_mod_por}`:''}:</div>
+            <div>${(item.ficha_mod_notas||'').replace(/</g,'&lt;')}</div>
+            ${canEdit?`<button class="btn-advance" style="margin-top:8px" onclick="marcarFichaCorregida('${secId}','${itemId}')">✅ Ya corregí la ficha</button>`:''}
+          </div>`:''}
 
-          ${buildModelistaHtml(secId,itemId,item,modelistaLocked,'Falta tildar Ninox y el control de ficha')}
+          ${buildModelistaHtml(secId,itemId,item,modelistaLocked,fichaModPendiente?'Falta corregir y volver a controlar la ficha':'Falta tildar Ninox y el control de ficha')}
           ${buildResponsableHtml(sec,item)}
 
           <div style="margin-top:10px">
@@ -2168,29 +2219,11 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
 // FLUJO PRE-CORTE: Tiza -> Orden de corte -> Encimado -> (recién ahí) Marcar cortado
 function buildFlujoPreCorte(secId,itemId,item,canCortar){
-  const tiza=item.tiza_hecha; // undefined = sin definir, true/false una vez definida
+  // Nota: se saca el paso de "¿Tiza hecha?" — un ítem solo llega a "Cortes próximos a sacar"
+  // una vez que la tiza ya está hecha, así que preguntarlo acá era redundante. El flujo
+  // arranca directo en Orden de corte.
   const ordenCargada=!!item.orden_corte_cargada;
   const encimadoTerm=!!item.encimado_terminado;
-
-  const tizaRow = (tiza===undefined||tiza===null)
-    ? `<div class="cortada-row">
-        <span class="c-label" style="font-weight:500">✏️ ¿Tiza hecha?</span>
-        <div class="radio-group">
-          ${canCortar?`
-            <button class="radio-btn" onclick="setTizaHecha('${secId}','${itemId}',true)">Sí</button>
-            <button class="radio-btn" onclick="setTizaHecha('${secId}','${itemId}',false)">No</button>
-          `:`<span style="font-size:12px;color:var(--text2)">Sin definir</span>`}
-        </div>
-      </div>`
-    : `<div class="cortada-row">
-        <span class="c-label">✏️ Tiza: <strong style="color:${tiza?'var(--green-text)':'var(--text2)'}">${tiza?'Hecha':'No hecha'}</strong></span>
-        ${canCortar&&!ordenCargada?`<button class="btn-sm" onclick="setTizaHecha('${secId}','${itemId}',null)">↩ Deshacer</button>`:''}
-      </div>`;
-
-  // Todavía no se definió la tiza: solo mostramos esa pregunta.
-  if(tiza===undefined||tiza===null){
-    return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}</div>`;
-  }
 
   const ordenRow = !ordenCargada
     ? `<div class="cortada-row">
@@ -2202,9 +2235,9 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
         ${canCortar&&!encimadoTerm?`<button class="btn-sm" onclick="setOrdenCorteCargada('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
       </div>`;
 
-  // Tiza definida pero orden de corte todavía no cargada.
+  // Orden de corte todavía no cargada.
   if(!ordenCargada){
-    return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}${ordenRow}</div>`;
+    return `<div class="cortada-panel" style="margin:8px 0 4px">${ordenRow}</div>`;
   }
 
   const encimadoRow = !encimadoTerm
@@ -2218,7 +2251,7 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
       </div>`;
 
   // Orden de corte cargada, encimado pendiente o recién terminado (acá ya puede aparecer Marcar cortado).
-  return `<div class="cortada-panel" style="margin:8px 0 4px">${tizaRow}${ordenRow}${encimadoRow}</div>`;
+  return `<div class="cortada-panel" style="margin:8px 0 4px">${ordenRow}${encimadoRow}</div>`;
 }
 
 function setTizaHecha(secId,itemId,val){
