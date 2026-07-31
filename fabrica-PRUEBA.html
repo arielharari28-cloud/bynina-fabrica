@@ -1048,6 +1048,29 @@ function marcarFichaCorregida(secId,itemId){
   showToast('✓ Ficha corregida — falta que Ariel/Stef la vuelvan a controlar');
 }
 
+function deshacerPedidoModificacion(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!confirm(`¿Deshacer el pedido de modificación de ${item.code||item.name||'esta ficha'}?`)) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+    ficha_estado:null,
+    ficha_mod_notas:null,
+    ficha_mod_por:null,
+    ficha_mod_fecha:null
+  });
+  logActivity('Deshizo pedido de modificar ficha',item.code);
+  showToast('↩ Pedido de modificación deshecho');
+}
+
+function deshacerFichaCorregida(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+    ficha_estado:'modificar',
+    ficha_resuelta_fecha:null
+  });
+  logActivity('Deshizo "ficha corregida"',item.code);
+  showToast('↩ Vuelve a pendiente de modificar');
+}
+
 function pasarAMolderia(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item.code||!item.ficha_link||!item.modelista){ showToast('Falta código, link de ficha o modelista asignada'); return; }
@@ -1825,10 +1848,13 @@ function buildItem(secId,itemId,item,sec,idx,total){
     const cStef=item.control_stef||false, cAriel=item.control_ariel||false;
     const controlDone=cAriel||cStef;
     const fichaModPendiente=item.ficha_estado==='modificar';
+    const fichaCorregidaEsperando=item.ficha_estado==='modificada'&&!controlDone;
     const fichaStatusLabel=fichaModPendiente
       ? '🔁 Pendiente modificar ficha'
-      : (controlDone ? (item.ficha_estado==='modificada' ? '✅ Ficha Técnica Modificada' : '✅ Ficha Técnica Aprobada') : 'Pendiente');
-    const fichaStatusColor=(fichaModPendiente||!controlDone) ? 'var(--warn-text)' : 'var(--accent)';
+      : fichaCorregidaEsperando
+        ? '🔄 Corregida — esperando control'
+        : (controlDone ? (item.ficha_estado==='modificada' ? '✅ Ficha Técnica Modificada' : '✅ Ficha Técnica Aprobada') : 'Pendiente');
+    const fichaStatusColor=(fichaModPendiente||fichaCorregidaEsperando||!controlDone) ? 'var(--warn-text)' : 'var(--accent)';
     const modelistaLocked=!(ninox&&controlDone)||fichaModPendiente;
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista&&!fichaModPendiente;
     const canControl=(currentUser==='ariel'||currentUser==='stef');
@@ -1890,7 +1916,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="modelista-label">Control de ficha:</span>
             <span style="font-size:12px;font-weight:600;color:${fichaStatusColor}">${fichaStatusLabel}</span>
-            ${canControl&&item.ficha_link&&!fichaModPendiente?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
+            ${canControl&&item.ficha_link&&!fichaModPendiente&&!fichaCorregidaEsperando?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
             <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>
             <button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="pedirModificacionFicha('${secId}','${itemId}')">🔧 Pedir modificación</button>`:''}
             ${canControl&&!item.ficha_link?`<span style="font-size:11px;color:var(--text3);font-style:italic">Cargá la ficha primero</span>`:''}
@@ -1898,7 +1924,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${fichaModPendiente?`<div class="mod-ref-box">
             <div class="mod-ref-title">🔧 Modificación pedida${item.ficha_mod_por?` por ${item.ficha_mod_por}`:''}:</div>
             <div>${(item.ficha_mod_notas||'').replace(/</g,'&lt;')}</div>
-            ${canEdit?`<button class="btn-advance" style="margin-top:8px" onclick="marcarFichaCorregida('${secId}','${itemId}')">✅ Ya corregí la ficha</button>`:''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+              ${canEdit?`<button class="btn-advance" onclick="marcarFichaCorregida('${secId}','${itemId}')">✅ Ya corregí la ficha</button>`:''}
+              ${canControl?`<button class="btn-sm" onclick="deshacerPedidoModificacion('${secId}','${itemId}')">↩ Deshacer pedido</button>`:''}
+            </div>
+          </div>`:''}
+          ${fichaCorregidaEsperando?`<div class="mod-ref-box" style="background:var(--accent-bg);color:var(--accent)">
+            <div class="mod-ref-title">🔄 Ficha corregida — falta que Ariel/Stef la vuelvan a controlar</div>
+            ${canEdit?`<button class="btn-sm" onclick="deshacerFichaCorregida('${secId}','${itemId}')">↩ Todavía no está corregida</button>`:''}
           </div>`:''}
 
           ${buildModelistaHtml(secId,itemId,item,modelistaLocked,fichaModPendiente?'Falta corregir y volver a controlar la ficha':'Falta tildar Ninox y el control de ficha')}
