@@ -520,6 +520,42 @@ function onModelistaChange(secId,itemId,sel){
   }
 }
 
+// Asignar taller a un corte (Cortes listo para taller): mismo patrón que el de modelista.
+function buildTallerCorteHtml(secId,itemId,item){
+  const opts=(talleresCorteList||[]).map(n=>`<option value="${n}" ${item.taller_corte===n?'selected':''}>${n}</option>`).join('');
+  return `<div class="modelista-row">
+    <span class="modelista-label">Taller:</span>
+    <select class="modelista-select" onchange="onTallerCorteChange('${secId}','${itemId}',this)">
+      <option value="">— Sin asignar —</option>
+      ${opts}
+      <option value="__nuevo__">+ Agregar nuevo…</option>
+    </select>
+  </div>`;
+}
+
+function onTallerCorteChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nuevo__'){
+    const nombre=prompt('Nombre del nuevo taller:');
+    if(!nombre||!nombre.trim()){ sel.value=item.taller_corte||''; return; }
+    const limpio=nombre.trim();
+    if(!talleresCorteList.includes(limpio)){
+      talleresCorteList=[...talleresCorteList,limpio];
+      db.ref('fabrica_v5/talleres_corte').set(talleresCorteList);
+    }
+    assignTallerCorte(secId,itemId,limpio);
+  } else {
+    assignTallerCorte(secId,itemId,sel.value);
+  }
+}
+
+function assignTallerCorte(secId,itemId,nombre){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/taller_corte`).set(nombre||null);
+  logActivity('Asignó taller de corte',`${item.code} → ${nombre||'sin asignar'}`);
+  showToast(nombre?`✓ Taller asignado: ${nombre}`:'Taller desasignado');
+}
+
 function assignModelista(secId,itemId,nombre){
   const item=sectionsData[secId].items[itemId];
   const sec=sectionsData[secId];
@@ -638,6 +674,10 @@ const SEC_PEND  = 'muestra_pendiente';
 const SEC_CORT  = 'muestra_cortada';
 const SEC_LISTA = 'muestra_lista';
 const SEC_TALLER = 'muestra_en_taller';
+// Secciones de corte que ya están en s3 o más adelante en el flujo: una vez ahí, el aviso
+// de "falta completar Ancho/Control de piezas" ya no aporta (esa validación es solo para
+// entrar a "Cortes próximos a sacar").
+const POST_S3_SECS = ['s3','s3b','s4','s5','sLT','sFIN'];
 const SEC_DISENO = 'muestra_diseno';
 const SEC_CANCEL = 'muestra_cancelada';
 
@@ -646,6 +686,7 @@ const USER_DISPLAY = {ariel:'Ariel',stef:'Stef',peque:'Peque',emir:'Emir',nahuel
 
 // Lista de modelistas (editable: se puede agregar una nueva directo desde la ficha)
 let modelistasList = ['Peque','Adela','Guada','Paula'];
+let talleresCorteList = ['Adela','Willy Ramos'];
 // Marcas/clientes para los que trabaja la fábrica (editable igual que modelistas)
 let marcasList = ['By Nina'];
 let filtroMarca = '';
@@ -706,6 +747,16 @@ const INITIAL_SECTIONS = {
 
 let currentUser=null, sectionsData={}, actividadData={};
 let editCtx={secId:null,itemId:null,newAvioCount:0};
+
+// El colapsado/expandido de cada sección es preferencia de cada persona en su propio
+// dispositivo, no algo compartido: antes vivía en Firebase y al abrir/cerrar una sección
+// se abría/cerraba en la pantalla de todos los demás. Ahora se guarda solo en este navegador.
+let localCollapsed = {};
+try{ localCollapsed = JSON.parse(localStorage.getItem('fabrica_collapsed_v1')||'{}'); }catch(e){ localCollapsed = {}; }
+function isSecCollapsed(secId){ return !!localCollapsed[secId]; }
+function saveLocalCollapsed(){
+  try{ localStorage.setItem('fabrica_collapsed_v1', JSON.stringify(localCollapsed)); }catch(e){}
+}
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -829,6 +880,12 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     if(v){ modelistasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
     else db.ref('fabrica_v5/modelistas').set(modelistasList);
     renderSections('diseno');renderSections('fabrica');
+  });
+  db.ref('fabrica_v5/talleres_corte').on('value',snap=>{
+    const v=snap.val();
+    if(v){ talleresCorteList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    else db.ref('fabrica_v5/talleres_corte').set(talleresCorteList);
+    renderSections('fabrica');
   });
   db.ref('fabrica_v5/marcas').on('value',snap=>{
     const v=snap.val();
@@ -1093,10 +1150,14 @@ function marcarEntregadoCorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const revSecId=getSectionIdByTipo('revision_final');
   if(!revSecId){ showToast('No encontré la sección de Revisión Final'); return; }
-  const newItem={...item,fecha_entregado_revision:Date.now(),fecha_etapa:Date.now()};
+  const hoy=new Date();
+  const fechaDefault=hoy.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const fecha=prompt('¿Qué fecha se entregó?',fechaDefault);
+  if(fecha===null) return;
+  const newItem={...item,fecha_entregado:fecha.trim()||fechaDefault,fecha_entregado_revision:Date.now(),fecha_etapa:Date.now()};
   db.ref(`fabrica_v5/sections/${revSecId}/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Entregado a revisión',item.code);
+  logActivity('Entregado a revisión',`${item.code}: ${fecha.trim()||fechaDefault}`);
   showToast(`✅ ${item.code} pasó a Revisión Final`);
 }
 
@@ -1421,7 +1482,7 @@ function renderSections(board){
 
     // Productos Perfectos: agrupar el mismo modelo (mismo nombre) junto, ordenado por N° de corte.
     let itemsHtml;
-    if(sec.tipo==='producto_perfecto'){
+    if(sec.tipo==='producto_perfecto'||sec.tipo==='revision_final'){
       const nameCounts={};
       items.forEach(([,item])=>{ const n=(item.name||'').trim().toLowerCase(); nameCounts[n]=(nameCounts[n]||0)+1; });
       const sortedItems=items.slice().sort((a,b)=>{
@@ -1446,9 +1507,9 @@ function renderSections(board){
     div.innerHTML=`
       <div class="sec-header" style="background:${col.secBg}" onclick="toggleSec('${secId}')">
         <div class="sec-left"><span class="sec-title" style="color:${col.secText}">${sec.title}</span><span class="sec-count" style="color:${col.secText}">${count}</span></div>
-        <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${secOrderBtns}${hBtns}<span style="color:${col.secText};font-size:12px">${sec.collapsed?'▶':'▼'}</span></div>
+        <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${secOrderBtns}${hBtns}<span style="color:${col.secText};font-size:12px">${isSecCollapsed(secId)?'▶':'▼'}</span></div>
       </div>
-      <div class="sec-body ${sec.collapsed?'hidden':''}" id="body-${secId}">
+      <div class="sec-body ${isSecCollapsed(secId)?'hidden':''}" id="body-${secId}">
         ${itemsHtml}
         ${addRow}${addRowPrep}${addRowGeneral}
       </div>`;
@@ -1916,9 +1977,9 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="modelista-label">Control de ficha:</span>
             <span style="font-size:12px;font-weight:600;color:${fichaStatusColor}">${fichaStatusLabel}</span>
-            ${canControl&&item.ficha_link&&!fichaModPendiente&&!fichaCorregidaEsperando?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
+            ${canControl&&item.ficha_link&&!fichaModPendiente?`<button class="radio-btn ${cAriel?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_ariel')">${cAriel?'✓ ':''}Ariel</button>
             <button class="radio-btn ${cStef?'selected':''}" onclick="toggleControlFicha('${secId}','${itemId}','control_stef')">${cStef?'✓ ':''}Stef</button>
-            <button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="pedirModificacionFicha('${secId}','${itemId}')">🔧 Pedir modificación</button>`:''}
+            ${!fichaCorregidaEsperando?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="pedirModificacionFicha('${secId}','${itemId}')">🔧 Pedir modificación</button>`:''}`:''}
             ${canControl&&!item.ficha_link?`<span style="font-size:11px;color:var(--text3);font-style:italic">Cargá la ficha primero</span>`:''}
           </div>
           ${fichaModPendiente?`<div class="mod-ref-box">
@@ -2060,6 +2121,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
           </div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Compará contra la muestra aprobada.</div>
+          ${item.fecha_entregado?`<div style="font-size:11px;color:var(--text2);margin-bottom:6px">📦 Entregado: <strong>${item.fecha_entregado}</strong></div>`:''}
           <div class="item-actions">
             ${canEdit?`<button class="btn-approve" onclick="marcarProductoPerfecto('${secId}','${itemId}')">✅ Producto Perfecto</button>`:''}
             ${canEdit?`<button class="btn-revision" onclick="marcarNecesitaMejora('${secId}','${itemId}')">🔧 Necesita mejora</button>`:''}
@@ -2185,7 +2247,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
   const capasHtml = buildCapasHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
-    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a taller: <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
+    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
   const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
       ${item.ficha_link
         ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2197,7 +2259,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const canSacarTaller=secId==='sLT'&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='emir');
   const canEntregarRevision=secId==='sFIN'&&((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque');
   const flujoCorteHtml = secId==='s3' ? buildFlujoPreCorte(secId,itemId,item,canCortar) : '';
-  const listoParaCortar = secId!=='s3' || !!item.encimado_terminado;
+  const listoParaCortar = secId!=='s3' || (!!item.encimado_terminado && !item.sin_confirmar);
+  const canConfirmarCorte = secId==='s3'&&(currentUser==='ariel'||currentUser==='stef');
+  const sinConfirmarHtml = secId==='s3' ? (item.sin_confirmar
+    ? `<div class="cortada-row" style="background:var(--warn-bg);border-radius:6px;padding:6px 8px;margin:4px 0">
+        <span class="c-label" style="font-weight:600;color:var(--warn-text)">⏳ Todavía no lo confirmó Ari — no es prioridad</span>
+        ${canConfirmarCorte?`<button class="btn-advance" onclick="toggleCorteSinConfirmar('${secId}','${itemId}')">✅ Confirmar para cortar</button>`:''}
+      </div>`
+    : (canConfirmarCorte?`<div style="margin:4px 0"><button class="btn-sm" onclick="toggleCorteSinConfirmar('${secId}','${itemId}')">⏳ Marcar sin confirmar</button></div>`:'')) : '';
   const orderHtml = (secId==='s3'&&canEdit&&total>1) ? `<div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
       <button title="Subir" ${idx===0?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',-1)" style="border:1px solid var(--border);background:${idx===0?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'inherit'}">▲</button>
       <button title="Bajar" ${idx===total-1?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',1)" style="border:1px solid var(--border);background:${idx===total-1?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'inherit'}">▼</button>
@@ -2214,12 +2283,12 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
-          <span style="font-size:11px;color:var(--text2)">Curva:</span>
+          ${secId!=='sFIN'?`<span style="font-size:11px;color:var(--text2)">Curva:</span>
           ${item.curva?`<span style="font-size:12px;font-weight:600">${item.curva}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
           ${canFicha?`<button class="btn-sm" onclick="editCurvaPrompt('${secId}','${itemId}')">${item.curva?'✏️':'+ Curva'}</button>`:''}
           <span style="font-size:11px;color:var(--text2);margin-left:6px">Ancho:</span>
           ${item.ancho?`<span style="font-size:12px;font-weight:600">${item.ancho}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}
+          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px">
           <div class="c-check ${item.control_piezas?'checked':''}" onclick="${canFicha?`toggleControlPiezas('${secId}','${itemId}')`:''}">${item.control_piezas?'✓':''}</div>
@@ -2227,7 +2296,10 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${item.control_piezas_link?`<a href="${item.control_piezas_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:11px">🔗 Ver</a>`:''}
           ${canFicha?`<button class="btn-sm" onclick="editControlPiezasLink('${secId}','${itemId}')">${item.control_piezas_link?'🔗 Editar link':'+ Link'}</button>`:''}
         </div>
+        ${(!POST_S3_SECS.includes(secId)&&(!item.ancho||!item.control_piezas))?`<div style="font-size:11px;color:var(--warn-text);background:var(--warn-bg);border-radius:6px;padding:4px 8px;margin:2px 0 6px">⚠️ Pendiente completar Peque: falta ${[!item.ancho?'Ancho':null,!item.control_piezas?'Control de piezas':null].filter(Boolean).join(' y ')} antes de pasar a Cortes próximos a sacar</div>`:''}
+        ${secId==='sLT'?buildTallerCorteHtml(secId,itemId,item):''}
         ${numeroCorteHtml}
+        ${sinConfirmarHtml}
         ${capasHtml}
         ${flujoCorteHtml}
         ${fechaCorteHtml}
@@ -2312,6 +2384,17 @@ function setEncimadoTerminado(secId,itemId,val){
   showToast(val?'🧷 Encimado terminado — ya se puede marcar cortado':'↩ Encimado deshecho');
 }
 
+// Un corte marcado "sin confirmar" puede seguir su preparación (orden de corte, encimado)
+// con total libertad, pero no se puede marcar como efectivamente cortado hasta que
+// Ariel o Stef lo confirmen — así lo que queda confirmado en esta sección sí o sí se corta.
+function toggleCorteSinConfirmar(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nv=!item.sin_confirmar;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/sin_confirmar`).set(nv);
+  logActivity('Confirmación de corte',`${item.code}: ${nv?'marcado sin confirmar':'confirmado para cortar'}`);
+  showToast(nv?'⏳ Marcado como sin confirmar':'✅ Confirmado para cortar');
+}
+
 // ACTIONS
 const SEC_DEFAULTS_CORTE={
   s3b:{title:'Cortes realizados',color:'green',order:4.5},
@@ -2392,13 +2475,14 @@ function checkCorteVuelveABloqueado(secId,itemId,avios){
 
 function sacarATaller(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  if(!confirm(`¿Confirmás que ${item.code} salió a taller? Se cierra el ciclo.`)) return;
+  if(!item.taller_corte){ showToast('Asigná un taller antes de sacarlo'); return; }
+  if(!confirm(`¿Confirmás que ${item.code} salió a ${item.taller_corte}? Se cierra el ciclo.`)) return;
   const newItem={...item, fecha_salida_taller:Date.now()};
   ensureSeccionCorte('sFIN');
   db.ref(`fabrica_v5/sections/sFIN/items`).push(newItem);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
-  logActivity('Corte sacado a taller',item.code);
-  showToast(`📦 ${item.code} salió a taller — ciclo cerrado`);
+  logActivity('Corte sacado a taller',`${item.code} → ${item.taller_corte}`);
+  showToast(`📦 ${item.code} salió a ${item.taller_corte}`);
 }
 
 function deshacerCorte(secId,itemId){
@@ -2414,7 +2498,12 @@ function deshacerCorte(secId,itemId){
   showToast(`↩ ${item.code} volvió a próximos a sacar`);
 }
 
-function toggleSec(secId){db.ref(`fabrica_v5/sections/${secId}/collapsed`).set(!(sectionsData[secId].collapsed||false))}
+function toggleSec(secId){
+  localCollapsed[secId] = !isSecCollapsed(secId);
+  saveLocalCollapsed();
+  renderSections('fabrica');
+  renderSections('diseno');
+}
 
 function toggleItem(secId,itemId){
   const item=sectionsData[secId].items[itemId];
@@ -2573,6 +2662,13 @@ function quickAdd(secId){
 function moveItem(secId,itemId,targetSecId){
   if(!targetSecId||!itemId)return;
   const item=sectionsData[secId].items[itemId];
+  // No puede entrar a "Cortes próximos a sacar" sin ancho y control de piezas cargados:
+  // esa info tiene que estar lista antes de que se considere un corte próximo a sacar.
+  if(targetSecId==='s3'&&(!item.ancho||!item.control_piezas)){
+    const faltan=[!item.ancho?'Ancho':null,!item.control_piezas?'Control de piezas':null].filter(Boolean).join(' y ');
+    showToast(`⏳ Pendiente completar Peque: falta ${faltan}`);
+    return;
+  }
   db.ref(`fabrica_v5/sections/${targetSecId}/items`).push({...item,fecha_etapa:Date.now()});
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
   logActivity('Movió ítem',`${item.code} → ${sectionsData[targetSecId].title}`);
