@@ -2412,7 +2412,6 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
-        ${buildResponsableHtml(sec,item,secId)}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
           ${secId!=='sFIN'?`<div class="c-check checked-auto ${item.curva?'checked':''}" title="Se tilda solo cuando hay curva cargada">${item.curva?'✓':''}</div>
@@ -2436,6 +2435,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           if(!faltantes.length) return '';
           return `<div style="font-size:11px;color:var(--warn-text);background:var(--warn-bg);border-radius:6px;padding:4px 8px;margin:2px 0 6px">⚠️ Pendiente completar Peque: falta ${faltantes.join(', ')} antes de pasar a Cortes próximos a sacar</div>`;
         })()}
+        ${buildResponsableHtml(sec,item,secId)}
         ${secId==='sLT'?buildTallerCorteHtml(secId,itemId,item):''}
         ${numeroCorteHtml}
         ${sinConfirmarHtml}
