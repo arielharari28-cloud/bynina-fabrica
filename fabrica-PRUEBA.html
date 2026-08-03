@@ -736,7 +736,7 @@ function onSearchInput(board,value){
 }
 
 // Determina quién es responsable de la próxima acción sobre un ítem
-function getResponsable(sec,item){
+function getResponsable(sec,item,secId){
   const tipo=sec.tipo||'';
   if(tipo==='mejora') return item.mejora_resuelta?null:'Peque';
   if(tipo==='muestra_prep'){
@@ -760,11 +760,27 @@ function getResponsable(sec,item){
     }
     return 'Peque';
   }
+  if(tipo==='revision_final') return 'Ariel y Stef';
+  if(tipo==='producto_perfecto'||tipo==='muestra_cancelada') return null;
+
+  // --- Flujo de cortes (s3, s4, s5, sLT, sFIN) y cualquier sección "normal" custom
+  // (como "Pendiente armar tizada"), que no tienen un tipo específico asignado ---
+  if(secId==='s3'){
+    if(item.sin_confirmar) return 'Ariel';
+    const avios=Object.values(item.avios||{});
+    if(avios.length && !avios.every(a=>a.recibido)) return 'Peque';
+    return 'Cortador';
+  }
+  if(secId==='s4') return 'Peque';
+  if(secId==='s5') return 'Peque';
+  if(secId==='sLT') return 'Emir';
+  if(secId==='sFIN') return 'Emir';
+  if(!tipo) return 'Peque'; // secciones custom tipo "Pendiente armar tizada": tarea de Peque
   return null;
 }
 
-function buildResponsableHtml(sec,item){
-  const nombre=getResponsable(sec,item);
+function buildResponsableHtml(sec,item,secId){
+  const nombre=getResponsable(sec,item,secId);
   if(!nombre) return '';
   return `<div class="responsable-badge">👤 Responsable tarea: ${nombre}</div>`;
 }
@@ -2105,7 +2121,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>`:''}
 
           ${buildModelistaHtml(secId,itemId,item,modelistaLocked,fichaModPendiente?'Falta corregir y volver a controlar la ficha':'Falta tildar Ninox y el control de ficha')}
-          ${buildResponsableHtml(sec,item)}
+          ${buildResponsableHtml(sec,item,secId)}
 
           <div style="margin-top:10px">
             <span class="modelista-label">Notas:</span>
@@ -2150,7 +2166,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
           ${buildModelistaHtml(secId,itemId,item)}
-          ${buildResponsableHtml(sec,item)}
+          ${buildResponsableHtml(sec,item,secId)}
           <div class="cortada-row" style="padding:6px 0;border:none">
             <div class="c-check ${item.foto_drive_ok?'checked':''}" onclick="${canEdit?`toggleFotoDriveOk('${secId}','${itemId}')`:''}">${item.foto_drive_ok?'✓':''}</div>
             <span class="c-label ${item.foto_drive_ok?'done':''}">Cargar foto en Drive con nombre prenda y código <span style="font-size:10px;color:var(--text3)">(Peque)</span></span>
@@ -2224,6 +2240,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2278,7 +2295,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
               <option value="Otro" ${item.mejora_tipo==='Otro'?'selected':''}>Otro</option>
             </select>
           </div>
-          ${buildResponsableHtml(sec,item)}
+          ${buildResponsableHtml(sec,item,secId)}
           <div class="modelista-row">
             <span class="modelista-label">¿Necesita muestra nueva?</span>
             ${canEdit?`<button class="radio-btn ${necesitaMuestra===true?'selected':''}" onclick="setNecesitaMuestra('${secId}','${itemId}',true)">Sí</button>
@@ -2400,6 +2417,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
+        ${buildResponsableHtml(sec,item,secId)}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
           ${secId!=='sFIN'?`<div class="c-check checked-auto ${item.curva?'checked':''}" title="Se tilda solo cuando hay curva cargada">${item.curva?'✓':''}</div>
@@ -3129,7 +3147,7 @@ function renderPendientes(){
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
       if(item.done) return;
       if(filtroMarca&&(item.marca||marcasList[0]||'By Nina')!==filtroMarca) return;
-      const resp=getResponsable(sec,item);
+      const resp=getResponsable(sec,item,secId);
       if(!resp) return;
       if(!grupos[resp]) grupos[resp]=[];
       grupos[resp].push({item,secTitle:sec.title});
