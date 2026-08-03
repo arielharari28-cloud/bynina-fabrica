@@ -740,7 +740,7 @@ function getResponsable(sec,item,secId){
   const tipo=sec.tipo||'';
   if(tipo==='mejora') return item.mejora_resuelta?null:'Peque';
   if(tipo==='muestra_prep'){
-    if(!item.code||!item.code.trim()) return 'Peque';
+    if(!item.code||!item.code.trim()) return 'Stef';
     if(!item.en_ninox) return 'Peque';
     if(!item.ficha_link) return 'Peque';
     if(!(item.control_ariel||item.control_stef)) return 'Ariel';
@@ -751,15 +751,9 @@ function getResponsable(sec,item,secId){
     if(!item.foto_drive_ok) return 'Peque';
     return item.modelista||'Peque';
   }
-  if(tipo==='muestra_diseno') return item.modelista||'Peque';
+  if(tipo==='muestra_diseno') return 'Ariel y Stef';
   if(tipo==='muestra_pend') return 'Cortador';
-  if(tipo==='muestra_cort'){
-    if(item.lleva_avios===true){
-      const avios=Object.values(item.avios||{});
-      if(avios.length && !avios.every(a=>a.recibido)) return 'Emir';
-    }
-    return 'Peque';
-  }
+  if(tipo==='muestra_cort') return 'Peque';
   if(tipo==='revision_final') return 'Ariel y Stef';
   if(tipo==='producto_perfecto'||tipo==='muestra_cancelada') return null;
 
@@ -769,6 +763,7 @@ function getResponsable(sec,item,secId){
     if(item.sin_confirmar) return 'Ariel';
     const avios=Object.values(item.avios||{});
     if(avios.length && !avios.every(a=>a.recibido)) return 'Peque';
+    if(!item.orden_corte_cargada) return 'Ariel';
     return 'Cortador';
   }
   if(secId==='s4') return 'Peque';
