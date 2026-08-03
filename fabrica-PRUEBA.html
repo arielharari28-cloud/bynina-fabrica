@@ -278,6 +278,17 @@
   </div>
 </div>
 
+<!-- Modal agregar reposición directo -->
+<div class="modal-overlay hidden" id="modal-repo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Agregar como reposición</span><button class="modal-close" id="close-modal-repo">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Producto perfecto</label><select id="repo-add-select"><option value="">Elegir producto…</option></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-repo">Cancelar</button><button class="btn-primary" id="save-modal-repo">Crear</button></div>
+  </div>
+</div>
+
 <!-- Modal foto grande -->
 <div class="photo-modal-overlay hidden" id="photo-modal" onclick="closePhotoModal()">
   <button class="photo-modal-close" onclick="closePhotoModal()">×</button>
@@ -1576,7 +1587,7 @@ function renderSections(board){
     const addRow=(canAdd||canAddMold)?`<div class="sec-add"><input type="text" placeholder="Código de muestra..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const addRowPrep=canAddPrep?`<div class="sec-add"><input type="text" placeholder="Nombre de la prenda nueva..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
     const canAddGeneral=currentUser==='ariel'&&!FIXED_SECS.includes(secId);
-    const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button></div>`:'';
+    const addRowGeneral=canAddGeneral?`<div class="sec-add"><input type="text" placeholder="Código / nombre..." id="qa-${secId}"><button onclick="quickAdd('${secId}')">+ Agregar</button><button class="btn-sm" onclick="openRepoAddModal('${secId}')">🔁 Agregar como reposición</button></div>`:'';
 
     // Productos Perfectos: agrupar el mismo modelo (mismo nombre) junto, ordenado por N° de corte.
     let itemsHtml;
@@ -2773,6 +2784,40 @@ function quickAdd(secId){
   db.ref(`fabrica_v5/sections/${secId}/items`).push(ni);
   logActivity('Agregó ítem',val);inp.value='';showToast('Ítem agregado');
 }
+
+// --- Agregar directo como reposición, eligiendo el producto perfecto desde el arranque ---
+let repoAddSecId=null;
+function openRepoAddModal(secId){
+  repoAddSecId=secId;
+  const opts=buildProductosPerfectosOptions();
+  const sel=document.getElementById('repo-add-select');
+  sel.innerHTML='<option value="">Elegir producto…</option>'+opts.map(o=>`<option value="${o.secId}::${o.itemId}">${o.label}</option>`).join('');
+  document.getElementById('modal-repo').classList.remove('hidden');
+}
+function closeRepoAddModal(){
+  document.getElementById('modal-repo').classList.add('hidden');
+  repoAddSecId=null;
+}
+function confirmRepoAdd(){
+  const sel=document.getElementById('repo-add-select');
+  if(!sel.value){ showToast('Elegí un producto'); return; }
+  const [refSec,refId]=sel.value.split('::');
+  const ref=sectionsData[refSec]?.items?.[refId];
+  if(!ref){ showToast('No encontré ese producto'); return; }
+  const ahora=Date.now();
+  const ni={
+    code:ref.code||'',name:ref.name||'',marca:ref.marca||'',tela:ref.tela||'',
+    reposicion:true,reposicion_ref_sec:refSec,reposicion_ref_id:refId,
+    done:false,avios:{},fecha_ingreso:ahora,fecha_etapa:ahora
+  };
+  db.ref(`fabrica_v5/sections/${repoAddSecId}/items`).push(ni);
+  logActivity('Agregó ítem (reposición)',ref.code||ref.name||'');
+  showToast('✓ Reposición agregada');
+  closeRepoAddModal();
+}
+document.getElementById('close-modal-repo').onclick=closeRepoAddModal;
+document.getElementById('cancel-modal-repo').onclick=closeRepoAddModal;
+document.getElementById('save-modal-repo').onclick=confirmRepoAdd;
 
 function moveItem(secId,itemId,targetSecId){
   if(!targetSecId||!itemId)return;
