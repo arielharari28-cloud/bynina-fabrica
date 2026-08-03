@@ -683,10 +683,17 @@ function onRepoPerfectoChange(secId,itemId,sel){
     return;
   }
   const [refSec,refId]=sel.value.split('::');
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({reposicion_ref_sec:refSec,reposicion_ref_id:refId});
-  const item=sectionsData[secId].items[itemId];
-  logActivity('Reposición vinculada',`${item.code||item.name||''}`);
-  showToast('✓ Vinculado al producto perfecto');
+  const ref=sectionsData[refSec]?.items?.[refId];
+  const updates={reposicion_ref_sec:refSec,reposicion_ref_id:refId};
+  if(ref){
+    if(ref.code) updates.code=ref.code;
+    if(ref.name) updates.name=ref.name;
+    if(ref.marca) updates.marca=ref.marca;
+    if(ref.tela) updates.tela=ref.tela;
+  }
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Reposición vinculada',`${ref?.code||ref?.name||''}`);
+  showToast('✓ Vinculado — código, nombre, marca y tela completados');
 }
 
 function renderMarcaFilterBar(){
@@ -2366,19 +2373,19 @@ function buildItem(secId,itemId,item,sec,idx,total){
     <div class="item-with-photo" style="flex:1">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
-        ${buildCodeHtml(secId,itemId,item,canEdit)}
-        ${buildNameHtml(secId,itemId,item,canEdit)}
-        ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
-        ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
-        ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <div class="c-check ${item.reposicion?'checked':''}" onclick="${canFicha?`toggleReposicion('${secId}','${itemId}')`:''}">${item.reposicion?'✓':''}</div>
           <span class="c-label ${item.reposicion?'done':''}" style="font-size:11px">Reposición</span>
         </div>
         ${item.reposicion?(canFicha?buildRepoPerfectoHtml(secId,itemId,item):(()=>{
             const ref=(item.reposicion_ref_sec&&sectionsData[item.reposicion_ref_sec])?sectionsData[item.reposicion_ref_sec].items?.[item.reposicion_ref_id]:null;
-            return ref?`<div style="font-size:11px;color:var(--text2)">Reponiendo: <strong>${ref.code?ref.code+' — ':''}${ref.name||''}</strong></div>`:'';
+            return ref?`<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Reponiendo: <strong>${ref.code?ref.code+' — ':''}${ref.name||''}</strong></div>`:'';
           })()):''}
+        ${buildCodeHtml(secId,itemId,item,canEdit)}
+        ${buildNameHtml(secId,itemId,item,canEdit)}
+        ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+        ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
           ${secId!=='sFIN'?`<span style="font-size:11px;color:var(--text2)">Curva:</span>
