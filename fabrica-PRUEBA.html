@@ -72,6 +72,7 @@
   .c-check.checked{background:var(--accent);border-color:var(--accent)}
   .c-check.checked-auto{cursor:default}
   .c-check.checked-auto.checked{background:#16a34a;border-color:#16a34a}
+  .item-highlight{outline:3px solid var(--accent);outline-offset:2px;border-radius:10px;transition:outline .2s}
   .c-label{font-size:12px;color:var(--text2);flex:1}
   .c-label.done{color:var(--text3);text-decoration:line-through}
   .radio-group{display:flex;gap:6px}
@@ -1781,7 +1782,7 @@ function buildItem(secId,itemId,item,sec){
 
   const canToggle=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
   const moveOpts=buildMoveOpts(secId);
-  return `<div class="item ${item.done?'done':''}">
+  return `<div class="item ${item.done?'done':''}" id="item-${secId}-${itemId}">
     <div class="item-check ${item.done?'checked':''}" style="cursor:${canToggle?'pointer':'default'}" onclick="${canToggle?`toggleItem('${secId}','${itemId}')`:''}">${item.done?'✓':''}</div>
     <div class="item-body">
       <div class="item-code">${item.code}</div>
@@ -1824,7 +1825,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const moveOpts=buildMoveOptsForItem(secId,itemId);
 
   if(tipo==='muestra_pend'){
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -1883,7 +1884,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
       }
     }
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2039,7 +2040,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     const modelistaLocked=!(ninox&&controlDone)||fichaModPendiente;
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista&&!fichaModPendiente;
     const canControl=(currentUser==='ariel'||currentUser==='stef');
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2145,7 +2146,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${Object.values(item.fotos_prueba).map(url=>`<div class="diseno-foto-item"><img src="${url}" onclick="openPhotoModal('${url}')"></div>`).join('')}
       </div>`:''}
     </div>`:'';
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2181,7 +2182,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   if(tipo==='muestra_diseno'){
     const canDesign=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
     const fotos=Object.entries(item.fotos_prueba||{});
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2227,7 +2228,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
 
   // --- REVISIÓN FINAL: llegó el corte del taller, comparar contra la muestra ---
   if(tipo==='revision_final'){
-    return `<div class="item">
+    return `<div class="item" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2259,7 +2260,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   if(tipo==='mejora'){
     const resuelta=item.mejora_resuelta||false;
     const necesitaMuestra=item.necesita_muestra;
-    return `<div class="item ${resuelta?'done':''}">
+    return `<div class="item ${resuelta?'done':''}" id="item-${secId}-${itemId}">
       <div class="item-with-photo">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
@@ -2393,7 +2394,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
       <button title="Subir" ${idx===0?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',-1)" style="border:1px solid var(--border);background:${idx===0?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'inherit'}">▲</button>
       <button title="Bajar" ${idx===total-1?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',1)" style="border:1px solid var(--border);background:${idx===total-1?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'inherit'}">▼</button>
     </div>` : '';
-  return `<div class="item ${item.done?'done':''}">
+  return `<div class="item ${item.done?'done':''}" id="item-${secId}-${itemId}">
     ${orderHtml}
     ${checkHtml}
     <div class="item-with-photo" style="flex:1">
@@ -3145,7 +3146,7 @@ function renderPendientes(){
       const resp=getResponsable(sec,item,secId);
       if(!resp) return;
       if(!grupos[resp]) grupos[resp]=[];
-      grupos[resp].push({item,secTitle:sec.title});
+      grupos[resp].push({item,secTitle:sec.title,secId,itemId});
     });
   });
   const esAriel=(currentUser==='ariel'||currentUser==='stef');
@@ -3158,8 +3159,8 @@ function renderPendientes(){
     const color=colorForPersonName(nombre);
     html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span></div>`;
     html+=`<div class="pendientes-grid">`;
-    lista.forEach(({item,secTitle})=>{
-      html+=`<div class="pendientes-card" style="border-left:4px solid ${color}">
+    lista.forEach(({item,secTitle,secId,itemId})=>{
+      html+=`<div class="pendientes-card" style="border-left:4px solid ${color};cursor:pointer" onclick="irAItem('${secId}','${itemId}')">
         <div class="item-code">${item.code||item.name||'(sin código)'}</div>
         ${item.name&&item.code?`<div class="item-name">${item.name}</div>`:''}
         <div class="pendientes-etapa">${secTitle}</div>
@@ -3168,6 +3169,31 @@ function renderPendientes(){
     html+=`</div>`;
   });
   cont.innerHTML=html||`<div class="empty-state">No hay pendientes por ahora 🎉</div>`;
+}
+
+// Al tocar una tarjeta en "Pendientes", saltar directo al tablero y tablero correspondiente,
+// abrir la sección si estaba colapsada, y resaltar el ítem para encontrarlo rápido.
+function irAItem(secId,itemId){
+  const sec=sectionsData[secId];
+  if(!sec) return;
+  const board=getBoard(sec);
+  const tabId = board==='diseno'?'tab-diseno':'tab-fabrica';
+  const btnId = board==='diseno'?'tab-btn-diseno':'tab-btn-fabrica';
+  ocultarTabsMenosActiva(tabId);
+  document.getElementById(btnId).classList.add('active');
+  if(isSecCollapsed(secId)){
+    localCollapsed[secId]=false;
+    saveLocalCollapsed();
+  }
+  renderSections('diseno');
+  renderSections('fabrica');
+  setTimeout(()=>{
+    const el=document.getElementById(`item-${secId}-${itemId}`);
+    if(!el){ showToast('No encontré ese ítem (puede que ya se haya movido o eliminado)'); return; }
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('item-highlight');
+    setTimeout(()=>el.classList.remove('item-highlight'),2200);
+  },50);
 }
 
 function fmtTime(ts){
