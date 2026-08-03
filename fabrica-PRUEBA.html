@@ -607,6 +607,88 @@ function assignMarca(secId,itemId,nombre){
   showToast(`✓ Marca: ${nombre}`);
 }
 
+function buildTelaHtml(secId,itemId,item){
+  const opts=(telasList||[]).map(n=>`<option value="${n}" ${item.tela===n?'selected':''}>${n}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <span class="modelista-label">Tela:</span>
+    <select class="modelista-select" onchange="onTelaChange('${secId}','${itemId}',this)">
+      <option value="" ${!item.tela?'selected':''}>Sin elegir</option>
+      ${opts}
+      <option value="__nueva__">+ Agregar nueva…</option>
+    </select>
+  </div>`;
+}
+
+function onTelaChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nueva__'){
+    const nombre=prompt('Nombre de la tela nueva:');
+    if(!nombre||!nombre.trim()){ sel.value=item.tela||''; return; }
+    const limpio=nombre.trim();
+    if(!telasList.includes(limpio)){
+      telasList=[...telasList,limpio];
+      db.ref('fabrica_v5/telas').set(telasList);
+    }
+    assignTela(secId,itemId,limpio);
+  } else {
+    assignTela(secId,itemId,sel.value);
+  }
+}
+
+function assignTela(secId,itemId,nombre){
+  const item=sectionsData[secId].items[itemId];
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/tela`).set(nombre||null);
+  logActivity('Asignó tela',`${item.code||item.name||''} → ${nombre||'sin asignar'}`);
+  showToast(`✓ Tela: ${nombre||'sin asignar'}`);
+}
+
+// --- Reposición: marcar si un desarrollo es reposición de un producto perfecto ya existente ---
+function toggleReposicion(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const nuevo=!item.reposicion;
+  const updates={reposicion:nuevo};
+  if(!nuevo){ updates.reposicion_ref_sec=null; updates.reposicion_ref_id=null; }
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  logActivity('Reposición',`${item.code||item.name||''}: ${nuevo?'sí':'no'}`);
+  showToast(nuevo?'🔁 Marcado como reposición':'↩ Ya no es reposición');
+}
+
+function buildProductosPerfectosOptions(){
+  const out=[];
+  Object.entries(sectionsData||{}).forEach(([sid,sec])=>{
+    if(sec&&sec.tipo==='producto_perfecto'){
+      Object.entries(sec.items||{}).forEach(([iid,it])=>{
+        out.push({secId:sid,itemId:iid,label:`${it.code?it.code+' — ':''}${it.name||'(sin nombre)'}`});
+      });
+    }
+  });
+  return out;
+}
+
+function buildRepoPerfectoHtml(secId,itemId,item){
+  const opts=buildProductosPerfectosOptions();
+  const optsHtml=opts.map(o=>`<option value="${o.secId}::${o.itemId}" ${(item.reposicion_ref_sec===o.secId&&item.reposicion_ref_id===o.itemId)?'selected':''}>${o.label}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+    <span class="modelista-label">Reponiendo:</span>
+    <select class="modelista-select" onchange="onRepoPerfectoChange('${secId}','${itemId}',this)">
+      <option value="">Elegir producto…</option>
+      ${optsHtml}
+    </select>
+  </div>`;
+}
+
+function onRepoPerfectoChange(secId,itemId,sel){
+  if(!sel.value){
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({reposicion_ref_sec:null,reposicion_ref_id:null});
+    return;
+  }
+  const [refSec,refId]=sel.value.split('::');
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({reposicion_ref_sec:refSec,reposicion_ref_id:refId});
+  const item=sectionsData[secId].items[itemId];
+  logActivity('Reposición vinculada',`${item.code||item.name||''}`);
+  showToast('✓ Vinculado al producto perfecto');
+}
+
 function renderMarcaFilterBar(){
   const chips=['',...marcasList];
   const html=chips.map(m=>{
@@ -689,6 +771,8 @@ let modelistasList = ['Peque','Adela','Guada','Paula'];
 let talleresCorteList = ['Adela','Willy Ramos'];
 // Marcas/clientes para los que trabaja la fábrica (editable igual que modelistas)
 let marcasList = ['By Nina'];
+// Telas usadas (editable: se puede agregar una nueva directo desde la tarjeta)
+let telasList = [];
 let filtroMarca = '';
 let searchQuery = '';
 
@@ -893,6 +977,11 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     else db.ref('fabrica_v5/marcas').set(marcasList);
     renderMarcaFilterBar();
     renderSections('diseno');
+  });
+  db.ref('fabrica_v5/telas').on('value',snap=>{
+    const v=snap.val();
+    if(v){ telasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    renderSections('diseno');renderSections('fabrica');
   });
   db.ref('fabrica_v5/actividad').on('value',snap=>{
     actividadData=snap.val()||{};
@@ -2281,6 +2370,15 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+        ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <div class="c-check ${item.reposicion?'checked':''}" onclick="${canFicha?`toggleReposicion('${secId}','${itemId}')`:''}">${item.reposicion?'✓':''}</div>
+          <span class="c-label ${item.reposicion?'done':''}" style="font-size:11px">Reposición</span>
+        </div>
+        ${item.reposicion?(canFicha?buildRepoPerfectoHtml(secId,itemId,item):(()=>{
+            const ref=(item.reposicion_ref_sec&&sectionsData[item.reposicion_ref_sec])?sectionsData[item.reposicion_ref_sec].items?.[item.reposicion_ref_id]:null;
+            return ref?`<div style="font-size:11px;color:var(--text2)">Reponiendo: <strong>${ref.code?ref.code+' — ':''}${ref.name||''}</strong></div>`:'';
+          })()):''}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
           ${secId!=='sFIN'?`<span style="font-size:11px;color:var(--text2)">Curva:</span>
