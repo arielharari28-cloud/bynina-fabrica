@@ -1011,9 +1011,49 @@ function backfillFechasIngreso(){
   });
   if(Object.keys(updates).length) db.ref().update(updates);
 }
+// Backfill del panel "Pasos del proceso": ítems que ya cumplían la condición de un paso antes de que
+// existiera este tracking no tenían la fecha guardada, y por eso el panel los mostraba como "pendiente"
+// aunque ya estuvieran listos. Esto los marca como Listos (sin poder saber cuánto tardaron realmente).
+let pasosBackfillDone=false;
+function backfillPasosNuevoDesarrollo(){
+  if(pasosBackfillDone) return;
+  if(!(currentUser==='ariel'||currentUser==='stef')) return;
+  pasosBackfillDone=true;
+  const ahora=Date.now();
+  const updates={};
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
+    if(sec.tipo!=='muestra_prep') return;
+    Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+      if(item.code&&item.code.trim()&&!item.fecha_paso_ingreso) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_paso_ingreso`]=ahora;
+      if(item.en_ninox&&item.ficha_link&&!item.fecha_paso_peque) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_paso_peque`]=ahora;
+      if((item.control_ariel||item.control_stef)&&!item.fecha_paso_control) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_paso_control`]=ahora;
+      if(item.modelista&&!item.fecha_paso_modelista) updates[`fabrica_v5/sections/${secId}/items/${itemId}/fecha_paso_modelista`]=ahora;
+    });
+  });
+  if(Object.keys(updates).length) db.ref().update(updates);
+}
+// Igual que el backfill de Nuevos Desarrollos, pero para el flujo de "Cortes próximos a sacar" (s3)
+let pasosCorteBackfillDone=false;
+function backfillPasosCorte(){
+  if(pasosCorteBackfillDone) return;
+  if(!(currentUser==='ariel'||currentUser==='stef')) return;
+  pasosCorteBackfillDone=true;
+  const ahora=Date.now();
+  const sec=sectionsData['s3'];
+  if(!sec) return;
+  const updates={};
+  Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+    if(!item.sin_confirmar&&!item.fecha_paso_confirmado) updates[`fabrica_v5/sections/s3/items/${itemId}/fecha_paso_confirmado`]=ahora;
+    if(item.orden_corte_cargada&&!item.fecha_paso_orden) updates[`fabrica_v5/sections/s3/items/${itemId}/fecha_paso_orden`]=ahora;
+    if(item.encimado_terminado&&!item.fecha_paso_encimado) updates[`fabrica_v5/sections/s3/items/${itemId}/fecha_paso_encimado`]=ahora;
+  });
+  if(Object.keys(updates).length) db.ref().update(updates);
+}
 db.ref('fabrica_v5/sections').on('value',snap=>{
     sectionsData=snap.val()||{};
     backfillFechasIngreso();
+    backfillPasosNuevoDesarrollo();
+    backfillPasosCorte();
     renderSections('diseno');renderSections('fabrica');renderStats();renderAlertBanner();
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
   });
@@ -1526,7 +1566,50 @@ function checkPasosNuevoDesarrollo(secId,itemId,patch){
   }
 }
 
-// Panel lateral: cada macro-paso del proceso de Nuevos Desarrollos con quién lo hace y cuánto tardó/lleva pendiente
+// Panel lateral genérico para secciones de un solo paso: mismo formato que los otros paneles,
+// para que quede simétrico en todos los procesos (responsable + hace cuántos días).
+function buildDemoraPanelHtml(sec,item,secId){
+  const resp=getResponsable(sec,item,secId);
+  const dias=diasEntre(item.fecha_etapa);
+  let fila;
+  if(!resp){
+    fila=`<div class="paso-row"><span class="paso-inactivo">Sin tareas pendientes</span></div>`;
+  } else {
+    const urgente=dias!=null&&dias>=3;
+    fila=`<div class="paso-row paso-activo"><div class="paso-label">${resp}</div><span class="paso-pendiente${urgente?' paso-urgente':''}">⏳ Pendiente${dias!=null?' · hace '+dias+' día'+(dias!==1?'s':''):''}</span></div>`;
+  }
+  return `<div class="pasos-panel"><div class="pasos-panel-title">Demora del proceso</div>${fila}</div>`;
+}
+
+
+function buildPasosPanelCorteHtml(item){
+  const now=Date.now();
+  const pasos=[
+    { label:'Confirmar corte', resp:'Ariel', start:item.fecha_etapa, end:item.fecha_paso_confirmado },
+    { label:'Cargar orden de corte', resp:'Ariel', start:item.fecha_paso_confirmado, end:item.fecha_paso_orden },
+    { label:'Encimado', resp:'Cortador', start:item.fecha_paso_orden, end:item.fecha_paso_encimado },
+    { label:'Marcar cortado', resp:'Cortador', start:item.fecha_paso_encimado, end:null }
+  ];
+  let activaEncontrada=false;
+  const filas=pasos.map(p=>{
+    let claseFila='paso-row', estadoHtml;
+    if(p.end){
+      const d=diasEntreTs(p.start,p.end);
+      estadoHtml=`<span class="paso-done">✅ Listo${d!=null?' · tardó '+d+' día'+(d!==1?'s':''):''}</span>`;
+    } else if(!activaEncontrada && p.start){
+      activaEncontrada=true; claseFila+=' paso-activo';
+      const d=diasEntreTs(p.start,now);
+      const urgente=d!=null&&d>=2;
+      estadoHtml=`<span class="paso-pendiente${urgente?' paso-urgente':''}">⏳ Pendiente${d!=null?' · hace '+d+' día'+(d!==1?'s':''):''}</span>`;
+    } else {
+      estadoHtml=`<span class="paso-inactivo">—</span>`;
+    }
+    return `<div class="${claseFila}"><div class="paso-label">${p.label}<span class="paso-resp">${p.resp}</span></div>${estadoHtml}</div>`;
+  }).join('');
+  return `<div class="pasos-panel"><div class="pasos-panel-title">Pasos del proceso</div>${filas}</div>`;
+}
+
+
 function buildPasosPanelHtml(item){
   const now=Date.now();
   const pasos=[
@@ -1948,15 +2031,14 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const moveOpts=buildMoveOptsForItem(secId,itemId);
 
   if(tipo==='muestra_pend'){
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
-          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             <span class="modelista-label">Color:</span>
             ${item.color
@@ -1978,6 +2060,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
@@ -2008,8 +2091,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
         if(canEdit) aviosPanel+=`<div class="avio-item"><button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar avíos</button></div>`;
       }
     }
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
@@ -2044,6 +2127,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
@@ -2051,8 +2135,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
     const tallerOpts=TALLERISTAS_MUESTRA.map(t=>`<option value="${t}">${t}</option>`).join('');
     const tallerElegido=item.taller_elegido;
     const canMarcarEnviado=canEdit||currentUser==='emir';
-    return `<div class="item">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
@@ -2088,21 +2172,21 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
   if(tipo==='muestra_en_taller'){
     const dias=diasDesde(item.fecha_envio_taller);
     const diasColor = dias>=7 ? 'var(--danger)' : dias>=3 ? 'var(--warn-text)' : 'var(--text2)';
-    return `<div class="item">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
-          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2123,6 +2207,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
@@ -2242,7 +2327,6 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>`:''}
 
           ${buildModelistaHtml(secId,itemId,item,modelistaLocked,fichaModPendiente?'Falta corregir y volver a controlar la ficha':'Falta tildar Ninox y el control de ficha')}
-          ${buildResponsableHtml(sec,item,secId)}
 
           <div style="margin-top:10px">
             <span class="modelista-label">Notas:</span>
@@ -2272,8 +2356,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${Object.values(item.fotos_prueba).map(url=>`<div class="diseno-foto-item"><img src="${url}" onclick="openPhotoModal('${url}')"></div>`).join('')}
       </div>`:''}
     </div>`:'';
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
@@ -2288,7 +2372,6 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
           ${buildModelistaHtml(secId,itemId,item)}
-          ${buildResponsableHtml(sec,item,secId)}
           <div class="cortada-row" style="padding:6px 0;border:none">
             <div class="c-check ${item.foto_drive_ok?'checked':''}" onclick="${canEdit?`toggleFotoDriveOk('${secId}','${itemId}')`:''}">${item.foto_drive_ok?'✓':''}</div>
             <span class="c-label ${item.foto_drive_ok?'done':''}">Cargar foto en Drive con nombre prenda y código <span style="font-size:10px;color:var(--text3)">(Peque)</span></span>
@@ -2302,14 +2385,15 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
   if(tipo==='muestra_diseno'){
     const canDesign=(currentUser==='ariel'||currentUser==='stef')||currentUser==='peque';
     const fotos=Object.entries(item.fotos_prueba||{});
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
@@ -2349,20 +2433,20 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
   // --- REVISIÓN FINAL: llegó el corte del taller, comparar contra la muestra ---
   if(tipo==='revision_final'){
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
-          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2379,6 +2463,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
@@ -2386,8 +2471,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
   if(tipo==='mejora'){
     const resuelta=item.mejora_resuelta||false;
     const necesitaMuestra=item.necesita_muestra;
-    return `<div class="item ${resuelta?'done':''}" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item ${resuelta?'done':''}" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
@@ -2417,7 +2502,6 @@ function buildItem(secId,itemId,item,sec,idx,total){
               <option value="Otro" ${item.mejora_tipo==='Otro'?'selected':''}>Otro</option>
             </select>
           </div>
-          ${buildResponsableHtml(sec,item,secId)}
           <div class="modelista-row">
             <span class="modelista-label">¿Necesita muestra nueva?</span>
             ${canEdit?`<button class="radio-btn ${necesitaMuestra===true?'selected':''}" onclick="setNecesitaMuestra('${secId}','${itemId}',true)">Sí</button>
@@ -2432,6 +2516,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildDemoraPanelHtml(sec,item,secId)}
     </div>`;
   }
 
@@ -2520,10 +2605,10 @@ function buildItem(secId,itemId,item,sec,idx,total){
       <button title="Subir" ${idx===0?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',-1)" style="border:1px solid var(--border);background:${idx===0?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'inherit'}">▲</button>
       <button title="Bajar" ${idx===total-1?'disabled':''} onclick="moveCorteOrder('${secId}','${itemId}',1)" style="border:1px solid var(--border);background:${idx===total-1?'#f3f4f6':'#fff'};border-radius:4px;width:22px;height:20px;font-size:10px;cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'inherit'}">▼</button>
     </div>` : '';
-  return `<div class="item ${item.done?'done':''}" id="item-${secId}-${itemId}">
+  return `<div class="item ${item.done?'done':''}" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
     ${orderHtml}
     ${checkHtml}
-    <div class="item-with-photo" style="flex:1">
+    <div class="item-with-photo" style="flex:2;min-width:280px">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
@@ -2571,7 +2656,6 @@ function buildItem(secId,itemId,item,sec,idx,total){
           if(!faltantes.length) return '';
           return `<div style="font-size:11px;color:var(--warn-text);background:var(--warn-bg);border-radius:6px;padding:4px 8px;margin:2px 0 6px">⚠️ Pendiente completar Peque: falta ${faltantes.join(', ')} antes de pasar a Cortes próximos a sacar</div>`;
         })()}
-        ${buildResponsableHtml(sec,item,secId)}
         ${secId==='sLT'?buildTallerCorteHtml(secId,itemId,item):''}
         ${numeroCorteHtml}
         ${sinConfirmarHtml}
@@ -2593,6 +2677,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
         </div>
       </div>
+      ${secId==='s3'?buildPasosPanelCorteHtml(item):buildDemoraPanelHtml(sec,item,secId)}
     </div>
   </div>`;
 }
@@ -2647,6 +2732,7 @@ function setOrdenCorteCargada(secId,itemId,val){
   const item=sectionsData[secId].items[itemId];
   const updates={orden_corte_cargada:val};
   if(!val) updates.encimado_terminado=false;
+  if(val&&!item.fecha_paso_orden) updates.fecha_paso_orden=Date.now();
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
   logActivity('Orden de corte',`${item.code}: ${val?'cargada':'deshecho'}`);
   showToast(val?'📋 Orden de corte cargada':'↩ Orden de corte deshecha');
@@ -2654,7 +2740,9 @@ function setOrdenCorteCargada(secId,itemId,val){
 
 function setEncimadoTerminado(secId,itemId,val){
   const item=sectionsData[secId].items[itemId];
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/encimado_terminado`).set(val);
+  const updates={encimado_terminado:val};
+  if(val&&!item.fecha_paso_encimado) updates.fecha_paso_encimado=Date.now();
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
   logActivity('Encimado',`${item.code}: ${val?'terminado':'deshecho'}`);
   showToast(val?'🧷 Encimado terminado — ya se puede marcar cortado':'↩ Encimado deshecho');
 }
@@ -2665,7 +2753,9 @@ function setEncimadoTerminado(secId,itemId,val){
 function toggleCorteSinConfirmar(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const nv=!item.sin_confirmar;
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/sin_confirmar`).set(nv);
+  const updates={sin_confirmar:nv};
+  if(!nv&&!item.fecha_paso_confirmado) updates.fecha_paso_confirmado=Date.now();
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
   logActivity('Confirmación de corte',`${item.code}: ${nv?'marcado sin confirmar':'confirmado para cortar'}`);
   showToast(nv?'⏳ Marcado como sin confirmar':'✅ Confirmado para cortar');
 }
