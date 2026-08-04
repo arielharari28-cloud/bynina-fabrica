@@ -66,7 +66,9 @@
 
   /* CORTADA PANEL */
   .cortada-panel{margin-top:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);overflow:hidden}
-  .cortada-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)}
+  .cortada-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .cortada-row>.c-label{flex:1;min-width:140px}
+  .cortada-row>.btn-advance,.cortada-row>.btn-sm{flex-shrink:0}
   .cortada-row:last-child{border-bottom:none}
   .c-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;transition:all .15s}
   .c-check.checked{background:var(--accent);border-color:var(--accent)}
@@ -2422,7 +2424,15 @@ function buildItem(secId,itemId,item,sec,idx,total){
           <div class="c-check checked-auto ${item.ancho?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay ancho cargado">${item.ancho?'✓':''}</div>
           <span style="font-size:11px;color:var(--text2)">Ancho:</span>
           ${item.ancho?`<span style="font-size:12px;font-weight:600">${item.ancho}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}`:''}
+          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}
+          <div class="c-check checked-auto ${item.peso_metro?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay peso x metro cargado">${item.peso_metro?'✓':''}</div>
+          <span style="font-size:11px;color:var(--text2)">Peso x metro:</span>
+          ${item.peso_metro?`<span style="font-size:12px;font-weight:600">${item.peso_metro}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+          ${canFicha?`<button class="btn-sm" onclick="editPesoMetroPrompt('${secId}','${itemId}')">${item.peso_metro?'✏️':'+ Peso x metro'}</button>`:''}
+          <div class="c-check checked-auto ${item.largo_capa?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay largo de capa cargado">${item.largo_capa?'✓':''}</div>
+          <span style="font-size:11px;color:var(--text2)">Largo de capa:</span>
+          ${item.largo_capa?`<span style="font-size:12px;font-weight:600">${item.largo_capa}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
+          ${canFicha?`<button class="btn-sm" onclick="editLargoCapaPrompt('${secId}','${itemId}')">${item.largo_capa?'✏️':'+ Largo de capa'}</button>`:''}`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px">
           <div class="c-check checked-auto ${item.control_piezas_link?'checked':''}" title="Se tilda solo cuando hay link de control de piezas cargado">${item.control_piezas_link?'✓':''}</div>
@@ -2702,6 +2712,24 @@ function editAnchoPrompt(secId,itemId){
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ancho`).set(val.trim());
   logActivity('Editó ancho',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
   showToast('✓ Ancho guardado');
+}
+
+function editPesoMetroPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Peso x metro:',item.peso_metro||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/peso_metro`).set(val.trim());
+  logActivity('Editó peso x metro',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
+  showToast('✓ Peso x metro guardado');
+}
+
+function editLargoCapaPrompt(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const val=prompt('Largo de capa:',item.largo_capa||'');
+  if(val===null) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/largo_capa`).set(val.trim());
+  logActivity('Editó largo de capa',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
+  showToast('✓ Largo de capa guardado');
 }
 
 function toggleControlPiezas(secId,itemId){
