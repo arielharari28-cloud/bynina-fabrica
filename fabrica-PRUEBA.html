@@ -2614,7 +2614,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const fechaCorteHtml = secId!=='s3'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   const numeroCorteHtml = item.numero_corte
-    ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>` : '';
+    ? `<div style="font-size:15px;font-weight:700;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent)">${item.numero_corte}</strong></div>` : '';
   const capasHtml = buildCapasHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
@@ -2693,7 +2693,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           if(!faltantes.length) return '';
           return `<div style="font-size:11px;color:var(--warn-text);background:var(--warn-bg);border-radius:6px;padding:4px 8px;margin:2px 0 6px">⚠️ Pendiente completar Peque: falta ${faltantes.join(', ')} antes de pasar a Cortes próximos a sacar</div>`;
         })()}
-        ${secId==='sLT'?buildTallerCorteHtml(secId,itemId,item):''}
+        ${(secId==='sLT'||secId==='sFIN')?buildTallerCorteHtml(secId,itemId,item):''}
         ${numeroCorteHtml}
         ${sinConfirmarHtml}
         ${capasHtml}
