@@ -697,9 +697,9 @@ function buildProductosPerfectosOptions(){
 function buildRepoPerfectoHtml(secId,itemId,item){
   const opts=buildProductosPerfectosOptions();
   const optsHtml=opts.map(o=>`<option value="${o.secId}::${o.itemId}" ${(item.reposicion_ref_sec===o.secId&&item.reposicion_ref_id===o.itemId)?'selected':''}>${o.label}</option>`).join('');
-  return `<div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap">
     <span class="modelista-label">Reponiendo:</span>
-    <select class="modelista-select" onchange="onRepoPerfectoChange('${secId}','${itemId}',this)">
+    <select class="modelista-select" style="max-width:100%" onchange="onRepoPerfectoChange('${secId}','${itemId}',this)">
       <option value="">Elegir producto…</option>
       ${optsHtml}
     </select>
