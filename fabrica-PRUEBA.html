@@ -129,6 +129,17 @@
 
   /* FOTO */
   .item-with-photo{display:flex;gap:10px;width:100%;min-width:0}
+  .pasos-panel{flex:1;min-width:210px;max-width:260px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;align-self:flex-start}
+  .pasos-panel-title{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+  .paso-row{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px dashed var(--border)}
+  .paso-row:first-of-type{border-top:none}
+  .paso-label{font-size:11px;font-weight:600;color:var(--text)}
+  .paso-resp{font-weight:400;color:var(--text3);font-size:10px;margin-left:5px}
+  .paso-done{font-size:11px;color:var(--green-text,#2f7a4a)}
+  .paso-pendiente{font-size:11px;color:var(--warn-text)}
+  .paso-pendiente.paso-urgente{color:#dc2626;font-weight:700}
+  .paso-inactivo{font-size:11px;color:var(--text3)}
+  .paso-row.paso-activo{background:var(--warn-bg);margin:0 -12px;padding:6px 12px;border-radius:6px}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -447,6 +458,7 @@ function saveItemCode(secId,itemId,el){
   if (!newCode) { el.textContent = item.code; return; }
   if (newCode === (item.code||'')) return;
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/code`).set(newCode);
+  checkPasosNuevoDesarrollo(secId,itemId,{code:newCode});
   logActivity('Editó código', `${item.code} → ${newCode}`);
 }
 
@@ -580,6 +592,7 @@ function assignModelista(secId,itemId,nombre){
     return;
   }
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/modelista`).set(nombre||null);
+  checkPasosNuevoDesarrollo(secId,itemId,{modelista:nombre||null});
   logActivity('Asignó modelista',`${item.code||item.name||''} → ${nombre||'sin asignar'}`);
   showToast(nombre?`✓ Modelista: ${nombre}`:'Modelista quitada');
 }
@@ -1194,6 +1207,7 @@ function toggleNinox(secId,itemId){
   if(!item.code||!item.code.trim()){ showToast('Cargá el código antes de tildar Ninox'); return; }
   const nv=!(item.en_ninox||false);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/en_ninox`).set(nv);
+  checkPasosNuevoDesarrollo(secId,itemId,{en_ninox:nv});
   logActivity(`Ninox ${nv?'✓':'✗'}`,item.code||item.name);
 }
 
@@ -1201,6 +1215,7 @@ function toggleControlFicha(secId,itemId,campo){
   const item=sectionsData[secId].items[itemId];
   const nv=!(item[campo]||false);
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/${campo}`).set(nv);
+  checkPasosNuevoDesarrollo(secId,itemId,{[campo]:nv});
   logActivity('Control de ficha',`${item.code} → ${campo}`);
 }
 
@@ -1486,6 +1501,58 @@ function fmtFecha(timestamp){
 function diasEntre(ts){
   if(!ts) return null;
   return Math.floor((Date.now()-ts)/(1000*60*60*24));
+}
+function diasEntreTs(a,b){
+  if(!a) return null;
+  return Math.floor(((b||Date.now())-a)/(1000*60*60*24));
+}
+
+// Marca automáticamente cuándo se completó cada macro-paso del proceso de Nuevos Desarrollos,
+// comparando el item actual con el "patch" recién escrito (el listener de Firebase todavía no
+// actualizó sectionsData en este momento, por eso se arma un merge manual acá).
+function checkPasosNuevoDesarrollo(secId,itemId,patch){
+  const sec=sectionsData[secId]; if(!sec||sec.tipo!=='muestra_prep') return;
+  const item=sec.items[itemId]; if(!item) return;
+  const merged={...item,...patch};
+  const updates={};
+  if(merged.code&&String(merged.code).trim()&&!item.fecha_paso_ingreso) updates.fecha_paso_ingreso=Date.now();
+  if(merged.en_ninox&&merged.ficha_link&&!item.fecha_paso_peque) updates.fecha_paso_peque=Date.now();
+  if((merged.control_ariel||merged.control_stef)&&!item.fecha_paso_control) updates.fecha_paso_control=Date.now();
+  if(merged.modelista&&!item.fecha_paso_modelista) updates.fecha_paso_modelista=Date.now();
+  if(Object.keys(updates).length){
+    const dbUpdates={};
+    Object.entries(updates).forEach(([k,v])=>{ dbUpdates[`fabrica_v5/sections/${secId}/items/${itemId}/${k}`]=v; });
+    db.ref().update(dbUpdates);
+  }
+}
+
+// Panel lateral: cada macro-paso del proceso de Nuevos Desarrollos con quién lo hace y cuánto tardó/lleva pendiente
+function buildPasosPanelHtml(item){
+  const now=Date.now();
+  const pasos=[
+    { label:'Ingreso desarrollo', resp:'Stef', start:item.fecha_ingreso, end:item.fecha_paso_ingreso },
+    { label:'Cargar Ninox + ficha', resp:'Peque', start:item.fecha_paso_ingreso, end:item.fecha_paso_peque },
+    { label:'Control de ficha', resp:'Ariel / Stef', start:item.fecha_paso_peque, end:item.fecha_paso_control },
+    { label:'Elegir modelista', resp:'Peque', start:item.fecha_paso_control, end:item.fecha_paso_modelista },
+    { label:'Enviar a moldería', resp:'Peque', start:item.fecha_paso_modelista, end:null }
+  ];
+  let activaEncontrada=false;
+  const filas=pasos.map(p=>{
+    let claseFila='paso-row', estadoHtml;
+    if(p.end){
+      const d=diasEntreTs(p.start,p.end);
+      estadoHtml=`<span class="paso-done">✅ Listo${d!=null?' · tardó '+d+' día'+(d!==1?'s':''):''}</span>`;
+    } else if(!activaEncontrada && p.start){
+      activaEncontrada=true; claseFila+=' paso-activo';
+      const d=diasEntreTs(p.start,now);
+      const urgente=d!=null&&d>=2;
+      estadoHtml=`<span class="paso-pendiente${urgente?' paso-urgente':''}">⏳ Pendiente${d!=null?' · hace '+d+' día'+(d!==1?'s':''):''}</span>`;
+    } else {
+      estadoHtml=`<span class="paso-inactivo">—</span>`;
+    }
+    return `<div class="${claseFila}"><div class="paso-label">${p.label}<span class="paso-resp">${p.resp}</span></div>${estadoHtml}</div>`;
+  }).join('');
+  return `<div class="pasos-panel"><div class="pasos-panel-title">Pasos del proceso</div>${filas}</div>`;
 }
 
 // Cuántos días en la misma etapa se consideran "atrasado", según lo definido para cada proceso
@@ -2098,8 +2165,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
     const modelistaLocked=!(ninox&&controlDone)||fichaModPendiente;
     const puedeAvanzar=!!(item.code&&item.code.trim())&&!!item.ficha_link&&!!item.modelista&&!fichaModPendiente;
     const canControl=(currentUser==='ariel'||currentUser==='stef');
-    return `<div class="item" id="item-${secId}-${itemId}">
-      <div class="item-with-photo">
+    return `<div class="item" id="item-${secId}-${itemId}" style="flex-wrap:wrap;align-items:stretch">
+      <div class="item-with-photo" style="flex:2;min-width:280px">
         ${buildPhotoHtml(secId,itemId,item,canEdit)}
         <div class="item-body">
           ${item.origen_mejora?`<div style="font-size:11px;background:var(--warn-bg);color:var(--warn-text);border-radius:6px;padding:4px 8px;margin-bottom:6px">🔧 <strong>Viene de una mejora:</strong> ${item.origen_mejora}</div>`:''}
@@ -2192,6 +2259,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
         </div>
       </div>
+      ${buildPasosPanelHtml(item)}
     </div>`;
   }
 
@@ -2725,6 +2793,7 @@ function editFichaLink(secId,itemId){
   const link=prompt('Pegá el link de la Ficha Producto (Drive, etc):',item.ficha_link||'');
   if(link===null) return;
   db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/ficha_link`).set(link.trim());
+  checkPasosNuevoDesarrollo(secId,itemId,{ficha_link:link.trim()});
   logActivity('Cargó link de ficha',item.code);
   showToast(link.trim()?'✓ Link guardado':'Link eliminado');
 }
