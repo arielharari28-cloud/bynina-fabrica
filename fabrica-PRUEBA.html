@@ -748,7 +748,7 @@ function getResponsable(sec,item,secId){
     if(!item.ficha_link) return 'Peque';
     if(!(item.control_ariel||item.control_stef)) return 'Ariel';
     if(!item.modelista) return 'Peque';
-    return item.modelista;
+    return 'Peque'; // modelista ya asignada: falta que Peque envíe a moldería
   }
   if(tipo==='muestra_molderia'){
     if(!item.foto_drive_ok) return 'Peque';
@@ -757,6 +757,8 @@ function getResponsable(sec,item,secId){
   if(tipo==='muestra_diseno') return 'Ariel y Stef';
   if(tipo==='muestra_pend') return 'Cortador';
   if(tipo==='muestra_cort') return 'Peque';
+  if(tipo==='muestra_lista') return 'Peque';
+  if(tipo==='muestra_en_taller') return 'Peque';
   if(tipo==='revision_final') return 'Ariel y Stef';
   if(tipo==='producto_perfecto'||tipo==='muestra_cancelada') return null;
 
@@ -1623,6 +1625,18 @@ function renderSections(board){
         lastName=n;
         return header+buildItem(secId,itemId,item,sec,idx,sortedItems.length);
       }).join('');
+    } else if(secId==='s3'){
+      const enCola=items.filter(([,item])=>item.sin_confirmar);
+      const confirmados=items.filter(([,item])=>!item.sin_confirmar);
+      const colaHtml=enCola.length
+        ? `<div class="group-header" style="font-size:12px;font-weight:700;color:var(--warn-text);margin:4px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--border)">🕓 Cortes en cola — pendientes de aprobación de Ari (${enCola.length})</div>`
+          + enCola.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')
+        : '';
+      const confHtml=confirmados.length
+        ? (enCola.length?`<div class="group-header" style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--border)">✂️ Cortes próximos a sacar (${confirmados.length})</div>`:'')
+          + confirmados.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')
+        : '';
+      itemsHtml=colaHtml+confHtml;
     } else {
       itemsHtml=items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
     }
@@ -1633,8 +1647,9 @@ function renderSections(board){
         <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">${secOrderBtns}${hBtns}<span style="color:${col.secText};font-size:12px">${isSecCollapsed(secId)?'▶':'▼'}</span></div>
       </div>
       <div class="sec-body ${isSecCollapsed(secId)?'hidden':''}" id="body-${secId}">
+        ${addRowPrep}
         ${itemsHtml}
-        ${addRow}${addRowPrep}${addRowGeneral}
+        ${addRow}${addRowGeneral}
       </div>`;
     c.appendChild(div);
   });
@@ -1835,6 +1850,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             <span class="modelista-label">Color:</span>
             ${item.color
@@ -1980,6 +1996,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+          ${buildResponsableHtml(sec,item,secId)}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2413,6 +2430,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
+        ${procesoInfoHtml(item)}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
         ${fichaHtml}
