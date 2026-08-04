@@ -176,7 +176,10 @@
   .galeria-tile img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer}
   .galeria-tile-info{padding:6px 8px;display:flex;flex-direction:column;gap:1px}
   .galeria-tile-code{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .galeria-tile-sec{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .galeria-tile-etapa{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 6px;border-radius:20px;width:fit-content}
+  .galeria-tile-etapa.etapa-diseno{background:#ede9fe;color:#6d28d9}
+  .galeria-tile-etapa.etapa-fabrica{background:#dbeafe;color:#1d4ed8}
+  .galeria-tile-etapa.etapa-finalizados{background:#dcfce7;color:#15803d}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -930,6 +933,7 @@ let searchQuery = '';
 let filtroCorteTaller='', filtroCorteTela='', filtroCorteCategoria='', filtroCorteNumero='', ordenCortePor='';
 // Orden personalizado (arrastrar y soltar) de la Galería, guardado por tablero
 let galeriaOrden = {diseno:[], fabrica:[]};
+let filtroGaleriaMarca='', filtroGaleriaTela='', filtroGaleriaCategoria='';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -3596,16 +3600,40 @@ function colorForPersonName(name){
 // que se pueden arrastrar libremente para reordenar. El orden queda guardado en Firebase.
 function renderGaleria(){
   const cont=document.getElementById('galeria-content');
-  let html='';
-  ['diseno','fabrica'].forEach(board=>{
-    const items=[];
-    Object.entries(sectionsData).forEach(([secId,sec])=>{
-      if(getBoard(sec)!==board) return;
-      Object.entries(sec.items||{}).forEach(([itemId,item])=>{
-        if(item.done||!item.foto) return;
-        items.push({secId,itemId,item,secTitle:sec.title});
-      });
+  // Juntar TODOS los items con foto de los dos tableros, para armar las opciones de los filtros
+  const todos=[];
+  Object.entries(sectionsData).forEach(([secId,sec])=>{
+    Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+      if(item.done||!item.foto) return;
+      const board=getBoard(sec);
+      const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'Finalizados':'Fábrica');
+      todos.push({secId,itemId,item,secTitle:sec.title,board,etapa});
     });
+  });
+  const marcas=[...new Set(todos.map(it=>it.item.marca).filter(Boolean))].sort();
+  const telas=[...new Set(todos.map(it=>it.item.tela).filter(Boolean))].sort();
+  const categorias=[...new Set(todos.map(it=>it.item.categoria).filter(Boolean))].sort();
+  const opt=(list,val)=>list.map(v=>`<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
+  const filtroBar=`<div class="filtro-corte-bar" style="margin-bottom:14px">
+    <select class="filtro-corte-select" onchange="filtroGaleriaMarca=this.value;renderGaleria()">
+      <option value="">Marca: todas</option>${opt(marcas,filtroGaleriaMarca)}
+    </select>
+    <select class="filtro-corte-select" onchange="filtroGaleriaTela=this.value;renderGaleria()">
+      <option value="">Tela: todas</option>${opt(telas,filtroGaleriaTela)}
+    </select>
+    <select class="filtro-corte-select" onchange="filtroGaleriaCategoria=this.value;renderGaleria()">
+      <option value="">Categoría: todas</option>${opt(categorias,filtroGaleriaCategoria)}
+    </select>
+    ${(filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria)?`<button class="btn-sm" onclick="filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';renderGaleria()">✕ Limpiar</button>`:''}
+  </div>`;
+  const filtrados=todos.filter(it=>
+    (!filtroGaleriaMarca||it.item.marca===filtroGaleriaMarca) &&
+    (!filtroGaleriaTela||it.item.tela===filtroGaleriaTela) &&
+    (!filtroGaleriaCategoria||it.item.categoria===filtroGaleriaCategoria)
+  );
+  let html=filtroBar;
+  ['diseno','fabrica'].forEach(board=>{
+    const items=filtrados.filter(it=>it.board===board);
     const orden=galeriaOrden[board]||[];
     const keyOf=it=>`${it.secId}::${it.itemId}`;
     items.sort((a,b)=>{
@@ -3622,12 +3650,12 @@ function renderGaleria(){
         <img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">
         <div class="galeria-tile-info">
           <span class="galeria-tile-code">${it.item.code||it.item.name||'(sin código)'}</span>
-          <span class="galeria-tile-sec">${it.secTitle}</span>
+          <span class="galeria-tile-etapa etapa-${it.etapa==='Diseño'?'diseno':it.etapa==='Finalizados'?'finalizados':'fabrica'}">${it.etapa}</span>
         </div>
       </div>`).join('');
     html+=`<div class="galeria-board">
       <div class="galeria-board-title">${board==='diseno'?'🎨 Diseño':'🏭 Fábrica'} <span class="sec-count">${items.length}</span></div>
-      <div class="galeria-grid">${tiles||'<div class="empty-state">No hay fotos activas acá</div>'}</div>
+      <div class="galeria-grid">${tiles||'<div class="empty-state">No hay fotos que coincidan acá</div>'}</div>
     </div>`;
   });
   cont.innerHTML=html;
