@@ -873,6 +873,15 @@ let editCtx={secId:null,itemId:null,newAvioCount:0};
 // se abría/cerraba en la pantalla de todos los demás. Ahora se guarda solo en este navegador.
 let localCollapsed = {};
 try{ localCollapsed = JSON.parse(localStorage.getItem('fabrica_collapsed_v1')||'{}'); }catch(e){ localCollapsed = {}; }
+
+// Igual que el colapso de secciones, pero para el subgrupo "Cortes en cola" dentro de s3 (preferencia local del navegador)
+let colaCollapsed = false;
+try{ colaCollapsed = localStorage.getItem('fabrica_cola_collapsed_v1')==='1'; }catch(e){ colaCollapsed = false; }
+function toggleColaCollapsed(){
+  colaCollapsed = !colaCollapsed;
+  try{ localStorage.setItem('fabrica_cola_collapsed_v1', colaCollapsed?'1':'0'); }catch(e){}
+  renderSections('fabrica');
+}
 function isSecCollapsed(secId){ return !!localCollapsed[secId]; }
 function saveLocalCollapsed(){
   try{ localStorage.setItem('fabrica_collapsed_v1', JSON.stringify(localCollapsed)); }catch(e){}
@@ -1656,8 +1665,11 @@ function renderSections(board){
       const enCola=items.filter(([,item])=>item.sin_confirmar);
       const confirmados=items.filter(([,item])=>!item.sin_confirmar);
       const colaHtml=enCola.length
-        ? `<div class="group-header" style="font-size:12px;font-weight:700;color:var(--warn-text);margin:4px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--border)">🕓 Cortes en cola — pendientes de aprobación de Ari (${enCola.length})</div>`
-          + enCola.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')
+        ? `<div class="group-header" style="font-size:12px;font-weight:700;color:var(--warn-text);margin:4px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--border);cursor:pointer;display:flex;align-items:center;gap:6px" onclick="toggleColaCollapsed()">
+            <span style="display:inline-block;transition:transform .15s;transform:rotate(${colaCollapsed?'-90deg':'0deg'})">▾</span>
+            🕓 Cortes en cola — pendientes de aprobación de Ari (${enCola.length})
+          </div>`
+          + (colaCollapsed?'':enCola.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join(''))
         : '';
       const confHtml=confirmados.length
         ? (enCola.length?`<div class="group-header" style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--border)">✂️ Cortes próximos a sacar (${confirmados.length})</div>`:'')
