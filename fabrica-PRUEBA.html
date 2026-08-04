@@ -2372,7 +2372,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const capasHtml = buildCapasHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
-  const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px">
+  const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px;flex-wrap:wrap">
       <div class="c-check checked-auto ${item.ficha_link?'checked':''}" title="Se tilda solo cuando hay ficha cargada">${item.ficha_link?'✓':''}</div>
       ${item.ficha_link
         ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
@@ -2402,7 +2402,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     <div class="item-with-photo" style="flex:1">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
           <div class="c-check ${item.reposicion?'checked':''}" onclick="${canFicha?`toggleReposicion('${secId}','${itemId}')`:''}">${item.reposicion?'✓':''}</div>
           <span class="c-label ${item.reposicion?'done':''}" style="font-size:11px">Reposición</span>
         </div>
@@ -2434,7 +2434,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${item.largo_capa?`<span style="font-size:12px;font-weight:600">${item.largo_capa}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
           ${canFicha?`<button class="btn-sm" onclick="editLargoCapaPrompt('${secId}','${itemId}')">${item.largo_capa?'✏️':'+ Largo de capa'}</button>`:''}`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px">
+        <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px;flex-wrap:wrap">
           <div class="c-check checked-auto ${item.control_piezas_link?'checked':''}" title="Se tilda solo cuando hay link de control de piezas cargado">${item.control_piezas_link?'✓':''}</div>
           <span class="c-label ${item.control_piezas_link?'done':''}" style="font-size:11px">Control de piezas</span>
           ${item.control_piezas_link?`<a href="${item.control_piezas_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:11px">🔗 Ver</a>`:''}
