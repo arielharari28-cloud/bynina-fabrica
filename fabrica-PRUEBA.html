@@ -149,6 +149,21 @@
   .deuda-taller-cant{font-size:12px;color:var(--text2);background:var(--bg);border-radius:20px;padding:2px 10px}
   .deuda-taller-dias{font-size:11px;color:var(--text2)}
   .deuda-taller-dias.urgente{color:#dc2626;font-weight:700}
+  .deuda-taller-group{border-top:1px dashed var(--border)}
+  .deuda-taller-group:first-child{border-top:none}
+  .deuda-taller-group .deuda-taller-row{border-top:none}
+  .deuda-taller-caret{margin-left:auto;font-size:11px;color:var(--text3);transition:transform .15s}
+  .deuda-taller-group.open .deuda-taller-caret{transform:rotate(180deg)}
+  .deuda-taller-detalle{display:none;padding:0 0 8px 4px}
+  .deuda-taller-group.open .deuda-taller-detalle{display:block}
+  .deuda-taller-item{display:flex;align-items:center;gap:10px;padding:3px 0;font-size:11px;color:var(--text2)}
+  .dti-corte{font-weight:700;color:var(--text);min-width:70px}
+  .dti-articulo{flex:1}
+  .dti-tela{color:var(--text3);font-style:italic}
+
+  .filtro-corte-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 18px;background:var(--surface2);border-bottom:1px solid var(--border)}
+  .filtro-corte-select, .filtro-corte-input{font-size:12px;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;background:var(--bg);color:var(--text)}
+  .filtro-corte-input{width:130px}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -645,6 +660,63 @@ function assignMarca(secId,itemId,nombre){
   showToast(`✓ Marca: ${nombre}`);
 }
 
+// Categoría y Temporada: mismo patrón que Marca (lista editable compartida guardada en Firebase)
+function buildCategoriaHtml(secId,itemId,item){
+  const opts=(categoriasList||[]).map(n=>`<option value="${n}" ${item.categoria===n?'selected':''}>${n}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <span class="modelista-label">Categoría:</span>
+    <select class="modelista-select" onchange="onCategoriaChange('${secId}','${itemId}',this)">
+      <option value="">— Sin asignar —</option>
+      ${opts}
+      <option value="__nueva__">+ Agregar nueva…</option>
+    </select>
+  </div>`;
+}
+function onCategoriaChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nueva__'){
+    const nombre=prompt('Nombre de la nueva categoría:');
+    if(!nombre||!nombre.trim()){ sel.value=item.categoria||''; return; }
+    const limpio=nombre.trim();
+    if(!categoriasList.includes(limpio)){
+      categoriasList=[...categoriasList,limpio];
+      db.ref('fabrica_v5/categorias').set(categoriasList);
+    }
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/categoria`).set(limpio);
+  } else {
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/categoria`).set(sel.value||null);
+  }
+  logActivity('Asignó categoría',`${item.code||item.name||''} → ${sel.value||'sin asignar'}`);
+}
+
+function buildTemporadaHtml(secId,itemId,item){
+  const opts=(temporadasList||[]).map(n=>`<option value="${n}" ${item.temporada===n?'selected':''}>${n}</option>`).join('');
+  return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <span class="modelista-label">Temporada:</span>
+    <select class="modelista-select" onchange="onTemporadaChange('${secId}','${itemId}',this)">
+      <option value="">— Sin asignar —</option>
+      ${opts}
+      <option value="__nueva__">+ Agregar nueva…</option>
+    </select>
+  </div>`;
+}
+function onTemporadaChange(secId,itemId,sel){
+  const item=sectionsData[secId].items[itemId];
+  if(sel.value==='__nueva__'){
+    const nombre=prompt('Nombre de la nueva temporada (ej: Verano 2027):');
+    if(!nombre||!nombre.trim()){ sel.value=item.temporada||''; return; }
+    const limpio=nombre.trim();
+    if(!temporadasList.includes(limpio)){
+      temporadasList=[...temporadasList,limpio];
+      db.ref('fabrica_v5/temporadas').set(temporadasList);
+    }
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/temporada`).set(limpio);
+  } else {
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/temporada`).set(sel.value||null);
+  }
+  logActivity('Asignó temporada',`${item.code||item.name||''} → ${sel.value||'sin asignar'}`);
+}
+
 function buildTelaHtml(secId,itemId,item){
   const opts=(telasList||[]).map(n=>`<option value="${n}" ${item.tela===n?'selected':''}>${n}</option>`).join('');
   return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
@@ -831,8 +903,13 @@ let talleresCorteList = ['Adela','Willy Ramos'];
 let marcasList = ['By Nina'];
 // Telas usadas (editable: se puede agregar una nueva directo desde la tarjeta)
 let telasList = [];
+// Categoría y temporada del producto (editable, mismo patrón que Marca/Tela)
+let categoriasList = ['Remera','Top','Buzo','Pantalón','Vestido','Body','Short','Campera'];
+let temporadasList = ['Verano 2026','Invierno 2026'];
 let filtroMarca = '';
 let searchQuery = '';
+// Filtros y orden de la sección Cortes Finalizados
+let filtroCorteTaller='', filtroCorteTela='', filtroCorteCategoria='', filtroCorteNumero='', ordenCortePor='';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -1076,6 +1153,18 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     const v=snap.val();
     if(v){ talleresCorteList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
     else db.ref('fabrica_v5/talleres_corte').set(talleresCorteList);
+    renderSections('fabrica');
+  });
+  db.ref('fabrica_v5/categorias').on('value',snap=>{
+    const v=snap.val();
+    if(v){ categoriasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    else db.ref('fabrica_v5/categorias').set(categoriasList);
+    renderSections('fabrica');
+  });
+  db.ref('fabrica_v5/temporadas').on('value',snap=>{
+    const v=snap.val();
+    if(v){ temporadasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
+    else db.ref('fabrica_v5/temporadas').set(temporadasList);
     renderSections('fabrica');
   });
   db.ref('fabrica_v5/marcas').on('value',snap=>{
@@ -1594,6 +1683,46 @@ function buildDemoraPanelHtml(sec,item,secId){
 // Resumen "qué debe cada taller": agrupa los cortes que están en Cortes Finalizados (ya cortados,
 // enviados a un taller, todavía sin marcar como entregados) por taller, para saber de un vistazo
 // cuántas prendas tiene pendiente cada uno y hace cuánto están esperando.
+// Barra de filtros y orden para Cortes Finalizados: taller / tela / categoría / N° de corte
+function buildFiltroCorteBarHtml(items){
+  const talleres=[...new Set(items.map(([,it])=>it.taller_corte).filter(Boolean))].sort();
+  const telas=[...new Set(items.map(([,it])=>it.tela).filter(Boolean))].sort();
+  const categorias=[...new Set(items.map(([,it])=>it.categoria).filter(Boolean))].sort();
+  const opt=(list,val)=>list.map(v=>`<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
+  return `<div class="filtro-corte-bar">
+    <select class="filtro-corte-select" onchange="filtroCorteTaller=this.value;renderSections('fabrica')">
+      <option value="">Taller: todos</option>${opt(talleres,filtroCorteTaller)}
+    </select>
+    <select class="filtro-corte-select" onchange="filtroCorteTela=this.value;renderSections('fabrica')">
+      <option value="">Tela: todas</option>${opt(telas,filtroCorteTela)}
+    </select>
+    <select class="filtro-corte-select" onchange="filtroCorteCategoria=this.value;renderSections('fabrica')">
+      <option value="">Categoría: todas</option>${opt(categorias,filtroCorteCategoria)}
+    </select>
+    <input class="filtro-corte-input" type="text" placeholder="N° de corte..." value="${filtroCorteNumero}" oninput="filtroCorteNumero=this.value;renderSections('fabrica')">
+    <select class="filtro-corte-select" onchange="ordenCortePor=this.value;renderSections('fabrica')">
+      <option value="">Ordenar por…</option>
+      <option value="taller" ${ordenCortePor==='taller'?'selected':''}>Taller</option>
+      <option value="tela" ${ordenCortePor==='tela'?'selected':''}>Tela</option>
+      <option value="categoria" ${ordenCortePor==='categoria'?'selected':''}>Categoría</option>
+      <option value="numero_corte" ${ordenCortePor==='numero_corte'?'selected':''}>N° de corte</option>
+    </select>
+    ${(filtroCorteTaller||filtroCorteTela||filtroCorteCategoria||filtroCorteNumero||ordenCortePor)?`<button class="btn-sm" onclick="filtroCorteTaller='';filtroCorteTela='';filtroCorteCategoria='';filtroCorteNumero='';ordenCortePor='';renderSections('fabrica')">✕ Limpiar</button>`:''}
+  </div>`;
+}
+function aplicarFiltroYOrdenCorte(items){
+  let out=items.filter(([,it])=>
+    (!filtroCorteTaller||it.taller_corte===filtroCorteTaller) &&
+    (!filtroCorteTela||it.tela===filtroCorteTela) &&
+    (!filtroCorteCategoria||it.categoria===filtroCorteCategoria) &&
+    (!filtroCorteNumero||(it.numero_corte||'').toLowerCase().includes(filtroCorteNumero.toLowerCase()))
+  );
+  if(ordenCortePor){
+    out=out.slice().sort((a,b)=>String(a[1][ordenCortePor]||'zzz').localeCompare(String(b[1][ordenCortePor]||'zzz')));
+  }
+  return out;
+}
+
 function buildDeudaTallerHtml(items){
   const porTaller={};
   items.forEach(([,item])=>{
@@ -1608,13 +1737,24 @@ function buildDeudaTallerHtml(items){
     const diasList=lista.map(it=>diasEntre(it.fecha_etapa)).filter(d=>d!=null);
     const diasMax=diasList.length?Math.max(...diasList):null;
     const urgente=diasMax!=null&&diasMax>=7;
-    return `<div class="deuda-taller-row">
-      <span class="deuda-taller-nombre">${t}</span>
-      <span class="deuda-taller-cant">${lista.length} corte${lista.length!==1?'s':''}</span>
-      ${diasMax!=null?`<span class="deuda-taller-dias${urgente?' urgente':''}">hasta ${diasMax} día${diasMax!==1?'s':''} esperando</span>`:''}
+    const detalle=lista.slice().sort((a,b)=>(a.numero_corte||'').localeCompare(b.numero_corte||'')).map(it=>
+      `<div class="deuda-taller-item">
+        <span class="dti-corte">${it.numero_corte||'s/n°'}</span>
+        <span class="dti-articulo">${it.name||it.code||'(sin nombre)'}</span>
+        <span class="dti-tela">${it.tela||'—'}</span>
+      </div>`
+    ).join('');
+    return `<div class="deuda-taller-group">
+      <div class="deuda-taller-row" onclick="this.parentElement.classList.toggle('open')" style="cursor:pointer">
+        <span class="deuda-taller-nombre">${t}</span>
+        <span class="deuda-taller-cant">${lista.length} corte${lista.length!==1?'s':''}</span>
+        ${diasMax!=null?`<span class="deuda-taller-dias${urgente?' urgente':''}">hasta ${diasMax} día${diasMax!==1?'s':''} esperando</span>`:''}
+        <span class="deuda-taller-caret">▾</span>
+      </div>
+      <div class="deuda-taller-detalle">${detalle}</div>
     </div>`;
   }).join('');
-  return `<div class="deuda-taller-box"><div class="deuda-taller-title">📦 Qué debe cada taller — pendiente de entregar</div>${filas}</div>`;
+  return `<div class="deuda-taller-box"><div class="deuda-taller-title">📦 Qué debe cada taller — pendiente de entregar <span style="font-weight:400;text-transform:none;font-size:10px">(tocá un taller para ver el detalle)</span></div>${filas}</div>`;
 }
 
 function buildPasosPanelCorteHtml(item){
@@ -1862,7 +2002,9 @@ function renderSections(board){
         : '';
       itemsHtml=colaHtml+confHtml;
     } else if(secId==='sFIN'){
-      itemsHtml=buildDeudaTallerHtml(items)+items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
+      const itemsFiltrados=aplicarFiltroYOrdenCorte(items);
+      itemsHtml=buildDeudaTallerHtml(items)+buildFiltroCorteBarHtml(items)
+        +(itemsFiltrados.length?itemsFiltrados.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,itemsFiltrados.length)).join(''):`<div class="empty-state">Ningún corte coincide con el filtro</div>`);
     } else {
       itemsHtml=items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
     }
@@ -2315,6 +2457,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
 
           ${canEdit?buildMarcaHtml(secId,itemId,item):''}
+          ${canEdit?buildCategoriaHtml(secId,itemId,item):''}
+          ${canEdit?buildTemporadaHtml(secId,itemId,item):''}
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
             <span class="modelista-label">Link:</span>
@@ -2614,7 +2758,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
   const fechaCorteHtml = secId!=='s3'&&item.fecha_corte
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   const numeroCorteHtml = item.numero_corte
-    ? `<div style="font-size:15px;font-weight:700;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent)">${item.numero_corte}</strong></div>` : '';
+    ? `<div style="font-size:13px;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent);font-weight:600">${item.numero_corte}</strong></div>` : '';
   const capasHtml = buildCapasHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
@@ -2661,6 +2805,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
         ${procesoInfoHtml(item)}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+        ${secId==='sFIN'?(canEdit?buildCategoriaHtml(secId,itemId,item):(item.categoria?`<div style="font-size:11px;color:var(--text2)">Categoría: <strong>${item.categoria}</strong></div>`:'')):''}
+        ${secId==='sFIN'?(canEdit?buildTemporadaHtml(secId,itemId,item):(item.temporada?`<div style="font-size:11px;color:var(--text2)">Temporada: <strong>${item.temporada}</strong></div>`:'')):''}
         ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
         ${fichaHtml}
         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
