@@ -181,6 +181,7 @@
   .galeria-tile-etapa.etapa-diseno{background:#ede9fe;color:#6d28d9}
   .galeria-tile-etapa.etapa-fabrica{background:#dbeafe;color:#1d4ed8}
   .galeria-tile-etapa.etapa-finalizados{background:#dcfce7;color:#15803d}
+  .galeria-tile-sec{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -3601,17 +3602,20 @@ function colorForPersonName(name){
 // que se pueden arrastrar libremente para reordenar. El orden queda guardado en Firebase.
 function renderGaleria(){
   const cont=document.getElementById('galeria-content');
-  // Juntar TODOS los items con foto de los dos tableros, para armar las opciones de los filtros
+  // Juntar TODOS los items de los dos tableros, para armar las opciones de los filtros
   const todos=[];
   Object.entries(sectionsData).forEach(([secId,sec])=>{
     if(sec.tipo==='producto_perfecto'||sec.tipo==='muestra_cancelada') return;
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
       const board=getBoard(sec);
-      const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'Finalizados':'Fábrica');
-      todos.push({secId,itemId,item,secTitle:sec.title,board,etapa});
+      const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'En taller':'Fábrica');
+      const marca=item.marca||marcasList[0]||'By Nina'; // igual que en el resto de la app: sin marca cargada = la primera de la lista
+      todos.push({secId,itemId,item,secTitle:sec.title,board,etapa,marca});
     });
   });
-  const marcas=[...new Set(todos.map(it=>it.item.marca).filter(Boolean))].sort();
+  // La marca usa la lista maestra (marcasList), no solo lo que aparece en los items —
+  // así "By Nina" siempre está aunque sea el valor implícito y nadie lo haya tildado a mano.
+  const marcas=marcasList||[];
   const telas=[...new Set(todos.map(it=>it.item.tela).filter(Boolean))].sort();
   const categorias=[...new Set(todos.map(it=>it.item.categoria).filter(Boolean))].sort();
   const opt=(list,val)=>list.map(v=>`<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
@@ -3628,7 +3632,7 @@ function renderGaleria(){
     ${(filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria)?`<button class="btn-sm" onclick="filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';renderGaleria()">✕ Limpiar</button>`:''}
   </div>`;
   const filtrados=todos.filter(it=>
-    (!filtroGaleriaMarca||it.item.marca===filtroGaleriaMarca) &&
+    (!filtroGaleriaMarca||it.marca===filtroGaleriaMarca) &&
     (!filtroGaleriaTela||it.item.tela===filtroGaleriaTela) &&
     (!filtroGaleriaCategoria||it.item.categoria===filtroGaleriaCategoria)
   );
@@ -3651,7 +3655,8 @@ function renderGaleria(){
         ${it.item.foto?`<img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">`:`<div class="galeria-tile-sinfoto">📷</div>`}
         <div class="galeria-tile-info">
           <span class="galeria-tile-code">${it.item.code||it.item.name||'(sin código)'}</span>
-          <span class="galeria-tile-etapa etapa-${it.etapa==='Diseño'?'diseno':it.etapa==='Finalizados'?'finalizados':'fabrica'}">${it.etapa}</span>
+          <span class="galeria-tile-etapa etapa-${it.etapa==='Diseño'?'diseno':it.etapa==='En taller'?'finalizados':'fabrica'}">${it.etapa}</span>
+          <span class="galeria-tile-sec">${it.secTitle}</span>
         </div>
       </div>`).join('');
     html+=`<div class="galeria-board">
