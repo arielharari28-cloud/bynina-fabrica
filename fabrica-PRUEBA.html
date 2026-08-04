@@ -174,6 +174,7 @@
   .galeria-tile{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);cursor:grab;transition:opacity .12s,transform .12s}
   .galeria-tile.dragging{opacity:.35}
   .galeria-tile img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer}
+  .galeria-tile-sinfoto{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text3);font-size:1.6rem}
   .galeria-tile-info{padding:6px 8px;display:flex;flex-direction:column;gap:1px}
   .galeria-tile-code{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .galeria-tile-etapa{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 6px;border-radius:20px;width:fit-content}
@@ -3604,7 +3605,7 @@ function renderGaleria(){
   const todos=[];
   Object.entries(sectionsData).forEach(([secId,sec])=>{
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
-      if(item.done||!item.foto) return;
+      if(item.done) return;
       const board=getBoard(sec);
       const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'Finalizados':'Fábrica');
       todos.push({secId,itemId,item,secTitle:sec.title,board,etapa});
@@ -3647,7 +3648,7 @@ function renderGaleria(){
       <div class="galeria-tile" draggable="true" data-key="${keyOf(it)}" data-board="${board}"
            ondragstart="onGaleriaDragStart(event)" ondragend="onGaleriaDragEnd(event)"
            ondragover="onGaleriaDragOver(event)" ondrop="onGaleriaDrop(event)">
-        <img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">
+        ${it.item.foto?`<img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">`:`<div class="galeria-tile-sinfoto">📷</div>`}
         <div class="galeria-tile-info">
           <span class="galeria-tile-code">${it.item.code||it.item.name||'(sin código)'}</span>
           <span class="galeria-tile-etapa etapa-${it.etapa==='Diseño'?'diseno':it.etapa==='Finalizados'?'finalizados':'fabrica'}">${it.etapa}</span>
