@@ -935,7 +935,7 @@ let searchQuery = '';
 let filtroCorteTaller='', filtroCorteTela='', filtroCorteCategoria='', filtroCorteNumero='', ordenCortePor='';
 // Orden personalizado (arrastrar y soltar) de la Galería, guardado por tablero
 let galeriaOrden = {diseno:[], fabrica:[]};
-let filtroGaleriaMarca='', filtroGaleriaTela='', filtroGaleriaCategoria='';
+let filtroGaleriaMarca='', filtroGaleriaTela='', filtroGaleriaCategoria='', filtroGaleriaTablero='';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -3602,10 +3602,12 @@ function colorForPersonName(name){
 // que se pueden arrastrar libremente para reordenar. El orden queda guardado en Firebase.
 function renderGaleria(){
   const cont=document.getElementById('galeria-content');
-  // Juntar TODOS los items de los dos tableros, para armar las opciones de los filtros
+  // Juntar TODOS los items de los dos tableros, para armar las opciones de los filtros.
+  // Se dejan afuera las etapas que ya están "cerradas": Productos Perfectos, Muestras Canceladas
+  // y Revisión Final (esos cortes ya fueron entregados por el taller).
   const todos=[];
   Object.entries(sectionsData).forEach(([secId,sec])=>{
-    if(sec.tipo==='producto_perfecto'||sec.tipo==='muestra_cancelada') return;
+    if(sec.tipo==='producto_perfecto'||sec.tipo==='muestra_cancelada'||sec.tipo==='revision_final') return;
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
       const board=getBoard(sec);
       const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'En taller':'Fábrica');
@@ -3620,6 +3622,11 @@ function renderGaleria(){
   const categorias=[...new Set(todos.map(it=>it.item.categoria).filter(Boolean))].sort();
   const opt=(list,val)=>list.map(v=>`<option value="${v}" ${val===v?'selected':''}>${v}</option>`).join('');
   const filtroBar=`<div class="filtro-corte-bar" style="margin-bottom:14px">
+    <select class="filtro-corte-select" onchange="filtroGaleriaTablero=this.value;renderGaleria()">
+      <option value="" ${!filtroGaleriaTablero?'selected':''}>Tablero: ambos</option>
+      <option value="diseno" ${filtroGaleriaTablero==='diseno'?'selected':''}>Solo Diseño</option>
+      <option value="fabrica" ${filtroGaleriaTablero==='fabrica'?'selected':''}>Solo Fábrica</option>
+    </select>
     <select class="filtro-corte-select" onchange="filtroGaleriaMarca=this.value;renderGaleria()">
       <option value="">Marca: todas</option>${opt(marcas,filtroGaleriaMarca)}
     </select>
@@ -3629,7 +3636,7 @@ function renderGaleria(){
     <select class="filtro-corte-select" onchange="filtroGaleriaCategoria=this.value;renderGaleria()">
       <option value="">Categoría: todas</option>${opt(categorias,filtroGaleriaCategoria)}
     </select>
-    ${(filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria)?`<button class="btn-sm" onclick="filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';renderGaleria()">✕ Limpiar</button>`:''}
+    ${(filtroGaleriaTablero||filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria)?`<button class="btn-sm" onclick="filtroGaleriaTablero='';filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';renderGaleria()">✕ Limpiar</button>`:''}
   </div>`;
   const filtrados=todos.filter(it=>
     (!filtroGaleriaMarca||it.marca===filtroGaleriaMarca) &&
@@ -3637,7 +3644,7 @@ function renderGaleria(){
     (!filtroGaleriaCategoria||it.item.categoria===filtroGaleriaCategoria)
   );
   let html=filtroBar;
-  ['diseno','fabrica'].forEach(board=>{
+  (filtroGaleriaTablero?[filtroGaleriaTablero]:['diseno','fabrica']).forEach(board=>{
     const items=filtrados.filter(it=>it.board===board);
     const orden=galeriaOrden[board]||[];
     const keyOf=it=>`${it.secId}::${it.itemId}`;
