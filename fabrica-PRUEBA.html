@@ -140,6 +140,15 @@
   .paso-pendiente.paso-urgente{color:#dc2626;font-weight:700}
   .paso-inactivo{font-size:11px;color:var(--text3)}
   .paso-row.paso-activo{background:var(--warn-bg);margin:0 -12px;padding:6px 12px;border-radius:6px}
+
+  .deuda-taller-box{margin:2px 18px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+  .deuda-taller-title{font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+  .deuda-taller-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px dashed var(--border);flex-wrap:wrap}
+  .deuda-taller-row:first-of-type{border-top:none}
+  .deuda-taller-nombre{font-size:13px;font-weight:600;flex:1;min-width:100px}
+  .deuda-taller-cant{font-size:12px;color:var(--text2);background:var(--bg);border-radius:20px;padding:2px 10px}
+  .deuda-taller-dias{font-size:11px;color:var(--text2)}
+  .deuda-taller-dias.urgente{color:#dc2626;font-weight:700}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -1582,6 +1591,32 @@ function buildDemoraPanelHtml(sec,item,secId){
 }
 
 
+// Resumen "qué debe cada taller": agrupa los cortes que están en Cortes Finalizados (ya cortados,
+// enviados a un taller, todavía sin marcar como entregados) por taller, para saber de un vistazo
+// cuántas prendas tiene pendiente cada uno y hace cuánto están esperando.
+function buildDeudaTallerHtml(items){
+  const porTaller={};
+  items.forEach(([,item])=>{
+    const t=item.taller_corte||'Sin taller asignado';
+    if(!porTaller[t]) porTaller[t]=[];
+    porTaller[t].push(item);
+  });
+  const talleres=Object.keys(porTaller).sort((a,b)=>porTaller[b].length-porTaller[a].length);
+  if(!talleres.length) return '';
+  const filas=talleres.map(t=>{
+    const lista=porTaller[t];
+    const diasList=lista.map(it=>diasEntre(it.fecha_etapa)).filter(d=>d!=null);
+    const diasMax=diasList.length?Math.max(...diasList):null;
+    const urgente=diasMax!=null&&diasMax>=7;
+    return `<div class="deuda-taller-row">
+      <span class="deuda-taller-nombre">${t}</span>
+      <span class="deuda-taller-cant">${lista.length} corte${lista.length!==1?'s':''}</span>
+      ${diasMax!=null?`<span class="deuda-taller-dias${urgente?' urgente':''}">hasta ${diasMax} día${diasMax!==1?'s':''} esperando</span>`:''}
+    </div>`;
+  }).join('');
+  return `<div class="deuda-taller-box"><div class="deuda-taller-title">📦 Qué debe cada taller — pendiente de entregar</div>${filas}</div>`;
+}
+
 function buildPasosPanelCorteHtml(item){
   const now=Date.now();
   const pasos=[
@@ -1826,6 +1861,8 @@ function renderSections(board){
           + confirmados.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('')
         : '';
       itemsHtml=colaHtml+confHtml;
+    } else if(secId==='sFIN'){
+      itemsHtml=buildDeudaTallerHtml(items)+items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
     } else {
       itemsHtml=items.map(([itemId,item],idx)=>buildItem(secId,itemId,item,sec,idx,items.length)).join('');
     }
