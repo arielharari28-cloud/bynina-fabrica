@@ -3604,8 +3604,8 @@ function renderGaleria(){
   // Juntar TODOS los items con foto de los dos tableros, para armar las opciones de los filtros
   const todos=[];
   Object.entries(sectionsData).forEach(([secId,sec])=>{
+    if(sec.tipo==='producto_perfecto'||sec.tipo==='muestra_cancelada') return;
     Object.entries(sec.items||{}).forEach(([itemId,item])=>{
-      if(item.done) return;
       const board=getBoard(sec);
       const etapa=board==='diseno'?'Diseño':(secId==='sFIN'?'Finalizados':'Fábrica');
       todos.push({secId,itemId,item,secTitle:sec.title,board,etapa});
