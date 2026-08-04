@@ -1479,6 +1479,33 @@ function diasEntre(ts){
   return Math.floor((Date.now()-ts)/(1000*60*60*24));
 }
 
+// Cuántos días en la misma etapa se consideran "atrasado", según lo definido para cada proceso
+function umbralAtraso(sec,item,secId){
+  const tipo=sec.tipo||'';
+  if(tipo==='muestra_prep') return 2;      // Nuevos Desarrollos (Peque: Ninox / ficha / enviar a moldería)
+  if(tipo==='muestra_molderia') return 2;  // Peque: foto en Drive
+  if(tipo==='muestra_cort') return 2;      // Peque: avíos
+  if(tipo==='muestra_en_taller') return 3; // Peque: reclamar al taller
+  if(tipo==='muestra_lista') return 2;     // Peque: elegir taller
+  if(tipo==='mejora') return 2;            // Peque: resolver mejora
+  if(tipo==='muestra_pend') return 3;      // Cortador
+  if(tipo==='muestra_diseno') return 5;    // Ariel y Stef
+  if(tipo==='revision_final') return 5;    // Ariel y Stef
+  if(secId==='s4') return 2;               // Peque: pedir avío
+  if(secId==='s5') return 7;               // Peque: esperando que llegue el avío
+  if(secId==='sLT') return 2;              // Emir: sacar a taller
+  if(secId==='sFIN') return 10;            // Emir: marcar entregado
+  if(secId==='s3'){
+    if(item.sin_confirmar) return 5;       // Ariel: confirmar
+    const avios=Object.values(item.avios||{});
+    if(avios.length&&!avios.every(a=>a.recibido)) return 3; // Peque: avíos
+    if(!item.orden_corte_cargada) return 3; // Ariel: cargar orden de corte
+    return 3;                              // Cortador: encimar/cortar
+  }
+  if(!tipo) return 1; // secciones custom (ej. "Pendiente armar tizada") — Peque
+  return 5;
+}
+
 // Muestra "Ingresó: fecha · hace X días" y "En esta etapa: hace Y días" en la tarjeta
 function procesoInfoHtml(item){
   const parts=[];
@@ -3191,25 +3218,42 @@ function renderPendientes(){
       if(filtroMarca&&(item.marca||marcasList[0]||'By Nina')!==filtroMarca) return;
       const resp=getResponsable(sec,item,secId);
       if(!resp) return;
+      const dias=diasEntre(item.fecha_etapa);
+      const umbral=umbralAtraso(sec,item,secId);
+      const atrasado=dias!==null&&dias>=umbral;
       if(!grupos[resp]) grupos[resp]=[];
-      grupos[resp].push({item,secTitle:sec.title,secId,itemId});
+      grupos[resp].push({item,secTitle:sec.title,secId,itemId,dias,atrasado});
     });
   });
   const esAriel=(currentUser==='ariel'||currentUser==='stef');
   const miNombre=USER_DISPLAY[currentUser];
-  const nombres=esAriel?Object.keys(grupos).sort():[miNombre];
+  let nombres=esAriel?Object.keys(grupos).sort():[miNombre];
+  // Ordenar: quien tiene más atrasados primero, para dar un panorama claro de quién está más complicado
+  if(esAriel){
+    nombres=nombres.sort((a,b)=>{
+      const atA=(grupos[a]||[]).filter(x=>x.atrasado).length;
+      const atB=(grupos[b]||[]).filter(x=>x.atrasado).length;
+      if(atA!==atB) return atB-atA;
+      return a.localeCompare(b);
+    });
+  }
   let html='';
   nombres.forEach(nombre=>{
-    const lista=grupos[nombre]||[];
+    const lista=(grupos[nombre]||[]).slice().sort((a,b)=>{
+      if(a.atrasado!==b.atrasado) return a.atrasado?-1:1;
+      return (b.dias||0)-(a.dias||0);
+    });
     if(!lista.length) return;
     const color=colorForPersonName(nombre);
-    html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span></div>`;
+    const numAtrasados=lista.filter(x=>x.atrasado).length;
+    html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span>${numAtrasados?`<span class="sec-count" style="background:#fee2e2;color:#991b1b">⚠️ ${numAtrasados} atrasado${numAtrasados!==1?'s':''}</span>`:''}</div>`;
     html+=`<div class="pendientes-grid">`;
-    lista.forEach(({item,secTitle,secId,itemId})=>{
-      html+=`<div class="pendientes-card" style="border-left:4px solid ${color};cursor:pointer" onclick="irAItem('${secId}','${itemId}')">
+    lista.forEach(({item,secTitle,secId,itemId,dias,atrasado})=>{
+      html+=`<div class="pendientes-card" style="border-left:4px solid ${atrasado?'#dc2626':color};cursor:pointer" onclick="irAItem('${secId}','${itemId}')">
         <div class="item-code">${item.code||item.name||'(sin código)'}</div>
         ${item.name&&item.code?`<div class="item-name">${item.name}</div>`:''}
         <div class="pendientes-etapa">${secTitle}</div>
+        ${dias!==null?`<div class="pendientes-etapa" style="font-weight:700;margin-top:2px;color:${atrasado?'#dc2626':'var(--text3)'}">${atrasado?'⚠️ ':''}${dias} día${dias!==1?'s':''} en esta etapa</div>`:''}
       </div>`;
     });
     html+=`</div>`;
