@@ -160,10 +160,23 @@
   .dti-corte{font-weight:700;color:var(--text);min-width:70px}
   .dti-articulo{flex:1}
   .dti-tela{color:var(--text3);font-style:italic}
+  .dti-dias{font-size:11px;color:var(--text2);min-width:50px;text-align:right}
+  .dti-dias.urgente{color:#dc2626;font-weight:700}
 
   .filtro-corte-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 18px;background:var(--surface2);border-bottom:1px solid var(--border)}
   .filtro-corte-select, .filtro-corte-input{font-size:12px;border:1px solid var(--border2);border-radius:6px;padding:5px 8px;background:var(--bg);color:var(--text)}
   .filtro-corte-input{width:130px}
+
+  .galeria-hint{font-size:12px;color:var(--text2);margin-bottom:12px}
+  .galeria-board{margin-bottom:26px}
+  .galeria-board-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .galeria-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .galeria-tile{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);cursor:grab;transition:opacity .12s,transform .12s}
+  .galeria-tile.dragging{opacity:.35}
+  .galeria-tile img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer}
+  .galeria-tile-info{padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+  .galeria-tile-code{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .galeria-tile-sec{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item-photo{width:100px;height:100px;border-radius:8px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--surface2);border:1px solid var(--border)}
   .item-photo-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
   .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:56px;height:56px}
@@ -271,6 +284,7 @@
       <button class="tab active" id="tab-btn-diseno">Diseño</button>
       <button class="tab" id="tab-btn-fabrica">Fábrica</button>
       <button class="tab" id="tab-btn-pendientes">Pendientes</button>
+      <button class="tab" id="tab-btn-galeria">Galería</button>
       <button class="tab" id="tab-btn-actividad">Actividad</button>
     </div>
     <div id="tab-diseno">
@@ -290,6 +304,10 @@
     <div id="tab-pendientes" class="hidden">
       <div id="marca-filter-bar-pendientes" style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div id="pendientes-list"><div class="loading">Cargando...</div></div>
+    </div>
+    <div id="tab-galeria" class="hidden">
+      <div class="galeria-hint">📌 Arrastrá las fotos para acomodarlas como quieras — el orden queda guardado.</div>
+      <div id="galeria-content"><div class="loading">Cargando...</div></div>
     </div>
     <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
   </div>
@@ -910,6 +928,8 @@ let filtroMarca = '';
 let searchQuery = '';
 // Filtros y orden de la sección Cortes Finalizados
 let filtroCorteTaller='', filtroCorteTela='', filtroCorteCategoria='', filtroCorteNumero='', ordenCortePor='';
+// Orden personalizado (arrastrar y soltar) de la Galería, guardado por tablero
+let galeriaOrden = {diseno:[], fabrica:[]};
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -1142,6 +1162,7 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     backfillPasosCorte();
     renderSections('diseno');renderSections('fabrica');renderStats();renderAlertBanner();
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
+    if(!document.getElementById('tab-galeria').classList.contains('hidden')) renderGaleria();
   });
   db.ref('fabrica_v5/modelistas').on('value',snap=>{
     const v=snap.val();
@@ -1166,6 +1187,11 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     if(v){ temporadasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
     else db.ref('fabrica_v5/temporadas').set(temporadasList);
     renderSections('fabrica');
+  });
+  db.ref('fabrica_v5/galeria_orden').on('value',snap=>{
+    const v=snap.val()||{};
+    galeriaOrden={diseno:Array.isArray(v.diseno)?v.diseno:[],fabrica:Array.isArray(v.fabrica)?v.fabrica:[]};
+    if(!document.getElementById('tab-galeria').classList.contains('hidden')) renderGaleria();
   });
   db.ref('fabrica_v5/marcas').on('value',snap=>{
     const v=snap.val();
@@ -1737,13 +1763,16 @@ function buildDeudaTallerHtml(items){
     const diasList=lista.map(it=>diasEntre(it.fecha_etapa)).filter(d=>d!=null);
     const diasMax=diasList.length?Math.max(...diasList):null;
     const urgente=diasMax!=null&&diasMax>=7;
-    const detalle=lista.slice().sort((a,b)=>(a.numero_corte||'').localeCompare(b.numero_corte||'')).map(it=>
-      `<div class="deuda-taller-item">
+    const detalle=lista.slice().sort((a,b)=>(a.numero_corte||'').localeCompare(b.numero_corte||'')).map(it=>{
+      const d=diasEntre(it.fecha_etapa);
+      const urg=d!=null&&d>=7;
+      return `<div class="deuda-taller-item">
         <span class="dti-corte">${it.numero_corte||'s/n°'}</span>
         <span class="dti-articulo">${it.name||it.code||'(sin nombre)'}</span>
         <span class="dti-tela">${it.tela||'—'}</span>
-      </div>`
-    ).join('');
+        <span class="dti-dias${urg?' urgente':''}">${d!=null?d+' día'+(d!==1?'s':''):'—'}</span>
+      </div>`;
+    }).join('');
     return `<div class="deuda-taller-group">
       <div class="deuda-taller-row" onclick="this.parentElement.classList.toggle('open')" style="cursor:pointer">
         <span class="deuda-taller-nombre">${t}</span>
@@ -3563,6 +3592,70 @@ function colorForPersonName(name){
   for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
   return palette[Math.abs(hash)%palette.length];
 }
+// Galería: todas las fotos de la colección activa, separadas por tablero (Diseño / Fábrica),
+// que se pueden arrastrar libremente para reordenar. El orden queda guardado en Firebase.
+function renderGaleria(){
+  const cont=document.getElementById('galeria-content');
+  let html='';
+  ['diseno','fabrica'].forEach(board=>{
+    const items=[];
+    Object.entries(sectionsData).forEach(([secId,sec])=>{
+      if(getBoard(sec)!==board) return;
+      Object.entries(sec.items||{}).forEach(([itemId,item])=>{
+        if(item.done||!item.foto) return;
+        items.push({secId,itemId,item,secTitle:sec.title});
+      });
+    });
+    const orden=galeriaOrden[board]||[];
+    const keyOf=it=>`${it.secId}::${it.itemId}`;
+    items.sort((a,b)=>{
+      const ia=orden.indexOf(keyOf(a)), ib=orden.indexOf(keyOf(b));
+      if(ia===-1&&ib===-1) return 0;
+      if(ia===-1) return 1;
+      if(ib===-1) return -1;
+      return ia-ib;
+    });
+    const tiles=items.map(it=>`
+      <div class="galeria-tile" draggable="true" data-key="${keyOf(it)}" data-board="${board}"
+           ondragstart="onGaleriaDragStart(event)" ondragend="onGaleriaDragEnd(event)"
+           ondragover="onGaleriaDragOver(event)" ondrop="onGaleriaDrop(event)">
+        <img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">
+        <div class="galeria-tile-info">
+          <span class="galeria-tile-code">${it.item.code||it.item.name||'(sin código)'}</span>
+          <span class="galeria-tile-sec">${it.secTitle}</span>
+        </div>
+      </div>`).join('');
+    html+=`<div class="galeria-board">
+      <div class="galeria-board-title">${board==='diseno'?'🎨 Diseño':'🏭 Fábrica'} <span class="sec-count">${items.length}</span></div>
+      <div class="galeria-grid">${tiles||'<div class="empty-state">No hay fotos activas acá</div>'}</div>
+    </div>`;
+  });
+  cont.innerHTML=html;
+}
+let galeriaDragKey=null;
+function onGaleriaDragStart(ev){
+  galeriaDragKey=ev.currentTarget.dataset.key;
+  ev.dataTransfer.effectAllowed='move';
+  ev.dataTransfer.setData('text/plain',galeriaDragKey);
+  setTimeout(()=>ev.currentTarget.classList.add('dragging'),0);
+}
+function onGaleriaDragEnd(ev){ ev.currentTarget.classList.remove('dragging'); galeriaDragKey=null; }
+function onGaleriaDragOver(ev){ if(galeriaDragKey){ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; } }
+function onGaleriaDrop(ev){
+  ev.preventDefault();
+  if(!galeriaDragKey) return;
+  const targetKey=ev.currentTarget.dataset.key, board=ev.currentTarget.dataset.board;
+  if(!targetKey||targetKey===galeriaDragKey){ galeriaDragKey=null; return; }
+  const grid=ev.currentTarget.closest('.galeria-grid');
+  const keys=[...grid.querySelectorAll('.galeria-tile')].map(el=>el.dataset.key);
+  const from=keys.indexOf(galeriaDragKey), to=keys.indexOf(targetKey);
+  if(from===-1||to===-1){ galeriaDragKey=null; return; }
+  keys.splice(from,1); keys.splice(to,0,galeriaDragKey);
+  galeriaOrden[board]=keys; galeriaDragKey=null;
+  db.ref(`fabrica_v5/galeria_orden/${board}`).set(keys);
+  renderGaleria();
+}
+
 function renderPendientes(){
   const cont=document.getElementById('pendientes-list');
   const grupos={};
@@ -3648,7 +3741,7 @@ function fmtTime(ts){
 
 // TABS
 function ocultarTabsMenosActiva(activo){
-  ['tab-diseno','tab-fabrica','tab-pendientes','tab-actividad'].forEach(id=>{
+  ['tab-diseno','tab-fabrica','tab-pendientes','tab-galeria','tab-actividad'].forEach(id=>{
     document.getElementById(id).classList.toggle('hidden', id!==activo);
   });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -3665,6 +3758,11 @@ document.getElementById('tab-btn-pendientes').onclick=function(){
   ocultarTabsMenosActiva('tab-pendientes');
   this.classList.add('active');
   renderPendientes();
+};
+document.getElementById('tab-btn-galeria').onclick=function(){
+  ocultarTabsMenosActiva('tab-galeria');
+  this.classList.add('active');
+  renderGaleria();
 };
 document.getElementById('tab-btn-actividad').onclick=function(){
   ocultarTabsMenosActiva('tab-actividad');
