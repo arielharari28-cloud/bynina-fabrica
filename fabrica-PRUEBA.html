@@ -629,23 +629,34 @@ function buildNameHtml(secId,itemId,item,canEdit){
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
 }
 
-function buildCapasHtml(item){
+function buildCapasHtml(item,secId,itemId){
   const talles=item.capas_talles||[];
   const filas=Object.values(item.capas||{});
-  const rows=filas.filter(f=>f&&(f.color||Object.values(f.cant||{}).some(v=>parseInt(v)>0)));
+  const rows=filas.filter(f=>f&&(f.color||f.capas||Object.values(f.cant||{}).some(v=>parseInt(v)>0)));
   if(!talles.length||!rows.length) return '';
+  const totalCapas=rows.reduce((s,r)=>s+(parseInt(r.capas)||0),0);
   const totalPorTalle=talles.map(t=>rows.reduce((s,r)=>s+(parseInt(r.cant&&r.cant[t])||0),0));
   const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
   const headerCols=talles.map(t=>`<th style="padding:2px 6px;font-size:10px;color:var(--text2);text-align:center">${t}</th>`).join('');
-  const bodyRows=rows.map(r=>`<tr><td style="padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap">${(r.color||'—').replace(/</g,'&lt;')}</td>${talles.map(t=>`<td style="padding:2px 6px;font-size:11px;text-align:center">${r.cant&&r.cant[t]?r.cant[t]:'—'}</td>`).join('')}</tr>`).join('');
-  const totalCells=totalPorTalle.map(t=>`<td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center">${t}</td>`).join('');
-  return `<div style="margin-top:4px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);padding:6px 8px;overflow-x:auto">
-    <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🧵 Capas por color</div>
-    <table style="border-collapse:collapse;width:100%">
-      <thead><tr><th style="text-align:left;padding:2px 6px;font-size:10px;color:var(--text2)">Color</th>${headerCols}</tr></thead>
-      <tbody>${bodyRows}<tr style="border-top:1px solid var(--border)"><td style="padding:2px 6px;font-size:11px;font-weight:700">Total</td>${totalCells}</tr></tbody>
-    </table>
-    <div style="font-size:10px;color:var(--text2);margin-top:2px">Total general: <strong>${totalGeneral}</strong> capas</div>
+  const bodyRows=rows.map(r=>`<tr>
+    <td style="padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap">${(r.color||'—').replace(/</g,'&lt;')}</td>
+    <td style="padding:2px 6px;font-size:12px;font-weight:700;text-align:center;background:var(--accent-bg);color:var(--accent)">${r.capas||'—'}</td>
+    ${talles.map(t=>`<td style="padding:2px 6px;font-size:11px;text-align:center;color:var(--text2)">${r.cant&&r.cant[t]?r.cant[t]:'—'}</td>`).join('')}
+  </tr>`).join('');
+  const totalCells=totalPorTalle.map(t=>`<td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center;color:var(--text2)">${t}</td>`).join('');
+  const panelId=`capas-panel-${secId}-${itemId}`;
+  return `<div style="margin-top:4px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 8px;cursor:pointer" onclick="const p=document.getElementById('${panelId}');p.classList.toggle('hidden');this.querySelector('.capas-caret').textContent=p.classList.contains('hidden')?'▶':'▼'">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🧵 Capas por color <span style="font-weight:600;text-transform:none;color:var(--accent);font-size:11px">— ${totalCapas} capas totales</span></div>
+      <span class="capas-caret" style="font-size:11px;color:var(--text3)">▶</span>
+    </div>
+    <div id="${panelId}" class="hidden" style="padding:0 8px 8px;overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%">
+        <thead><tr><th style="text-align:left;padding:2px 6px;font-size:10px;color:var(--text2)">Color</th><th style="padding:2px 6px;font-size:10px;color:var(--text2)">Capas</th>${headerCols}</tr></thead>
+        <tbody>${bodyRows}<tr style="border-top:1px solid var(--border)"><td style="padding:2px 6px;font-size:11px;font-weight:700">Total</td><td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center;background:var(--accent-bg);color:var(--accent)">${totalCapas}</td>${totalCells}</tr></tbody>
+      </table>
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">Total general: <strong>${totalGeneral}</strong> prendas</div>
+    </div>
   </div>`;
 }
 
@@ -2924,7 +2935,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   const numeroCorteHtml = item.numero_corte
     ? `<div style="font-size:13px;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent);font-weight:600">${item.numero_corte}</strong></div>` : '';
-  const capasHtml = buildCapasHtml(item);
+  const capasHtml = buildCapasHtml(item,secId,itemId);
   const rollosHtml = buildRollosHtml(item);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
@@ -3070,11 +3081,21 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
       ${canCortar?`<button class="btn-sm" onclick="openRollosModal('${secId}','${itemId}')">${rollosCount?'✏️ Editar rollos':'+ Cargar rollos'}</button>`:''}
     </div>`;
 
+  // El encimado no se puede marcar terminado hasta que estén cargados los rollos de TODOS
+  // los colores de la orden de corte (así el sobrante queda bien registrado antes de avanzar).
+  const coloresOrden=[...new Set(Object.values(item.capas||{}).map(r=>r.color).filter(Boolean))];
+  const coloresConRollo=[...new Set(Object.values(item.rollos||{}).filter(r=>r&&r.color&&r.capas).map(r=>r.color))];
+  const faltantesRollos=coloresOrden.filter(c=>!coloresConRollo.includes(c));
+  const rollosCompletos=coloresOrden.length>0&&faltantesRollos.length===0;
+
   const encimadoRow = !encimadoTerm
     ? `<div class="cortada-row">
         <span class="c-label" style="font-weight:500;color:var(--warn-text)">⏳ Pendiente encimado</span>
-        ${canCortar?`<button class="btn-advance" onclick="setEncimadoTerminado('${secId}','${itemId}',true)">🧷 Encimado terminado</button>`:''}
-      </div>`
+        ${canCortar?(rollosCompletos
+          ? `<button class="btn-advance" onclick="setEncimadoTerminado('${secId}','${itemId}',true)">🧷 Encimado terminado</button>`
+          : `<button class="btn-advance" disabled title="Cargá los rollos de todos los colores primero" style="opacity:.45;cursor:not-allowed">🧷 Encimado terminado</button>`
+        ):''}
+      </div>${(!rollosCompletos&&canCortar)?`<div style="font-size:11px;color:var(--warn-text);padding:0 12px 8px">⚠️ Faltan cargar rollos de: <strong>${faltantesRollos.join(', ')||coloresOrden.join(', ')}</strong></div>`:''}`
     : `<div class="cortada-row">
         <span class="c-label">🧷 Encimado: <strong style="color:var(--green-text)">Terminado</strong></span>
         ${canCortar?`<button class="btn-sm" onclick="setEncimadoTerminado('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
