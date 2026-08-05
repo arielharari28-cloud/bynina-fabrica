@@ -3012,14 +3012,20 @@ function buildItem(secId,itemId,item,sec,idx,total){
     <div class="item-with-photo" style="flex:2;min-width:280px">
       ${buildPhotoHtml(secId,itemId,item,canEdit)}
       <div class="item-body">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+        ${POST_S3_SECS.includes(secId)
+          ? (()=>{
+              const ref=(item.reposicion&&item.reposicion_ref_sec&&sectionsData[item.reposicion_ref_sec])?sectionsData[item.reposicion_ref_sec].items?.[item.reposicion_ref_id]:null;
+              const refLabel=ref?` — Reponiendo: <strong>${ref.code?ref.code+' — ':''}${ref.name||''}</strong>`:'';
+              return `<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Tipo: <strong>${item.reposicion?'Reposición':'Nuevo Desarrollo'}</strong>${refLabel}</div>`;
+            })()
+          : `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
           <div class="c-check ${item.reposicion?'checked':''}" onclick="${canFicha?`toggleReposicion('${secId}','${itemId}')`:''}">${item.reposicion?'✓':''}</div>
           <span class="c-label ${item.reposicion?'done':''}" style="font-size:11px">Reposición</span>
         </div>
         ${item.reposicion?(canFicha?buildRepoPerfectoHtml(secId,itemId,item):(()=>{
             const ref=(item.reposicion_ref_sec&&sectionsData[item.reposicion_ref_sec])?sectionsData[item.reposicion_ref_sec].items?.[item.reposicion_ref_id]:null;
             return ref?`<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Reponiendo: <strong>${ref.code?ref.code+' — ':''}${ref.name||''}</strong></div>`:'';
-          })()):''}
+          })()):''}`}
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
