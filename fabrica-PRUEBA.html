@@ -1654,6 +1654,19 @@ function editRefLink(secId,itemId){
   showToast(link.trim()?'✓ Link guardado':'Link eliminado');
 }
 
+// El link de referencia original y las notas de diseño se cargan una sola vez en Nuevos
+// Desarrollos, pero hacen falta en TODO el recorrido (moldería, corte, taller, revisión final)
+// para poder comparar contra la prenda original. Antes solo se veían en la primera etapa.
+function buildRefLinkHtml(secId,itemId,item,canEdit){
+  return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
+    <span class="modelista-label">Link original:</span>
+    ${item.ref_link
+      ? `<a href="${item.ref_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">🔗 Ver</a>`
+      : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin link</span>`}
+    ${canEdit?`<button class="btn-sm" onclick="editRefLink('${secId}','${itemId}')">${item.ref_link?'🔗 Editar link':'+ Link'}</button>`:''}
+  </div>`;
+}
+
 function toggleNinox(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   if(!item.code||!item.code.trim()){ showToast('Cargá el código antes de tildar Ninox'); return; }
@@ -2643,6 +2656,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${buildNameHtml(secId,itemId,item,canEdit)}
           ${procesoInfoHtml(item)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
+          ${buildNotasHtml(secId,itemId,item,canEdit)}
           <div class="cortada-panel">
             <div class="cortada-row">
               <div class="c-check ${ficha?'checked':''}" onclick="${canCheck?`toggleFicha('${secId}','${itemId}')`:''}">
@@ -2693,6 +2708,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
+          ${buildNotasHtml(secId,itemId,item,canEdit)}
           <div class="listo-badge">🎉 Lista para sacar a taller</div>
           ${(!tallerElegido&&canEdit)?`
           <div class="enviar-taller-row">
@@ -2737,6 +2754,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
+          ${buildNotasHtml(secId,itemId,item,canEdit)}
           <div class="en-taller-panel">
             <div class="en-taller-row"><span class="et-label">Taller:</span><span class="et-val">${item.tallerista||'—'}</span></div>
             <div class="en-taller-row"><span class="et-label">Enviada:</span><span class="et-val">${fmtFecha(item.fecha_envio_taller)}</span></div>
@@ -2912,6 +2931,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
             ${canCheck?`<button class="btn-sm" onclick="editFichaLink('${secId}','${itemId}')">${item.ficha_link?'🔗 Editar':'+ Link'}</button>`:''}
           </div>
           ${buildModelistaHtml(secId,itemId,item)}
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
+          ${buildNotasHtml(secId,itemId,item,canEdit)}
           <div class="cortada-row" style="padding:6px 0;border:none">
             <div class="c-check ${item.foto_drive_ok?'checked':''}" onclick="${canEdit?`toggleFotoDriveOk('${secId}','${itemId}')`:''}">${item.foto_drive_ok?'✓':''}</div>
             <span class="c-label ${item.foto_drive_ok?'done':''}">Cargar foto en Drive con nombre prenda y código <span style="font-size:10px;color:var(--text3)">(Peque)</span></span>
@@ -2993,6 +3014,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
               ? `<a href="${item.ficha_link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:12px">📋 Ficha Producto 🔗</a>`
               : `<span style="font-size:12px;color:var(--text3);font-style:italic">Sin ficha cargada</span>`}
           </div>
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
+          ${buildNotasHtml(secId,itemId,item,canEdit)}
           <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Compará contra la muestra aprobada.</div>
           ${item.fecha_entregado?`<div style="font-size:11px;color:var(--text2);margin-bottom:6px">📦 Entregado: <strong>${item.fecha_entregado}</strong></div>`:''}
           <div class="item-actions">
@@ -3074,6 +3097,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${item.modelista?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🧵 Moldería: <strong>${item.modelista}</strong></div>`:''}
           <div class="listo-badge">✅ Producto perfecto${item.fecha_perfecto?` — ${fmtFecha(item.fecha_perfecto)}`:''}</div>
+          ${buildRefLinkHtml(secId,itemId,item,canEdit)}
           ${buildNotasHtml(secId,itemId,item,canEdit,'Nota:')}
           <div class="item-actions">
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
