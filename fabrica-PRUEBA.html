@@ -238,6 +238,31 @@
   .btn-secondary{padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
   .avio-block{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px}
 
+  /* Modal ancho (curva / orden de corte) */
+  .modal.modal-wide{max-width:860px}
+  .oc-fields-row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px}
+  .oc-field-block{flex:1;min-width:220px}
+  .oc-field-block label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  .chip-box{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:7px 8px;background:var(--bg);min-height:38px}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-bg);color:var(--accent);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+  .chip-x{cursor:pointer;font-size:12px;color:var(--accent);opacity:.7}
+  .chip-x:hover{opacity:1}
+  .chip-box input{border:none;background:transparent;outline:none;font-size:12px;flex:1;min-width:80px;color:var(--text)}
+  .oc-table-wrap{overflow-x:auto;margin-top:10px}
+  .oc-table{border-collapse:collapse;width:100%}
+  .oc-table th{padding:6px 8px;font-size:11px;color:var(--text2);text-align:center;border-bottom:1px solid var(--border)}
+  .oc-table th:first-child{text-align:left}
+  .oc-table td{padding:5px 6px;text-align:center}
+  .oc-table td:first-child{text-align:left;font-weight:600;font-size:12px}
+  .oc-capas-input{width:56px;padding:5px;font-size:12px;text-align:center;border:1.5px solid var(--accent);border-radius:6px;background:var(--accent-bg);font-weight:700}
+  .oc-cell-calc{font-size:12px;color:var(--text);background:var(--surface2);border-radius:6px;padding:5px 4px;min-width:34px;display:inline-block}
+  .oc-table tfoot td{font-weight:700;border-top:2px solid var(--border);padding-top:8px}
+  .oc-hint{font-size:11px;color:var(--text3);margin-top:6px}
+  .oc-warn{font-size:12px;color:var(--warn-text);background:var(--warn-bg);border-radius:8px;padding:8px 10px}
+  .curva-table{border-collapse:collapse;width:100%;margin-top:8px}
+  .curva-table th{padding:5px 6px;font-size:11px;color:var(--text2)}
+  .curva-table input{width:100%;padding:5px;font-size:12px;text-align:center;border:1px solid var(--border);border-radius:6px}
+
   .notif-panel{position:fixed;top:52px;right:8px;width:320px;max-height:70vh;background:var(--surface);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);z-index:150;overflow:hidden;display:flex;flex-direction:column}
   .notif-panel-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
   .notif-list{overflow-y:auto;flex:1}
@@ -278,6 +303,9 @@
     .filtro-corte-input{width:100%}
     .notif-panel{width:calc(100vw - 16px);right:8px}
     .deuda-taller-box{margin:2px 8px 12px}
+    .modal.modal-wide{max-width:100%}
+    .oc-fields-row{gap:10px}
+    .oc-field-block{min-width:0;flex:1 1 100%}
   }
 </style>
 </head>
@@ -378,6 +406,33 @@
       <div class="field"><label>Producto perfecto</label><select id="repo-add-select"><option value="">Elegir producto…</option></select></div>
     </div>
     <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-repo">Cancelar</button><button class="btn-primary" id="save-modal-repo">Crear</button></div>
+  </div>
+</div>
+
+<!-- Modal curva (talles + cantidad por capa) -->
+<div class="modal-overlay hidden" id="modal-curva">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Definir curva</span><button class="modal-close" id="close-modal-curva">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Talles (separados por coma)</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="curva-talles-input" placeholder="Ej: S, M, L, XL">
+          <button class="btn-sm" onclick="updateCurvaTalles()">🔄 Actualizar</button>
+        </div>
+      </div>
+      <div id="curva-table-wrap"></div>
+      <div class="oc-hint">Cantidad de prendas de cada talle que salen de <strong>una capa</strong> (una tela cortada). Esto se usa después para calcular la orden de corte.</div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-curva">Cancelar</button><button class="btn-primary" id="save-modal-curva">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Modal orden de corte (variantes color x talle) -->
+<div class="modal-overlay hidden" id="modal-orden-corte">
+  <div class="modal modal-wide">
+    <div class="modal-header"><span class="modal-title">Orden de corte — Variantes</span><button class="modal-close" id="close-modal-orden-corte">×</button></div>
+    <div class="modal-body" id="modal-orden-corte-body"></div>
+    <div class="modal-footer"><button class="btn-secondary" id="cancel-modal-orden-corte">Cancelar</button><button class="btn-primary" id="save-modal-orden-corte">Confirmar</button></div>
   </div>
 </div>
 
@@ -2950,10 +3005,11 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
   const ordenRow = !ordenCargada
     ? `<div class="cortada-row">
         <span class="c-label" style="font-weight:500;color:var(--warn-text)">⏳ Pendiente orden de corte</span>
-        ${canCortar?`<button class="btn-advance" onclick="setOrdenCorteCargada('${secId}','${itemId}',true)">📋 Cargar orden de corte</button>`:''}
+        ${canCortar?`<button class="btn-advance" onclick="openOrdenCorteModal('${secId}','${itemId}')">📋 Cargar orden de corte</button>`:''}
       </div>`
     : `<div class="cortada-row">
         <span class="c-label">📋 Orden de corte: <strong style="color:var(--green-text)">Cargada</strong></span>
+        ${canCortar?`<button class="btn-sm" onclick="openOrdenCorteModal('${secId}','${itemId}')">✏️ Editar variantes</button>`:''}
         ${canCortar&&!encimadoTerm?`<button class="btn-sm" onclick="setOrdenCorteCargada('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
       </div>`;
 
@@ -2994,6 +3050,142 @@ function setOrdenCorteCargada(secId,itemId,val){
   logActivity('Orden de corte',`${item.code}: ${val?'cargada':'deshecho'}`);
   showToast(val?'📋 Orden de corte cargada':'↩ Orden de corte deshecha');
 }
+
+// ---- ORDEN DE CORTE: variantes color x talle, con capas x curva ----
+let ordenCtx={};
+function openOrdenCorteModal(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const talles=Array.isArray(item.capas_talles)?[...item.capas_talles]:[];
+  const curvaValores=item.curva_valores||{};
+  if(!talles.length||!Object.keys(curvaValores).length){
+    if(confirm('Todavía no definiste la curva (talles + cantidad por capa) de este ítem.\n\n¿Querés definirla ahora?')){
+      editCurvaPrompt(secId,itemId);
+    }
+    return;
+  }
+  ordenCtx={secId,itemId,talles,curvaValores};
+  // Precargar colores/capas ya guardados (si se está reeditando)
+  const filasExistentes=Object.entries(item.capas||{}).map(([id,f])=>({id,color:f.color||'',capas:f.capas!==undefined?f.capas:''}));
+  ordenCtx.colores=filasExistentes.length?filasExistentes:[];
+  renderOrdenCorteModal();
+  document.getElementById('modal-orden-corte').classList.remove('hidden');
+}
+function ordenCorteAddColorFromInput(){
+  const inp=document.getElementById('oc-color-input');
+  const val=(inp.value||'').trim();
+  if(!val) return;
+  ordenCtx.colores.push({id:'oc'+Date.now()+Math.random().toString(36).slice(2,5),color:val,capas:''});
+  inp.value='';
+  renderOrdenCorteModal();
+}
+function ordenCorteRemoveColor(id){
+  ordenCtx.colores=ordenCtx.colores.filter(c=>c.id!==id);
+  renderOrdenCorteModal();
+}
+function ordenCorteSyncCapasFromDOM(){
+  document.querySelectorAll('.oc-capas-input').forEach(inp=>{
+    const row=ordenCtx.colores.find(c=>c.id===inp.dataset.rowid);
+    if(row) row.capas=inp.value;
+  });
+}
+function ordenCorteUpdateCapas(rowId,val){
+  const row=ordenCtx.colores.find(c=>c.id===rowId);
+  if(row) row.capas=val;
+  ordenCorteRefreshTotals();
+}
+function ordenCorteRefreshTotals(){
+  const talles=ordenCtx.talles;
+  ordenCtx.colores.forEach(row=>{
+    const capas=parseInt(row.capas)||0;
+    talles.forEach(t=>{
+      const cell=document.getElementById(`oc-calc-${row.id}-${sanitizeTalle(t)}`);
+      if(cell) cell.textContent=capas*(parseInt(ordenCtx.curvaValores[t])||0);
+    });
+  });
+  const totalPorTalle=talles.map(t=>ordenCtx.colores.reduce((s,r)=>s+((parseInt(r.capas)||0)*(parseInt(ordenCtx.curvaValores[t])||0)),0));
+  talles.forEach((t,i)=>{
+    const cell=document.getElementById(`oc-total-${sanitizeTalle(t)}`);
+    if(cell) cell.textContent=totalPorTalle[i];
+  });
+  const totalCapas=ordenCtx.colores.reduce((s,r)=>s+(parseInt(r.capas)||0),0);
+  const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
+  const tc=document.getElementById('oc-total-capas'); if(tc) tc.textContent=totalCapas;
+  const tg=document.getElementById('oc-total-general'); if(tg) tg.textContent=totalGeneral;
+}
+function sanitizeTalle(t){ return String(t).replace(/[^a-zA-Z0-9]/g,'_'); }
+function renderOrdenCorteModal(){
+  const{talles,curvaValores,colores}=ordenCtx;
+  const chipsHtml=colores.length
+    ? colores.map(c=>`<span class="chip">${(c.color||'').replace(/</g,'&lt;')}<span class="chip-x" onclick="ordenCorteRemoveColor('${c.id}')">✕</span></span>`).join('')
+    : '';
+  const curvaResumen=talles.map(t=>`${t}:${curvaValores[t]||0}`).join(' · ');
+  const headerCols=talles.map(t=>`<th>${t}</th>`).join('');
+  const bodyRows=colores.map(row=>{
+    const capas=parseInt(row.capas)||0;
+    const cells=talles.map(t=>`<td><span class="oc-cell-calc" id="oc-calc-${row.id}-${sanitizeTalle(t)}">${capas*(parseInt(curvaValores[t])||0)}</span></td>`).join('');
+    return `<tr>
+      <td>${(row.color||'').replace(/</g,'&lt;')}</td>
+      <td><input type="number" min="0" class="oc-capas-input" data-rowid="${row.id}" value="${row.capas!==undefined?row.capas:''}" placeholder="0" oninput="ordenCorteUpdateCapas('${row.id}',this.value)"></td>
+      ${cells}
+      <td><button class="btn-danger" style="padding:2px 6px;font-size:11px" onclick="ordenCorteSyncCapasFromDOM();ordenCorteRemoveColor('${row.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  const totalPorTalle=talles.map(t=>colores.reduce((s,r)=>s+((parseInt(r.capas)||0)*(parseInt(curvaValores[t])||0)),0));
+  const totalCells=talles.map((t,i)=>`<td id="oc-total-${sanitizeTalle(t)}">${totalPorTalle[i]}</td>`).join('');
+  const totalCapas=colores.reduce((s,r)=>s+(parseInt(r.capas)||0),0);
+  const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
+  const tableHtml=colores.length?`<div class="oc-table-wrap">
+    <table class="oc-table">
+      <thead><tr><th>Color</th><th>Capas</th>${headerCols}<th></th></tr></thead>
+      <tbody>${bodyRows}</tbody>
+      <tfoot><tr><td>Total</td><td id="oc-total-capas">${totalCapas}</td>${totalCells}<td></td></tr></tfoot>
+    </table>
+    <div class="oc-hint">Total general: <strong id="oc-total-general">${totalGeneral}</strong> prendas</div>
+  </div>`:`<div class="oc-hint">Agregá al menos un color para armar la tabla.</div>`;
+  document.getElementById('modal-orden-corte-body').innerHTML=`
+    <div class="oc-fields-row">
+      <div class="oc-field-block">
+        <label>Colores de esta tela</label>
+        <div class="chip-box">${chipsHtml}<input type="text" id="oc-color-input" placeholder="Escribí un color y Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();ordenCorteAddColorFromInput();}"></div>
+      </div>
+      <div class="oc-field-block">
+        <label>Talles y curva (definida en Ficha)</label>
+        <div class="chip-box" style="background:var(--surface2)">
+          <span style="font-size:12px;color:var(--text2)">${curvaResumen||'Sin curva definida'}</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn-sm" onclick="ordenCorteAddColorFromInput()" style="width:100%;padding:8px">+ Agregar color</button>
+    ${tableHtml}
+  `;
+}
+function saveOrdenCorte(){
+  ordenCorteSyncCapasFromDOM();
+  const{secId,itemId,talles,curvaValores,colores}=ordenCtx;
+  const item=sectionsData[secId].items[itemId];
+  const capasObj={};
+  colores.forEach(row=>{
+    if(!row.color&&!row.capas) return;
+    const capas=parseInt(row.capas)||0;
+    const cant={};
+    talles.forEach(t=>{ cant[t]=capas*(parseInt(curvaValores[t])||0); });
+    capasObj[row.id]={color:row.color||'',capas,cant};
+  });
+  const updates={
+    capas_talles:talles,
+    capas:capasObj,
+    orden_corte_cargada:true
+  };
+  if(!item.fecha_paso_orden) updates.fecha_paso_orden=Date.now();
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update(updates);
+  const totalGeneral=Object.values(capasObj).reduce((s,r)=>s+Object.values(r.cant).reduce((a,b)=>a+b,0),0);
+  logActivity('Orden de corte',`${item.code}: ${Object.keys(capasObj).length} color(es), ${totalGeneral} prendas`);
+  document.getElementById('modal-orden-corte').classList.add('hidden');
+  showToast('📋 Orden de corte guardada');
+}
+document.getElementById('close-modal-orden-corte').onclick=()=>document.getElementById('modal-orden-corte').classList.add('hidden');
+document.getElementById('cancel-modal-orden-corte').onclick=()=>document.getElementById('modal-orden-corte').classList.add('hidden');
+document.getElementById('save-modal-orden-corte').onclick=saveOrdenCorte;
 
 function setEncimadoTerminado(secId,itemId,val){
   const item=sectionsData[secId].items[itemId];
@@ -3169,14 +3361,63 @@ function editNotaCorte(secId,itemId){
   showToast(nota.trim()?'✓ Nota guardada':'Nota eliminada');
 }
 
+// ---- CURVA (talles + cantidad por capa) ----
+let curvaCtx={};
 function editCurvaPrompt(secId,itemId){
   const item=sectionsData[secId].items[itemId];
-  const val=prompt('Curva (ej: S-M-L-XL, misma cant.):',item.curva||'');
-  if(val===null) return;
-  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/curva`).set(val.trim());
-  logActivity('Editó curva',`${item.code||item.name||''}: ${val.trim()||'(vacío)'}`);
+  curvaCtx={secId,itemId};
+  curvaCtx.talles=Array.isArray(item.capas_talles)?[...item.capas_talles]:[];
+  curvaCtx.valores={...(item.curva_valores||{})};
+  document.getElementById('curva-talles-input').value=curvaCtx.talles.join(', ');
+  renderCurvaTable();
+  document.getElementById('modal-curva').classList.remove('hidden');
+}
+function syncCurvaValoresFromDOM(){
+  const wrap=document.getElementById('curva-table-wrap');
+  if(!wrap) return;
+  const inputs=wrap.querySelectorAll('.curva-qty');
+  if(!inputs.length) return;
+  const valores={};
+  inputs.forEach(inp=>{ valores[inp.dataset.talle]=inp.value; });
+  curvaCtx.valores=valores;
+}
+function updateCurvaTalles(){
+  syncCurvaValoresFromDOM();
+  const raw=document.getElementById('curva-talles-input').value||'';
+  curvaCtx.talles=raw.split(',').map(s=>s.trim()).filter(Boolean);
+  renderCurvaTable();
+}
+function renderCurvaTable(){
+  const wrap=document.getElementById('curva-table-wrap');
+  const talles=curvaCtx.talles||[];
+  if(!talles.length){
+    wrap.innerHTML=`<div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px">Cargá los talles arriba y tocá "Actualizar".</div>`;
+    return;
+  }
+  const headerCols=talles.map(t=>`<th>${t}</th>`).join('');
+  const qtyCells=talles.map(t=>`<td><input type="number" min="0" class="curva-qty" data-talle="${t}" value="${curvaCtx.valores[t]!==undefined&&curvaCtx.valores[t]!==''?curvaCtx.valores[t]:''}"></td>`).join('');
+  wrap.innerHTML=`<table class="curva-table"><thead><tr>${headerCols}</tr></thead><tbody><tr>${qtyCells}</tr></tbody></table>`;
+}
+function saveCurva(){
+  syncCurvaValoresFromDOM();
+  const{secId,itemId}=curvaCtx;
+  const item=sectionsData[secId].items[itemId];
+  const talles=curvaCtx.talles||[];
+  const valoresLimpio={};
+  talles.forEach(t=>{ valoresLimpio[t]=parseInt(curvaCtx.valores[t])||0; });
+  const display=talles.map(t=>`${t}:${valoresLimpio[t]}`).join(' · ');
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+    capas_talles:talles,
+    curva_valores:valoresLimpio,
+    curva:display
+  });
+  logActivity('Editó curva',`${item.code||item.name||''}: ${display||'(vacío)'}`);
+  document.getElementById('modal-curva').classList.add('hidden');
   showToast('✓ Curva guardada');
 }
+document.getElementById('close-modal-curva').onclick=()=>document.getElementById('modal-curva').classList.add('hidden');
+document.getElementById('cancel-modal-curva').onclick=()=>document.getElementById('modal-curva').classList.add('hidden');
+document.getElementById('save-modal-curva').onclick=saveCurva;
 
 function editAnchoPrompt(secId,itemId){
   const item=sectionsData[secId].items[itemId];
