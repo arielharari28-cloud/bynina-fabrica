@@ -205,6 +205,7 @@
   .pendientes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
   .pendientes-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:0}
   .pendientes-etapa{font-size:11px;color:var(--text2);margin-top:2px}
+  .pendientes-accion{font-size:12px;font-weight:600;color:var(--accent);margin-top:4px;line-height:1.3}
   .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
   .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
   .photo-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer}
@@ -1083,6 +1084,54 @@ function buildResponsableHtml(sec,item,secId){
   const nombre=getResponsable(sec,item,secId);
   if(!nombre) return '';
   return `<div class="responsable-badge">👤 Responsable tarea: ${nombre}</div>`;
+}
+
+// Qué hay que hacer puntualmente para destrabar el ítem — para que en "Pendientes" no diga
+// solo "Nuevos Desarrollos" sino la acción concreta que falta (y a qué modelista, si corresponde).
+function getProximaAccion(sec,item,secId){
+  const tipo=sec.tipo||'';
+  if(tipo==='mejora'){
+    return item.mejora_resuelta?null:'Falta resolver la mejora';
+  }
+  if(tipo==='muestra_prep'){
+    if(!item.code||!item.code.trim()) return 'Falta cargar el código';
+    if(item.ficha_estado==='modificar') return 'Falta corregir la ficha técnica pedida';
+    if(!item.en_ninox) return 'Falta cargar en Ninox';
+    if(!item.ficha_link) return 'Falta subir la ficha técnica';
+    if(item.ficha_estado==='modificada'&&!(item.control_ariel||item.control_stef)) return 'Ficha corregida — esperando que Ariel/Stef la controlen';
+    if(!(item.control_ariel||item.control_stef)) return 'Esperando control de ficha (Ariel/Stef)';
+    if(!item.modelista) return 'Falta asignar modelista';
+    return `Falta enviar a moldería · Modelista: ${item.modelista}`;
+  }
+  if(tipo==='muestra_molderia'){
+    if(!item.foto_drive_ok) return 'Falta cargar la foto en Drive';
+    return `Falta enviar a corte · Modelista: ${item.modelista||'sin asignar'}`;
+  }
+  if(tipo==='muestra_pend') return 'Falta armar la tizada / orden de corte';
+  if(tipo==='muestra_cort'){
+    if(!item.ficha) return 'Falta marcar la Ficha Producto como lista';
+    if(item.lleva_avios===null||item.lleva_avios===undefined) return 'Falta definir si lleva avíos';
+    if(item.lleva_avios===true){
+      const avios=Object.values(item.avios||{});
+      if(!avios.length) return 'Falta cargar los avíos';
+      if(!avios.every(a=>a.recibido)) return 'Esperando que lleguen los avíos';
+    }
+    return 'Falta pasar a Muestra Lista';
+  }
+  if(tipo==='muestra_lista') return 'Falta elegir taller y enviar';
+  if(tipo==='muestra_en_taller') return 'Esperando que el taller entregue';
+  if(secId==='s3'){
+    if(item.sin_confirmar) return 'Esperando confirmación (Ariel)';
+    const avios=Object.values(item.avios||{});
+    if(avios.length&&!avios.every(a=>a.recibido)) return 'Esperando que lleguen los avíos';
+    if(!item.orden_corte_cargada) return 'Falta cargar orden de corte (Ariel)';
+    return 'Listo para que el cortador lo saque';
+  }
+  if(secId==='s4') return 'Falta pedir el avío';
+  if(secId==='s5') return 'Esperando que llegue el avío pedido';
+  if(secId==='sLT'||secId==='sFIN') return 'Falta que el taller lo entregue';
+  if(!tipo) return 'Falta armar la tizada';
+  return null;
 }
 
 // IDs fijos para las secciones de muestras
@@ -4309,10 +4358,13 @@ function renderPendientes(){
     html+=`<div class="pendientes-group-title" style="color:${color}">${nombre}<span class="sec-count" style="background:${color}22;color:${color}">${lista.length}</span>${numAtrasados?`<span class="sec-count" style="background:#fee2e2;color:#991b1b">⚠️ ${numAtrasados} atrasado${numAtrasados!==1?'s':''}</span>`:''}</div>`;
     html+=`<div class="pendientes-grid">`;
     lista.forEach(({item,secTitle,secId,itemId,dias,atrasado})=>{
+      const sec=sectionsData[secId];
+      const accion=sec?getProximaAccion(sec,item,secId):null;
       html+=`<div class="pendientes-card" style="border-left:4px solid ${atrasado?'#dc2626':color};cursor:pointer" onclick="irAItem('${secId}','${itemId}')">
         <div class="item-code">${item.code||item.name||'(sin código)'}</div>
         ${item.name&&item.code?`<div class="item-name">${item.name}</div>`:''}
         <div class="pendientes-etapa">${secTitle}</div>
+        ${accion?`<div class="pendientes-accion">👉 ${accion}</div>`:''}
         ${dias!==null?`<div class="pendientes-etapa" style="font-weight:700;margin-top:2px;color:${atrasado?'#dc2626':'var(--text3)'}">${atrasado?'⚠️ ':''}${dias} día${dias!==1?'s':''} en esta etapa</div>`:''}
       </div>`;
     });
