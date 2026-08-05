@@ -127,8 +127,15 @@
   .mod-ref-box{margin-top:8px;background:var(--warn-bg);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--warn-text)}
   .mod-ref-box .mod-ref-title{font-weight:700;margin-bottom:4px}
 
+  /* SPECS (curva/ancho/peso/largo) en un mismo renglón */
+  .specs-line{display:flex;align-items:center;gap:12px;margin:6px 0;flex-wrap:wrap}
+  .spec-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .spec-label{font-size:11px;color:var(--text2)}
+  .spec-val{font-size:12px;font-weight:600}
+  .spec-empty{font-size:12px;color:var(--text3);font-style:italic}
+
   /* FOTO */
-  .item-with-photo{display:flex;gap:10px;width:100%;min-width:0}
+  .item-with-photo{display:flex;gap:10px;width:100%;min-width:0;flex-wrap:wrap}
   .pasos-panel{flex:1;min-width:210px;max-width:260px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;align-self:flex-start}
   .pasos-panel-title{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
   .paso-row{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px dashed var(--border)}
@@ -248,6 +255,30 @@
   .loading{text-align:center;padding:40px;color:var(--text3);font-size:14px}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1714;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
   .toast.show{opacity:1}
+
+  /* ===== MOBILE ===== */
+  @media (max-width:640px){
+    .main{padding:10px}
+    .topbar{padding:0 10px}
+    .topbar-title{font-size:13px}
+    .item{padding:10px;gap:6px}
+    .item-with-photo{gap:8px}
+    .item-photo,.item-photo-wrap,.item-photo-placeholder{width:64px;height:64px}
+    .item-photo-wrap.small,.item-photo-wrap.small .item-photo{width:44px;height:44px}
+    .item-photo-placeholder.small{width:44px;height:44px}
+    .pasos-panel{width:100%;max-width:100%;min-width:0;margin-top:8px}
+    .specs-line{gap:8px 10px}
+    .spec-label{font-size:10px}
+    .spec-val,.spec-empty{font-size:11px}
+    .item-actions{gap:4px}
+    .item-actions .btn-sm,.item-actions .btn-advance,.item-actions .btn-danger{font-size:11px;padding:5px 8px}
+    .sec-header{padding:9px 10px}
+    .sec-title{font-size:12px}
+    .filtro-corte-bar{padding:8px 10px}
+    .filtro-corte-input{width:100%}
+    .notif-panel{width:calc(100vw - 16px);right:8px}
+    .deuda-taller-box{margin:2px 8px 12px}
+  }
 </style>
 </head>
 <body>
@@ -2844,23 +2875,31 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${secId==='sFIN'?(canEdit?buildTemporadaHtml(secId,itemId,item):(item.temporada?`<div style="font-size:11px;color:var(--text2)">Temporada: <strong>${item.temporada}</strong></div>`:'')):''}
         ${canFicha?buildTelaHtml(secId,itemId,item):(item.tela?`<div style="font-size:11px;color:var(--text2);margin-top:6px">Tela: <strong>${item.tela}</strong></div>`:'')}
         ${fichaHtml}
-        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
-          ${secId!=='sFIN'?`<div class="c-check checked-auto ${item.curva?'checked':''}" title="Se tilda solo cuando hay curva cargada">${item.curva?'✓':''}</div>
-          <span style="font-size:11px;color:var(--text2)">Curva:</span>
-          ${item.curva?`<span style="font-size:12px;font-weight:600">${item.curva}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editCurvaPrompt('${secId}','${itemId}')">${item.curva?'✏️':'+ Curva'}</button>`:''}
-          <div class="c-check checked-auto ${item.ancho?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay ancho cargado">${item.ancho?'✓':''}</div>
-          <span style="font-size:11px;color:var(--text2)">Ancho:</span>
-          ${item.ancho?`<span style="font-size:12px;font-weight:600">${item.ancho}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}
-          <div class="c-check checked-auto ${item.peso_metro?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay peso x metro cargado">${item.peso_metro?'✓':''}</div>
-          <span style="font-size:11px;color:var(--text2)">Peso x metro:</span>
-          ${item.peso_metro?`<span style="font-size:12px;font-weight:600">${item.peso_metro}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editPesoMetroPrompt('${secId}','${itemId}')">${item.peso_metro?'✏️':'+ Peso x metro'}</button>`:''}
-          <div class="c-check checked-auto ${item.largo_capa?'checked':''}" style="margin-left:6px" title="Se tilda solo cuando hay largo de capa cargado">${item.largo_capa?'✓':''}</div>
-          <span style="font-size:11px;color:var(--text2)">Largo de capa:</span>
-          ${item.largo_capa?`<span style="font-size:12px;font-weight:600">${item.largo_capa}</span>`:`<span style="font-size:12px;color:var(--text3);font-style:italic">Sin cargar</span>`}
-          ${canFicha?`<button class="btn-sm" onclick="editLargoCapaPrompt('${secId}','${itemId}')">${item.largo_capa?'✏️':'+ Largo de capa'}</button>`:''}`:''}
+        <div class="specs-line">
+          ${secId!=='sFIN'?`<span class="spec-chip">
+            <span class="c-check checked-auto ${item.curva?'checked':''}" title="Se tilda solo cuando hay curva cargada">${item.curva?'✓':''}</span>
+            <span class="spec-label">Curva:</span>
+            ${item.curva?`<span class="spec-val">${item.curva}</span>`:`<span class="spec-empty">Sin cargar</span>`}
+            ${canFicha?`<button class="btn-sm" onclick="editCurvaPrompt('${secId}','${itemId}')">${item.curva?'✏️':'+ Curva'}</button>`:''}
+          </span>
+          <span class="spec-chip">
+            <span class="c-check checked-auto ${item.ancho?'checked':''}" title="Se tilda solo cuando hay ancho cargado">${item.ancho?'✓':''}</span>
+            <span class="spec-label">Ancho:</span>
+            ${item.ancho?`<span class="spec-val">${item.ancho}</span>`:`<span class="spec-empty">Sin cargar</span>`}
+            ${canFicha?`<button class="btn-sm" onclick="editAnchoPrompt('${secId}','${itemId}')">${item.ancho?'✏️':'+ Ancho'}</button>`:''}
+          </span>
+          <span class="spec-chip">
+            <span class="c-check checked-auto ${item.peso_metro?'checked':''}" title="Se tilda solo cuando hay peso x metro cargado">${item.peso_metro?'✓':''}</span>
+            <span class="spec-label" title="Peso x metro">Peso x m:</span>
+            ${item.peso_metro?`<span class="spec-val">${item.peso_metro}</span>`:`<span class="spec-empty">Sin cargar</span>`}
+            ${canFicha?`<button class="btn-sm" onclick="editPesoMetroPrompt('${secId}','${itemId}')">${item.peso_metro?'✏️':'+ Peso x metro'}</button>`:''}
+          </span>
+          <span class="spec-chip">
+            <span class="c-check checked-auto ${item.largo_capa?'checked':''}" title="Se tilda solo cuando hay largo de capa cargado">${item.largo_capa?'✓':''}</span>
+            <span class="spec-label" title="Largo de capa">Largo cap.:</span>
+            ${item.largo_capa?`<span class="spec-val">${item.largo_capa}</span>`:`<span class="spec-empty">Sin cargar</span>`}
+            ${canFicha?`<button class="btn-sm" onclick="editLargoCapaPrompt('${secId}','${itemId}')">${item.largo_capa?'✏️':'+ Largo de capa'}</button>`:''}
+          </span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin:2px 0 6px;flex-wrap:wrap">
           <div class="c-check checked-auto ${item.control_piezas_link?'checked':''}" title="Se tilda solo cuando hay link de control de piezas cargado">${item.control_piezas_link?'✓':''}</div>
