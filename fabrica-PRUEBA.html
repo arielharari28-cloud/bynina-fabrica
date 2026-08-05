@@ -695,6 +695,48 @@ function buildRollosHtml(item){
   </div>`;
 }
 
+// Prendas REALES por color y talle, calculadas con las capas que efectivamente se cortaron
+// (registradas en Rollos), no con las capas planificadas en la orden de corte. Útil para
+// Emir/depósito cuando el corte ya está terminado, por si se cortaron más o menos capas
+// de las planeadas.
+function buildRealesHtml(item,secId,itemId){
+  const talles=item.capas_talles||[];
+  const curva=item.curva_valores||{};
+  if(!talles.length||!Object.keys(curva).length) return '';
+  const rollos=Object.values(item.rollos||{}).filter(r=>r&&r.color&&r.capas);
+  if(!rollos.length) return '';
+  const capasRealesPorColor={};
+  rollos.forEach(r=>{ capasRealesPorColor[r.color]=(capasRealesPorColor[r.color]||0)+(parseFloat(r.capas)||0); });
+  const colores=Object.keys(capasRealesPorColor);
+  const headerCols=talles.map(t=>`<th style="padding:2px 6px;font-size:10px;color:var(--text2);text-align:center">${t}</th>`).join('');
+  const bodyRows=colores.map(color=>{
+    const capas=capasRealesPorColor[color];
+    return `<tr>
+      <td style="padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap">${color.replace(/</g,'&lt;')}</td>
+      <td style="padding:2px 6px;font-size:12px;font-weight:700;text-align:center;background:var(--accent-bg);color:var(--accent)">${capas}</td>
+      ${talles.map(t=>`<td style="padding:2px 6px;font-size:11px;text-align:center">${Math.round(capas*(parseFloat(curva[t])||0))}</td>`).join('')}
+    </tr>`;
+  }).join('');
+  const totalCapas=colores.reduce((s,c)=>s+capasRealesPorColor[c],0);
+  const totalPorTalle=talles.map(t=>colores.reduce((s,c)=>s+Math.round(capasRealesPorColor[c]*(parseFloat(curva[t])||0)),0));
+  const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
+  const totalCells=totalPorTalle.map(t=>`<td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center">${t}</td>`).join('');
+  const panelId=`reales-panel-${secId}-${itemId}`;
+  return `<div style="margin-top:4px;background:var(--surface2);border-radius:8px;border:1.5px solid var(--accent);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 8px;cursor:pointer" onclick="const p=document.getElementById('${panelId}');p.classList.toggle('hidden');this.querySelector('.reales-caret').textContent=p.classList.contains('hidden')?'▶':'▼'">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">✅ Prendas reales (según corte) <span style="font-weight:600;text-transform:none;font-size:11px">— ${totalGeneral} prendas</span></div>
+      <span class="reales-caret" style="font-size:11px;color:var(--text3)">▶</span>
+    </div>
+    <div id="${panelId}" class="hidden" style="padding:0 8px 8px;overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%">
+        <thead><tr><th style="text-align:left;padding:2px 6px;font-size:10px;color:var(--text2)">Color</th><th style="padding:2px 6px;font-size:10px;color:var(--text2)">Capas</th>${headerCols}</tr></thead>
+        <tbody>${bodyRows}<tr style="border-top:1px solid var(--border)"><td style="padding:2px 6px;font-size:11px;font-weight:700">Total</td><td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center;background:var(--accent-bg);color:var(--accent)">${totalCapas}</td>${totalCells}</tr></tbody>
+      </table>
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">Calculado con las capas realmente cortadas (Rollos) × curva por talle.</div>
+    </div>
+  </div>`;
+}
+
 function buildCodeHtml(secId,itemId,item,canEdit){
   if (!canEdit) return `<div class="item-code">${item.code}</div>`;
   return `<div class="item-code-edit" contenteditable="true" data-secid="${secId}" data-itemid="${itemId}"
@@ -2937,6 +2979,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
     ? `<div style="font-size:13px;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent);font-weight:600">${item.numero_corte}</strong></div>` : '';
   const capasHtml = buildCapasHtml(item,secId,itemId);
   const rollosHtml = buildRollosHtml(item);
+  const realesHtml = buildRealesHtml(item,secId,itemId);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">📦 Salió a ${item.taller_corte?`<strong>${item.taller_corte}</strong> `:'taller '}el <strong>${fmtFecha(item.fecha_salida_taller)}</strong></div>` : '';
   const fichaHtml = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px;flex-wrap:wrap">
@@ -3029,6 +3072,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${sinConfirmarHtml}
         ${capasHtml}
         ${rollosHtml}
+        ${realesHtml}
         ${flujoCorteHtml}
         ${fechaCorteHtml}
         ${fechaSalidaHtml}
@@ -3081,11 +3125,14 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
       ${canCortar?`<button class="btn-sm" onclick="openRollosModal('${secId}','${itemId}')">${rollosCount?'✏️ Editar rollos':'+ Cargar rollos'}</button>`:''}
     </div>`;
 
-  // El encimado no se puede marcar terminado hasta que estén cargados los rollos de TODOS
-  // los colores de la orden de corte (así el sobrante queda bien registrado antes de avanzar).
-  const coloresOrden=[...new Set(Object.values(item.capas||{}).map(r=>r.color).filter(Boolean))];
-  const coloresConRollo=[...new Set(Object.values(item.rollos||{}).filter(r=>r&&r.color&&r.capas).map(r=>r.color))];
-  const faltantesRollos=coloresOrden.filter(c=>!coloresConRollo.includes(c));
+  // El encimado no se puede marcar terminado hasta que las capas cargadas en rollos alcancen
+  // las capas requeridas de CADA color de la orden de corte.
+  const requeridoPorColor={};
+  Object.values(item.capas||{}).forEach(r=>{ if(r.color) requeridoPorColor[r.color]=(requeridoPorColor[r.color]||0)+(parseFloat(r.capas)||0); });
+  const cargadoPorColor={};
+  Object.values(item.rollos||{}).forEach(r=>{ if(r&&r.color) cargadoPorColor[r.color]=(cargadoPorColor[r.color]||0)+(parseFloat(r.capas)||0); });
+  const coloresOrden=Object.keys(requeridoPorColor);
+  const faltantesRollos=coloresOrden.filter(c=>(cargadoPorColor[c]||0)<requeridoPorColor[c]);
   const rollosCompletos=coloresOrden.length>0&&faltantesRollos.length===0;
 
   const encimadoRow = !encimadoTerm
@@ -3262,17 +3309,21 @@ document.getElementById('save-modal-orden-corte').onclick=saveOrdenCorte;
 
 // ---- ROLLOS UTILIZADOS: color x kg/mts x capas -> usado/sobrante ----
 let rollosCtx={};
+function sanitizeStr(s){ return String(s).replace(/[^a-zA-Z0-9]/g,'_'); }
 function openRollosModal(secId,itemId){
   const item=sectionsData[secId].items[itemId];
   const coloresDisponibles=[...new Set(Object.values(item.capas||{}).map(r=>r.color).filter(Boolean))];
+  const requeridoPorColor={};
+  Object.values(item.capas||{}).forEach(r=>{ if(r.color) requeridoPorColor[r.color]=(requeridoPorColor[r.color]||0)+(parseFloat(r.capas)||0); });
   rollosCtx={
     secId,itemId,
     coloresDisponibles,
+    requeridoPorColor,
     largo:parseFloat(item.largo_capa)||0,
     peso:parseFloat(item.peso_metro)||0
   };
   const filasExistentes=Object.entries(item.rollos||{}).map(([id,r])=>({id,color:r.color||'',kgmts:r.kgmts!==undefined?r.kgmts:'',capas:r.capas!==undefined?r.capas:'',nota:r.nota||''}));
-  rollosCtx.rows=filasExistentes.length?filasExistentes:[{id:'ro'+Date.now(),color:coloresDisponibles[0]||'',kgmts:'',capas:'',nota:''}];
+  rollosCtx.rows=filasExistentes;
   renderRollosModal();
   document.getElementById('modal-rollos').classList.remove('hidden');
 }
@@ -3282,13 +3333,14 @@ function rollosAddRow(){
 }
 function rollosRemoveRow(id){
   rollosCtx.rows=rollosCtx.rows.filter(r=>r.id!==id);
-  if(!rollosCtx.rows.length) rollosCtx.rows=[{id:'ro'+Date.now(),color:rollosCtx.coloresDisponibles[0]||'',kgmts:'',capas:'',nota:''}];
   renderRollosModal();
 }
 function rollosUpdateField(rowId,field,val){
   const row=rollosCtx.rows.find(r=>r.id===rowId);
   if(row) row[field]=val;
+  if(field==='color'){ renderRollosModal(); return; } // el color cambia a qué barra de "faltan" suma, hace falta rehacer el resumen entero
   rollosRefreshRow(rowId);
+  rollosRefreshResumen();
 }
 function rollosCalc(row){
   const capas=parseFloat(row.capas)||0;
@@ -3305,6 +3357,38 @@ function rollosRefreshRow(rowId){
   if(u) u.textContent=usado?usado.toFixed(2):'—';
   if(s) s.textContent=row.kgmts?sobrante.toFixed(2):'—';
 }
+function rollosCargadoPorColor(color){
+  return rollosCtx.rows.filter(r=>r.color===color).reduce((s,r)=>s+(parseFloat(r.capas)||0),0);
+}
+function rollosRefreshResumen(){
+  Object.keys(rollosCtx.requeridoPorColor).forEach(color=>{
+    const req=rollosCtx.requeridoPorColor[color];
+    const cargado=rollosCargadoPorColor(color);
+    const faltan=req-cargado;
+    const el=document.getElementById(`rol-resumen-${sanitizeStr(color)}`);
+    if(!el) return;
+    el.textContent=faltan>0?`${cargado}/${req} — faltan ${faltan}`:`${cargado}/${req} ✓ completo`;
+    el.style.color=faltan>0?'var(--warn-text)':'var(--green-text)';
+    el.style.fontWeight=faltan>0?'600':'700';
+  });
+}
+function renderRollosResumenHtml(){
+  const colores=Object.keys(rollosCtx.requeridoPorColor);
+  if(!colores.length) return '';
+  const items=colores.map(color=>{
+    const req=rollosCtx.requeridoPorColor[color];
+    const cargado=rollosCargadoPorColor(color);
+    const faltan=req-cargado;
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px dashed var(--border);font-size:12px">
+      <span style="font-weight:600">${color}</span>
+      <span id="rol-resumen-${sanitizeStr(color)}" style="${faltan>0?'color:var(--warn-text);font-weight:600':'color:var(--green-text);font-weight:700'}">${faltan>0?`${cargado}/${req} — faltan ${faltan}`:`${cargado}/${req} ✓ completo`}</span>
+    </div>`;
+  }).join('');
+  return `<div style="background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px">
+    <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Capas cargadas vs. necesarias (según orden de corte)</div>
+    ${items}
+  </div>`;
+}
 function renderRollosModal(){
   const{coloresDisponibles,rows}=rollosCtx;
   const colorOptsFor=sel=>coloresDisponibles.length
@@ -3319,17 +3403,19 @@ function renderRollosModal(){
       <td><span class="oc-cell-calc" id="rol-usado-${row.id}">${usado?usado.toFixed(2):'—'}</span></td>
       <td><span class="oc-cell-calc" id="rol-sobrante-${row.id}">${row.kgmts?sobrante.toFixed(2):'—'}</span></td>
       <td><input type="text" value="${(row.nota||'').replace(/"/g,'&quot;')}" placeholder="Ej: queda 1 rollo, 5m" oninput="rollosUpdateField('${row.id}','nota',this.value)" style="width:140px;padding:5px;font-size:12px;border:1px solid var(--border);border-radius:6px"></td>
-      <td><button class="btn-danger" style="padding:2px 6px;font-size:11px" onclick="rollosRemoveRow('${row.id}')">✕</button></td>
+      <td><button class="btn-danger" style="padding:2px 6px;font-size:11px" onclick="rollosRemoveRow('${row.id}')" title="Eliminar rollo">🗑️</button></td>
     </tr>`;
   }).join('');
   document.getElementById('modal-rollos-body').innerHTML=`
     ${!coloresDisponibles.length?`<div class="oc-warn">⚠️ Este ítem todavía no tiene colores cargados en la orden de corte. Cargalos primero y después volvé acá.</div>`:''}
-    <div class="oc-hint">El <strong>usado</strong> se calcula solo: capas × largo de capa (${rollosCtx.largo||'—'}) × peso x metro (${rollosCtx.peso||'—'}). El <strong>sobrante</strong> es Kg/Mts del rollo menos lo usado.</div>
+    <div class="oc-hint" style="margin-bottom:10px">El <strong>usado</strong> se calcula solo: capas × largo de capa (${rollosCtx.largo||'—'}) × peso x metro (${rollosCtx.peso||'—'}). El <strong>sobrante</strong> es Kg/Mts del rollo menos lo usado.</div>
+    ${renderRollosResumenHtml()}
     <div class="oc-table-wrap">
       <table class="oc-table">
         <thead><tr><th>Color</th><th>Kg/Mts</th><th>Capas</th><th>Usado</th><th>Sobrante</th><th style="text-align:left">Nota</th><th></th></tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
+      ${!rows.length?`<div class="oc-hint" style="padding:8px 0">No hay rollos cargados todavía.</div>`:''}
     </div>
     <button class="btn-sm" onclick="rollosAddRow()" style="width:100%;padding:8px;margin-top:8px">+ Agregar rollo</button>
   `;
