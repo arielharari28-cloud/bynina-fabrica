@@ -935,7 +935,7 @@ let searchQuery = '';
 let filtroCorteTaller='', filtroCorteTela='', filtroCorteCategoria='', filtroCorteNumero='', ordenCortePor='';
 // Orden personalizado (arrastrar y soltar) de la Galería, guardado por tablero
 let galeriaOrden = {diseno:[], fabrica:[]};
-let filtroGaleriaMarca='', filtroGaleriaTela='', filtroGaleriaCategoria='', filtroGaleriaTablero='';
+let filtroGaleriaMarca='', filtroGaleriaTela='', filtroGaleriaCategoria='', filtroGaleriaTablero='', ordenGaleriaPor='';
 
 const COLORS = {
   accent:{secBg:'#2d6a4f',secText:'#fff'},
@@ -3636,7 +3636,14 @@ function renderGaleria(){
     <select class="filtro-corte-select" onchange="filtroGaleriaCategoria=this.value;renderGaleria()">
       <option value="">Categoría: todas</option>${opt(categorias,filtroGaleriaCategoria)}
     </select>
-    ${(filtroGaleriaTablero||filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria)?`<button class="btn-sm" onclick="filtroGaleriaTablero='';filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';renderGaleria()">✕ Limpiar</button>`:''}
+    <select class="filtro-corte-select" onchange="ordenGaleriaPor=this.value;renderGaleria()">
+      <option value="" ${!ordenGaleriaPor?'selected':''}>Orden: manual (arrastrar)</option>
+      <option value="codigo" ${ordenGaleriaPor==='codigo'?'selected':''}>Código</option>
+      <option value="marca" ${ordenGaleriaPor==='marca'?'selected':''}>Marca</option>
+      <option value="tela" ${ordenGaleriaPor==='tela'?'selected':''}>Tela</option>
+      <option value="categoria" ${ordenGaleriaPor==='categoria'?'selected':''}>Categoría</option>
+    </select>
+    ${(filtroGaleriaTablero||filtroGaleriaMarca||filtroGaleriaTela||filtroGaleriaCategoria||ordenGaleriaPor)?`<button class="btn-sm" onclick="filtroGaleriaTablero='';filtroGaleriaMarca='';filtroGaleriaTela='';filtroGaleriaCategoria='';ordenGaleriaPor='';renderGaleria()">✕ Limpiar</button>`:''}
   </div>`;
   const filtrados=todos.filter(it=>
     (!filtroGaleriaMarca||it.marca===filtroGaleriaMarca) &&
@@ -3646,19 +3653,26 @@ function renderGaleria(){
   let html=filtroBar;
   (filtroGaleriaTablero?[filtroGaleriaTablero]:['diseno','fabrica']).forEach(board=>{
     const items=filtrados.filter(it=>it.board===board);
-    const orden=galeriaOrden[board]||[];
     const keyOf=it=>`${it.secId}::${it.itemId}`;
-    items.sort((a,b)=>{
-      const ia=orden.indexOf(keyOf(a)), ib=orden.indexOf(keyOf(b));
-      if(ia===-1&&ib===-1) return 0;
-      if(ia===-1) return 1;
-      if(ib===-1) return -1;
-      return ia-ib;
-    });
+    if(ordenGaleriaPor){
+      const campo=ordenGaleriaPor==='codigo'?'code':ordenGaleriaPor==='marca'?'marca':ordenGaleriaPor;
+      items.sort((a,b)=>{
+        const va=ordenGaleriaPor==='marca'?a.marca:(a.item[campo]||'');
+        const vb=ordenGaleriaPor==='marca'?b.marca:(b.item[campo]||'');
+        return String(va||'zzz').localeCompare(String(vb||'zzz'));
+      });
+    } else {
+      const orden=galeriaOrden[board]||[];
+      items.sort((a,b)=>{
+        const ia=orden.indexOf(keyOf(a)), ib=orden.indexOf(keyOf(b));
+        if(ia===-1&&ib===-1) return 0;
+        if(ia===-1) return 1;
+        if(ib===-1) return -1;
+        return ia-ib;
+      });
+    }
     const tiles=items.map(it=>`
-      <div class="galeria-tile" draggable="true" data-key="${keyOf(it)}" data-board="${board}"
-           ondragstart="onGaleriaDragStart(event)" ondragend="onGaleriaDragEnd(event)"
-           ondragover="onGaleriaDragOver(event)" ondrop="onGaleriaDrop(event)">
+      <div class="galeria-tile" ${ordenGaleriaPor?'':`draggable="true" ondragstart="onGaleriaDragStart(event)" ondragend="onGaleriaDragEnd(event)" ondragover="onGaleriaDragOver(event)" ondrop="onGaleriaDrop(event)"`} data-key="${keyOf(it)}" data-board="${board}">
         ${it.item.foto?`<img src="${it.item.foto}" onclick="openPhotoModal('${it.item.foto}')">`:`<div class="galeria-tile-sinfoto">📷</div>`}
         <div class="galeria-tile-info">
           <span class="galeria-tile-code">${it.item.code||it.item.name||'(sin código)'}</span>
