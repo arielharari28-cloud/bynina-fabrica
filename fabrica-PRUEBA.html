@@ -1754,6 +1754,27 @@ function enviarMejoraANuevosDesarrollos(secId,itemId){
   showToast('📤 Se creó un nuevo desarrollo a partir de esta mejora');
 }
 
+// --- PRODUCTO PERFECTO → volver a Mejora (por si aparece un error después de darlo por bueno) ---
+function volverAMejora(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  const mejoraSecId=getSectionIdByTipo('mejora');
+  if(!mejoraSecId){ showToast('No encontré la sección de Mejoras'); return; }
+  const nota=prompt('¿Qué hay que corregir?',item.notas||'');
+  if(nota===null) return;
+  const newItem={...item,
+    mejora_nota:nota.trim(),
+    mejora_resuelta:false,
+    mejora_tipo:null,
+    necesita_muestra:null,
+    fecha_etapa:Date.now()
+  };
+  delete newItem.fecha_perfecto;
+  db.ref(`fabrica_v5/sections/${mejoraSecId}/items`).push(newItem);
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).remove();
+  logActivity('Producto perfecto → Mejora',`${item.code||item.name||''}: ${nota.trim()||'(sin detalle)'}`);
+  showToast('↩ Enviado de vuelta a Mejora');
+}
+
 // --- MOLDERÍA ---
 function enviarACorte(secId,itemId){
   const item=sectionsData[secId].items[itemId];
@@ -2941,6 +2962,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
           </div>
           <div class="item-actions">
             ${canEdit?`<button class="btn-sm" onclick="openEditModal('${secId}','${itemId}')">✏️ Editar</button>`:''}
+            ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-sm" style="border-color:var(--warn-text);color:var(--warn-text)" onclick="volverAMejora('${secId}','${itemId}')">↩ Volver a Mejora</button>`:''}
             ${(currentUser==='ariel'||currentUser==='stef')?`<button class="btn-danger" onclick="deleteItem('${secId}','${itemId}')">Eliminar</button>`:''}
           </div>
         </div>
