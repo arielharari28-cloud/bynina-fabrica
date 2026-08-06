@@ -758,7 +758,7 @@ async function irAEstampado(secId,itemId){
     const newRef=db.ref('fabrica_v5/estampados').push();
     estId=newRef.key;
     await newRef.set({
-      numero:item.code||item.name||'(sin código)',
+      numero:item.numero_corte||item.code||item.name||'(sin código)',
       tela:item.tela_nombre||item.tela||'',
       coloresImg:'',
       fotos,
@@ -1184,11 +1184,18 @@ function buildNameHtml(secId,itemId,item,canEdit){
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${item.name||''}</div>`;
 }
 
-function buildCapasHtml(item,secId,itemId){
+function buildCapasHtml(item,secId,itemId,canEditCapas){
   const talles=item.capas_talles||[];
   const filas=Object.values(item.capas||{});
   const rows=filas.filter(f=>f&&(f.color||f.capas||Object.values(f.cant||{}).some(v=>parseInt(v)>0)));
-  if(!talles.length||!rows.length) return '';
+  if(!talles.length||!rows.length){
+    // Fuera de "Cortes próximos a sacar" (s3) no existe el flujo pre-corte que carga esto,
+    // así que si el ítem no tiene capas/colores cargados le damos un botón directo acá
+    // (ej: cortes finalizados anteriores a los que nunca se les cargó, o se cargaron mal).
+    return canEditCapas
+      ? `<div style="margin-top:4px"><button class="btn-sm" onclick="openOrdenCorteModal('${secId}','${itemId}')">+ Cargar capas y colores</button></div>`
+      : '';
+  }
   const totalCapas=rows.reduce((s,r)=>s+(parseInt(r.capas)||0),0);
   const totalPorTalle=talles.map(t=>rows.reduce((s,r)=>s+(parseInt(r.cant&&r.cant[t])||0),0));
   const totalGeneral=totalPorTalle.reduce((a,b)=>a+b,0);
@@ -1211,6 +1218,7 @@ function buildCapasHtml(item,secId,itemId){
         <tbody>${bodyRows}<tr style="border-top:1px solid var(--border)"><td style="padding:2px 6px;font-size:11px;font-weight:700">Total</td><td style="padding:2px 6px;font-size:11px;font-weight:700;text-align:center;background:var(--accent-bg);color:var(--accent)">${totalCapas}</td>${totalCells}</tr></tbody>
       </table>
       <div style="font-size:10px;color:var(--text2);margin-top:4px">Total general: <strong>${totalGeneral}</strong> prendas</div>
+      ${canEditCapas?`<button class="btn-sm" style="margin-top:6px" onclick="openOrdenCorteModal('${secId}','${itemId}')">✏️ Editar capas y colores</button>`:''}
     </div>
   </div>`;
 }
@@ -3700,7 +3708,8 @@ function buildItem(secId,itemId,item,sec,idx,total){
     ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">✂️ Cortado: <strong>${item.fecha_corte}</strong></div>` : '';
   const numeroCorteHtml = item.numero_corte
     ? `<div style="font-size:13px;color:var(--text);margin-top:4px">🔢 N° de corte: <strong style="color:var(--accent);font-weight:600">${item.numero_corte}</strong></div>` : '';
-  const capasHtml = buildCapasHtml(item,secId,itemId);
+  const canEditCapasFuera = secId!=='s3' && ((currentUser==='ariel'||currentUser==='stef')||currentUser==='peque'||currentUser==='nahuel');
+  const capasHtml = buildCapasHtml(item,secId,itemId,canEditCapasFuera);
   const rollosHtml = buildRollosHtml(item);
   const realesHtml = buildRealesHtml(item,secId,itemId);
   const fechaSalidaHtml = secId==='sFIN'&&item.fecha_salida_taller
