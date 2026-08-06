@@ -3817,7 +3817,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${notaHtml}
         ${aviosHtml}
         <div class="item-actions">
-          ${(canCortar&&listoParaCortar)?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
+          ${((canCortar||(secId==='s3'&&currentUser==='emir'))&&listoParaCortar)?`<button class="btn-advance" onclick="marcarCorteRealizado('${secId}','${itemId}')">✂️ Marcar cortado</button>`:''}
           ${canSacarTaller?`<button class="btn-advance" onclick="sacarATaller('${secId}','${itemId}')">📦 Sacar a taller</button>`:''}
           ${canEntregarRevision?`<button class="btn-advance" onclick="marcarEntregadoCorte('${secId}','${itemId}')">✅ Entregado → Revisión</button>`:''}
           ${canDeshacer?`<button class="btn-sm" onclick="deshacerCorte('${secId}','${itemId}')">↩ Deshacer</button>`:''}
@@ -3840,6 +3840,8 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
   // arranca directo en Orden de corte.
   const ordenCargada=!!item.orden_corte_cargada;
   const encimadoTerm=!!item.encimado_terminado;
+  // Emir puede cargar rollos y marcar encimado/cortado, pero no cargar/editar la Orden de Corte en sí.
+  const canRollosEncimado=canCortar||currentUser==='emir';
 
   const ordenRow = !ordenCargada
     ? `<div class="cortada-row">
@@ -3860,7 +3862,7 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
   const rollosCount=Object.values(item.rollos||{}).filter(r=>r&&(r.color||r.kgmts||r.capas)).length;
   const rollosRow = `<div class="cortada-row">
       <span class="c-label">📦 Rollos utilizados: <strong>${rollosCount?rollosCount+' cargado'+(rollosCount!==1?'s':''):'sin cargar'}</strong></span>
-      ${canCortar?`<button class="btn-sm" onclick="openRollosModal('${secId}','${itemId}')">${rollosCount?'✏️ Editar rollos':'+ Cargar rollos'}</button>`:''}
+      ${canRollosEncimado?`<button class="btn-sm" onclick="openRollosModal('${secId}','${itemId}')">${rollosCount?'✏️ Editar rollos':'+ Cargar rollos'}</button>`:''}
     </div>`;
 
   // El encimado no se puede marcar terminado hasta que las capas cargadas en rollos alcancen
@@ -3876,11 +3878,11 @@ function buildFlujoPreCorte(secId,itemId,item,canCortar){
   const encimadoRow = !encimadoTerm
     ? `<div class="cortada-row">
         <span class="c-label" style="font-weight:500;color:var(--warn-text)">⏳ Pendiente encimado</span>
-        ${canCortar?(rollosCompletos
+        ${canRollosEncimado?(rollosCompletos
           ? `<button class="btn-advance" onclick="setEncimadoTerminado('${secId}','${itemId}',true)">🧷 Encimado terminado</button>`
           : `<button class="btn-advance" disabled title="Cargá los rollos de todos los colores primero" style="opacity:.45;cursor:not-allowed">🧷 Encimado terminado</button>`
         ):''}
-      </div>${(!rollosCompletos&&canCortar)?`<div style="font-size:11px;color:var(--warn-text);padding:0 12px 8px">⚠️ Faltan cargar rollos de: <strong>${faltantesRollos.join(', ')||coloresOrden.join(', ')}</strong></div>`:''}`
+      </div>${(!rollosCompletos&&canRollosEncimado)?`<div style="font-size:11px;color:var(--warn-text);padding:0 12px 8px">⚠️ Faltan cargar rollos de: <strong>${faltantesRollos.join(', ')||coloresOrden.join(', ')}</strong></div>`:''}`
     : `<div class="cortada-row">
         <span class="c-label">🧷 Encimado: <strong style="color:var(--green-text)">Terminado</strong></span>
         ${canCortar?`<button class="btn-sm" onclick="setEncimadoTerminado('${secId}','${itemId}',false)">↩ Deshacer</button>`:''}
