@@ -209,6 +209,50 @@
   .notas-list{background:var(--surface2);border-radius:6px;padding:6px 8px;margin-top:4px}
   .notas-row{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text);padding:2px 0}
   .notas-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);margin-top:6px;flex-shrink:0}
+  .estampado-btn{margin-top:6px;border-color:#c026d3;color:#a21caf}
+  .estampado-badge{margin-top:6px;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#a21caf;background:#fae8ff;border-radius:6px;padding:4px 8px;cursor:pointer;width:fit-content}
+  .estampado-color-row{display:grid;grid-template-columns:1fr 1fr 70px auto;gap:6px;margin-bottom:6px;align-items:center}
+  .estampado-color-row input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit}
+
+  /* ===== Pestaña Estampas DTF ===== */
+  .est-stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .est-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column;min-width:90px}
+  .est-stat-num{font-size:20px;font-weight:700;color:var(--accent)}
+  .est-stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+  .est-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .est-filtros{display:flex;gap:6px;flex-wrap:wrap}
+  .filter-pill{border:1px solid var(--border);background:var(--surface);border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text2)}
+  .filter-pill.active{background:var(--text);color:#fff;border-color:var(--text)}
+  .filter-pill .cnt{opacity:.7;margin-left:2px}
+  .est-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .est-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+  .est-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+  .est-numero{font-size:15px;font-weight:700}
+  .est-tela{font-size:11px;color:var(--text2)}
+  .section-label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px}
+  .est-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .est-card-inner{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)}
+  .est-photo-wrap{position:relative;aspect-ratio:1/1;background:var(--surface2)}
+  .est-photo-wrap img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
+  .est-photo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text3);cursor:pointer}
+  .est-photo-edit,.est-photo-del{position:absolute;top:4px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:5px;width:22px;height:22px;font-size:11px;cursor:pointer;line-height:1}
+  .est-photo-edit{right:28px}
+  .est-photo-del{right:4px}
+  .est-info{padding:6px 8px}
+  .est-articulo{display:block;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:4px;line-height:1.3}
+  .estado-pill{border:none;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;width:100%}
+  .btn-est-add{grid-column:span 2;border:1px dashed var(--border2);background:transparent;border-radius:8px;padding:10px;font-size:12px;color:var(--text2);cursor:pointer}
+  .colores-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  .colores-foto{position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;border:1px solid var(--border);cursor:pointer;flex-shrink:0}
+  .colores-foto img{width:100%;height:100%;object-fit:cover}
+  .colores-foto.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text3);background:var(--surface2)}
+  .color-chip{position:relative;display:flex;flex-direction:column;gap:1px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 20px 6px 8px;font-size:10px;cursor:pointer;min-width:70px}
+  .color-name{font-weight:700}
+  .color-estampa{color:var(--text2)}
+  .color-cant{color:var(--accent);font-weight:600}
+  .chip-del{position:absolute;top:3px;right:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:10px}
+  .btn-color-add{border:1px dashed var(--border2);background:transparent;border-radius:8px;padding:6px 10px;font-size:11px;color:var(--text2);cursor:pointer;align-self:center}
+  .icon-btn{border:1px solid var(--border);background:var(--surface);border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;margin-left:4px}
   .photo-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
   .photo-modal-img{max-width:100%;max-height:90vh;border-radius:8px}
   .photo-modal-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer}
@@ -354,6 +398,7 @@
       <button class="tab" id="tab-btn-pendientes">Pendientes</button>
       <button class="tab" id="tab-btn-galeria">Galería</button>
       <button class="tab" id="tab-btn-actividad">Actividad</button>
+      <button class="tab" id="tab-btn-estampas">🎨 Estampas</button>
     </div>
     <div id="tab-diseno">
       <div id="alert-banner"></div>
@@ -378,10 +423,75 @@
       <div id="galeria-content"><div class="loading">Cargando...</div></div>
     </div>
     <div id="tab-actividad" class="hidden"><div id="actividad-list"><div class="loading">Cargando...</div></div></div>
+    <div id="tab-estampas" class="hidden">
+      <div class="est-stats-bar" id="estampas-stats"></div>
+      <div class="est-toolbar">
+        <div class="est-filtros" id="estampas-filtros"></div>
+        <input type="text" class="search-input" id="estampas-search" placeholder="Buscar N° corte..." style="max-width:220px" oninput="estSearch=this.value;renderEstampadosTab()">
+        <select class="filtro-corte-select" id="estampas-tela-filter" onchange="estTelaFiltro=this.value;renderEstampadosTab()"></select>
+        <button class="btn-primary" onclick="openEstCorteModal()">+ Agregar corte</button>
+      </div>
+      <div class="est-board" id="estampas-board"><div class="loading">Cargando...</div></div>
+    </div>
   </div>
 </div>
 
 <!-- Modal editar ítem -->
+<!-- Modal Estampado DTF (manda el corte a la app de Estampas & Bordados vía Airtable) -->
+<!-- Modales del módulo Estampas DTF -->
+<div class="modal-overlay hidden" id="modal-est-corte">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="est-corte-modal-title">Nuevo corte</span><button class="modal-close" onclick="document.getElementById('modal-est-corte').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>N° de Corte</label><input type="text" id="in-est-numero" placeholder="Ej: 4759"></div>
+      <div class="field"><label>Tela</label><input type="text" id="in-est-tela" placeholder="Ej: Algodón con Lycra"></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-corte').classList.add('hidden')">Cancelar</button><button class="btn-primary" onclick="saveEstCorte()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-est-estampa">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="est-estampa-modal-title">Nueva estampa</span><button class="modal-close" onclick="document.getElementById('modal-est-estampa').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Artículo</label><input type="text" id="in-est-articulo" placeholder="Ej: Remera Clasica MC Texto..."></div>
+      <div class="field">
+        <label>Foto del diseño</label>
+        <input type="file" id="in-est-foto" accept="image/*">
+        <img id="est-estampa-current-img" class="current-img" style="display:none;max-width:100%;max-height:160px;border-radius:8px;margin-top:6px">
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-estampa').classList.add('hidden')">Cancelar</button><button class="btn-primary" id="est-estampa-ok" onclick="saveEstEstampa()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-est-color">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="est-color-modal-title">Variante de color</span><button class="modal-close" onclick="document.getElementById('modal-est-color').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Color de la prenda</label><input type="text" id="in-est-color" placeholder="Ej: Negro"></div>
+      <div class="field"><label>Color de la estampa</label><input type="text" id="in-est-estampacolor" placeholder="Ej: Blanco"></div>
+      <div class="field"><label>Cantidad</label><input type="number" id="in-est-cant" placeholder="Ej: 24"></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-color').classList.add('hidden')">Cancelar</button><button class="btn-primary" onclick="saveEstColor()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-est-colores-foto">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Foto de los colores</span><button class="modal-close" onclick="document.getElementById('modal-est-colores-foto').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Una sola foto con todos los colores juntos</label>
+        <input type="file" id="in-est-colores-foto" accept="image/*">
+        <img id="est-colores-current-img" class="current-img" style="display:none;max-width:100%;max-height:160px;border-radius:8px;margin-top:6px">
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-colores-foto').classList.add('hidden')">Cancelar</button><button class="btn-primary" id="est-colores-foto-ok" onclick="saveEstColoresFoto()">Guardar</button></div>
+  </div>
+</div>
+
+
 <!-- Modal notas (lista, un renglón por concepto) -->
 <div class="modal-overlay hidden" id="modal-notas">
   <div class="modal">
@@ -581,6 +691,335 @@ function triggerPhotoUpload(secId,itemId){
   };
   input.click();
 }
+
+// ===================== ESTAMPAS DTF (módulo propio, sin servicios externos) =====================
+// Vive en su propio nodo de Firebase (fabrica_v5/estampados), separado de los items normales,
+// para no mezclar datos. Un "estampado" = un corte con sus estampas (hasta 4) y sus variantes
+// de color (color de la prenda → color de estampa → cantidad). Mismos pasos que se usaban antes
+// en la app aparte: Pendiente Dibujo → Pendiente DTF (plancha) → Pendiente Estampado → Listo.
+const EST_ESTADOS=[
+  {key:'dibujo',label:'Pendiente Dibujo',bg:'#fef3c7',color:'#92400e'},
+  {key:'dtf',label:'Pendiente DTF (plancha)',bg:'#dbeafe',color:'#1e40af'},
+  {key:'estampado',label:'Pendiente Estampado',bg:'#ede9fe',color:'#5b21b6'},
+  {key:'listo',label:'Listo',bg:'#dcfce7',color:'#166534'}
+];
+// Sin límite fijo: el corte se puede dividir en tantas estampas como haga falta.
+let estampadosData={};
+let estFilter='todos', estSearch='', estTelaFiltro='todas';
+let estCtx={estId:null,estampaId:null,fotoId:null};
+
+async function uploadCloudinaryRaw(file){
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('upload_preset',CLOUDINARY_PRESET);
+  const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:formData});
+  const data=await res.json();
+  if(!data.secure_url) throw new Error('No se pudo subir la foto');
+  return data.secure_url;
+}
+function estLabel(key){ return EST_ESTADOS.find(s=>s.key===key)||EST_ESTADOS[0]; }
+
+// --- Vínculo desde una tarjeta de fabrica: crea (si hace falta) el corte en Estampas y salta a la pestaña ---
+async function irAEstampado(secId,itemId){
+  const item=sectionsData[secId]&&sectionsData[secId].items[itemId];
+  if(!item) return;
+  let estId=item.estampado_id;
+  if(!estId || !estampadosData[estId]){
+    const filas=Object.values(item.capas||{}).filter(r=>r.color);
+    const fotos={};
+    filas.forEach(r=>{
+      const cant=Object.values(r.cant||{}).reduce((a,b)=>a+(parseInt(b)||0),0);
+      const fid=db.ref('fabrica_v5/estampados').push().key;
+      fotos[fid]={color:r.color,estampaColor:'',cant};
+    });
+    const newRef=db.ref('fabrica_v5/estampados').push();
+    estId=newRef.key;
+    await newRef.set({
+      numero:item.code||item.name||'(sin código)',
+      tela:item.tela_nombre||item.tela||'',
+      coloresImg:'',
+      fotos,
+      estampas:{},
+      fecha_creado:Date.now(),
+      link_secId:secId,
+      link_itemId:itemId
+    });
+    await db.ref(`fabrica_v5/sections/${secId}/items/${itemId}`).update({
+      estampado_dtf:true, estampado_id:estId, estampado_dtf_fecha:Date.now()
+    });
+    logActivity('Creó corte en Estampas',item.code||item.name);
+    showToast('🎨 Corte creado en Estampas');
+  } else if(!item.estampado_dtf){
+    db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/estampado_dtf`).set(true);
+  }
+  ocultarTabsMenosActiva('tab-estampas');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-btn-estampas').classList.add('active');
+  renderEstampadosTab();
+  setTimeout(()=>{
+    const el=document.getElementById('est-card-'+estId);
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('item-highlight');
+    setTimeout(()=>el.classList.remove('item-highlight'),2200);
+  },80);
+}
+function desmarcarEstampadoDTF(secId,itemId){
+  const item=sectionsData[secId].items[itemId];
+  if(!confirm(`¿Sacar la marca de "en Estampas" de ${item.code||item.name}? (no borra el corte en la pestaña Estampas, solo el aviso acá)`)) return;
+  db.ref(`fabrica_v5/sections/${secId}/items/${itemId}/estampado_dtf`).set(false);
+  logActivity('Desmarcó estampado DTF',item.code||item.name);
+  showToast('↩ Desmarcado');
+}
+
+// --- CRUD corte de estampas ---
+function openEstCorteModal(estId){
+  estCtx.estId=estId||null;
+  const e=estId?estampadosData[estId]:null;
+  document.getElementById('est-corte-modal-title').textContent=e?'Editar corte':'Nuevo corte';
+  document.getElementById('in-est-numero').value=e?(e.numero||''):'';
+  document.getElementById('in-est-tela').value=e?(e.tela||''):'';
+  document.getElementById('modal-est-corte').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('in-est-numero').focus(),50);
+}
+function saveEstCorte(){
+  const numero=document.getElementById('in-est-numero').value.trim();
+  const tela=document.getElementById('in-est-tela').value.trim();
+  if(!numero){ document.getElementById('in-est-numero').focus(); return; }
+  if(estCtx.estId){
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}`).update({numero,tela});
+  } else {
+    db.ref('fabrica_v5/estampados').push({numero,tela,coloresImg:'',fotos:{},estampas:{},fecha_creado:Date.now()});
+  }
+  document.getElementById('modal-est-corte').classList.add('hidden');
+}
+function delEstCorte(estId){
+  const e=estampadosData[estId]; if(!e) return;
+  if(!confirm(`¿Borrar el corte ${e.numero} de Estampas?`)) return;
+  db.ref(`fabrica_v5/estampados/${estId}`).remove();
+}
+
+// --- CRUD estampa individual (foto + artículo + estado) ---
+function openEstEstampaModal(estId,estampaId){
+  estCtx.estId=estId; estCtx.estampaId=estampaId||null;
+  const e=estampadosData[estId];
+  const est=estampaId?(e.estampas||{})[estampaId]:null;
+  document.getElementById('est-estampa-modal-title').textContent=est?'Editar estampa':'Nueva estampa';
+  document.getElementById('in-est-articulo').value=est?(est.articulo||''):'';
+  document.getElementById('in-est-foto').value='';
+  const cur=document.getElementById('est-estampa-current-img');
+  if(est&&est.img){ cur.src=est.img; cur.style.display='block'; } else { cur.style.display='none'; }
+  document.getElementById('modal-est-estampa').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('in-est-articulo').focus(),50);
+}
+async function saveEstEstampa(){
+  const articulo=document.getElementById('in-est-articulo').value.trim();
+  if(!articulo){ document.getElementById('in-est-articulo').focus(); return; }
+  const file=document.getElementById('in-est-foto').files[0];
+  const okBtn=document.getElementById('est-estampa-ok');
+  let img=null;
+  if(file){
+    okBtn.disabled=true; okBtn.textContent='Subiendo…';
+    try{ img=await uploadCloudinaryRaw(file); } catch(err){ showToast('✗ '+err.message); okBtn.disabled=false; okBtn.textContent='Guardar'; return; }
+    okBtn.disabled=false; okBtn.textContent='Guardar';
+  }
+  const e=estampadosData[estCtx.estId];
+  if(estCtx.estampaId){
+    const updates={articulo};
+    if(img!==null) updates.img=img;
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}/estampas/${estCtx.estampaId}`).update(updates);
+  } else {
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}/estampas`).push({articulo,estado:'dibujo',img:img||''});
+  }
+  document.getElementById('modal-est-estampa').classList.add('hidden');
+}
+function cycleEstEstado(estId,estampaId){
+  const est=estampadosData[estId].estampas[estampaId];
+  const i=EST_ESTADOS.findIndex(s=>s.key===est.estado);
+  const next=EST_ESTADOS[(i+1)%EST_ESTADOS.length].key;
+  db.ref(`fabrica_v5/estampados/${estId}/estampas/${estampaId}/estado`).set(next);
+}
+function delEstEstampa(estId,estampaId){
+  db.ref(`fabrica_v5/estampados/${estId}/estampas/${estampaId}`).remove();
+}
+
+// --- CRUD variante de color (color de prenda → color de estampa → cantidad) ---
+function openEstColorModal(estId,fotoId){
+  estCtx.estId=estId; estCtx.fotoId=fotoId||null;
+  const e=estampadosData[estId];
+  const f=fotoId?(e.fotos||{})[fotoId]:null;
+  document.getElementById('est-color-modal-title').textContent=f?'Editar variante':'Variante de color';
+  document.getElementById('in-est-color').value=f?(f.color||''):'';
+  document.getElementById('in-est-estampacolor').value=f?(f.estampaColor||''):'';
+  document.getElementById('in-est-cant').value=(f&&f.cant!=null)?f.cant:'';
+  document.getElementById('modal-est-color').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('in-est-color').focus(),50);
+}
+function saveEstColor(){
+  const color=document.getElementById('in-est-color').value.trim();
+  const estampaColor=document.getElementById('in-est-estampacolor').value.trim();
+  const cantRaw=document.getElementById('in-est-cant').value.trim();
+  const cant=cantRaw===''?null:Number(cantRaw);
+  if(estCtx.fotoId){
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}/fotos/${estCtx.fotoId}`).update({color:color||'—',estampaColor,cant});
+  } else {
+    if(!color&&!cantRaw&&!estampaColor){ document.getElementById('in-est-color').focus(); return; }
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}/fotos`).push({color:color||'—',estampaColor,cant});
+  }
+  document.getElementById('modal-est-color').classList.add('hidden');
+}
+function delEstColor(estId,fotoId){
+  db.ref(`fabrica_v5/estampados/${estId}/fotos/${fotoId}`).remove();
+}
+
+// Por si se marcó "estampado DTF" antes de cargar la Orden de Corte en fabrica (o se agregaron
+// colores nuevos después): vuelve a traer los colores/cantidades del corte vinculado, sin pisar
+// las variantes que ya estén cargadas acá (solo agrega las que falten, matcheando por nombre de color).
+function resyncColoresEstampado(estId){
+  const e=estampadosData[estId];
+  if(!e||!e.link_secId||!e.link_itemId){ showToast('Este corte de Estampas no está vinculado a un ítem de fabrica'); return; }
+  const item=sectionsData[e.link_secId]&&sectionsData[e.link_secId].items[e.link_itemId];
+  if(!item){ showToast('No encontré el ítem de fabrica vinculado'); return; }
+  const filas=Object.values(item.capas||{}).filter(r=>r.color);
+  if(!filas.length){ showToast('El corte todavía no tiene Orden de Corte cargada en fabrica'); return; }
+  const yaCargados=new Set(Object.values(e.fotos||{}).map(f=>(f.color||'').trim().toLowerCase()));
+  const updates={};
+  let agregados=0;
+  filas.forEach(r=>{
+    if(yaCargados.has((r.color||'').trim().toLowerCase())) return;
+    const cant=Object.values(r.cant||{}).reduce((a,b)=>a+(parseInt(b)||0),0);
+    const fid=db.ref('fabrica_v5/estampados').push().key;
+    updates[`fabrica_v5/estampados/${estId}/fotos/${fid}`]={color:r.color,estampaColor:'',cant};
+    agregados++;
+  });
+  if(!agregados){ showToast('Ya están todos los colores del corte cargados acá'); return; }
+  db.ref().update(updates);
+  showToast(`🔄 Se agregaron ${agregados} color${agregados!==1?'es':''} desde Orden de Corte`);
+}
+
+// --- Foto compartida de "todos los colores juntos" ---
+function openEstColoresFotoModal(estId){
+  estCtx.estId=estId;
+  const e=estampadosData[estId];
+  document.getElementById('in-est-colores-foto').value='';
+  const cur=document.getElementById('est-colores-current-img');
+  if(e&&e.coloresImg){ cur.src=e.coloresImg; cur.style.display='block'; } else { cur.style.display='none'; }
+  document.getElementById('modal-est-colores-foto').classList.remove('hidden');
+}
+async function saveEstColoresFoto(){
+  const file=document.getElementById('in-est-colores-foto').files[0];
+  if(!file){ document.getElementById('modal-est-colores-foto').classList.add('hidden'); return; }
+  const okBtn=document.getElementById('est-colores-foto-ok');
+  okBtn.disabled=true; okBtn.textContent='Subiendo…';
+  try{
+    const url=await uploadCloudinaryRaw(file);
+    db.ref(`fabrica_v5/estampados/${estCtx.estId}/coloresImg`).set(url);
+  } catch(err){ showToast('✗ '+err.message); }
+  okBtn.disabled=false; okBtn.textContent='Guardar';
+  document.getElementById('modal-est-colores-foto').classList.add('hidden');
+}
+function delEstColoresFoto(estId){
+  db.ref(`fabrica_v5/estampados/${estId}/coloresImg`).set('');
+}
+
+// --- Render de la pestaña Estampas ---
+function renderEstampadosTab(){
+  const cont=document.getElementById('estampas-board');
+  if(!cont) return;
+  const lista=Object.entries(estampadosData||{}).map(([id,e])=>({id,...e,estampas:e.estampas||{},fotos:e.fotos||{}}));
+
+  const totalEst=lista.reduce((a,c)=>a+Object.keys(c.estampas).length,0);
+  const listos=lista.reduce((a,c)=>a+Object.values(c.estampas).filter(x=>x.estado==='listo').length,0);
+  const totalUnidades=lista.reduce((a,c)=>a+Object.values(c.fotos).reduce((s,f)=>s+(f.cant||0),0),0);
+  const statsEl=document.getElementById('estampas-stats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="est-stat"><span class="est-stat-num">${lista.length}</span><span class="est-stat-label">Cortes</span></div>
+    <div class="est-stat"><span class="est-stat-num">${totalUnidades}</span><span class="est-stat-label">Unidades</span></div>
+    <div class="est-stat"><span class="est-stat-num">${listos}</span><span class="est-stat-label">Estampas listas</span></div>
+    <div class="est-stat"><span class="est-stat-num">${totalEst}</span><span class="est-stat-label">Estampas total</span></div>`;
+
+  const counts={todos:totalEst};
+  EST_ESTADOS.forEach(s=>{ counts[s.key]=lista.reduce((a,c)=>a+Object.values(c.estampas).filter(x=>x.estado===s.key).length,0); });
+  const filtrosEl=document.getElementById('estampas-filtros');
+  filtrosEl.innerHTML=[{key:'todos',label:'Todos'},...EST_ESTADOS].map(s=>
+    `<button class="filter-pill ${estFilter===s.key?'active':''}" onclick="estFilter='${s.key}';renderEstampadosTab()">${s.label} <span class="cnt">${counts[s.key]||0}</span></button>`
+  ).join('');
+
+  const telas=[...new Set(lista.map(c=>(c.tela||'').trim()).filter(Boolean))].sort();
+  const telaSel=document.getElementById('estampas-tela-filter');
+  telaSel.innerHTML='<option value="todas">Todas las telas</option>'+telas.map(t=>`<option value="${t}" ${estTelaFiltro===t?'selected':''}>${t}</option>`).join('');
+  telaSel.value=telas.includes(estTelaFiltro)?estTelaFiltro:'todas';
+
+  let visibles=lista;
+  if(estTelaFiltro!=='todas') visibles=visibles.filter(c=>(c.tela||'').trim()===estTelaFiltro);
+  if(estSearch.trim()){ const q=estSearch.trim().toLowerCase(); visibles=visibles.filter(c=>String(c.numero||'').toLowerCase().includes(q)); }
+  if(estFilter!=='todos') visibles=visibles.filter(c=>Object.values(c.estampas).some(x=>x.estado===estFilter));
+  visibles.sort((a,b)=>(b.fecha_creado||0)-(a.fecha_creado||0));
+
+  if(!visibles.length){
+    const filtrando=estFilter!=='todos'||estTelaFiltro!=='todas'||estSearch.trim();
+    cont.innerHTML=`<div class="empty-state">${filtrando?'Ningún corte coincide con la búsqueda o los filtros.':'Todavía no hay cortes acá — agregá uno o mandalo desde una tarjeta de fabrica con "🎨 Marcar para estampado DTF".'}</div>`;
+    return;
+  }
+
+  cont.innerHTML=visibles.map(c=>{
+    const totalCant=Object.values(c.fotos).reduce((a,f)=>a+(f.cant||0),0);
+    const esPendienteUso=(c.numero||'').trim().toUpperCase().includes('PENDIENTE DE USO');
+    const estampasEntries=Object.entries(c.estampas);
+    const gridItems=estampasEntries.map(([eid,e])=>{
+      const s=estLabel(e.estado);
+      const photo=e.img?`<img src="${e.img}" onclick="openPhotoModal('${e.img}')">`:`<div class="est-photo-empty" onclick="openEstEstampaModal('${c.id}','${eid}')">📷</div>`;
+      return `<div class="est-card-inner">
+        <div class="est-photo-wrap">${photo}
+          ${e.img?`<button class="est-photo-edit" title="Editar" onclick="event.stopPropagation();openEstEstampaModal('${c.id}','${eid}')">✏️</button>`:''}
+          <button class="est-photo-del" title="Quitar" onclick="event.stopPropagation();delEstEstampa('${c.id}','${eid}')">✕</button>
+        </div>
+        <div class="est-info">
+          <span class="est-articulo" onclick="openEstEstampaModal('${c.id}','${eid}')">${(e.articulo||'').replace(/</g,'&lt;')}</span>
+          <button class="estado-pill" style="background:${s.bg};color:${s.color}" title="Tocar para avanzar" onclick="cycleEstEstado('${c.id}','${eid}')">${s.label}</button>
+        </div>
+      </div>`;
+    }).join('');
+    const addEstBtn=`<button class="btn-est-add" onclick="openEstEstampaModal('${c.id}')">+ Agregar estampa</button>`;
+
+    let coloresHtml='';
+    if(!esPendienteUso){
+      const coloresFoto=c.coloresImg
+        ? `<div class="colores-foto" onclick="openPhotoModal('${c.coloresImg}')">
+            <img src="${c.coloresImg}">
+            <button class="est-photo-edit" title="Cambiar" onclick="event.stopPropagation();openEstColoresFotoModal('${c.id}')">✏️</button>
+            <button class="est-photo-del" title="Quitar" onclick="event.stopPropagation();delEstColoresFoto('${c.id}')">✕</button>
+          </div>`
+        : `<div class="colores-foto empty" onclick="openEstColoresFotoModal('${c.id}')"><span>📷</span><span style="font-size:10px">Foto de los colores</span></div>`;
+      const chips=Object.entries(c.fotos).map(([fid,f])=>`
+        <div class="color-chip" onclick="openEstColorModal('${c.id}','${fid}')">
+          <span class="color-name">${(f.color||'').replace(/</g,'&lt;')}</span>
+          ${f.estampaColor?`<span class="color-estampa">${f.estampaColor.replace(/</g,'&lt;')}</span>`:''}
+          ${f.cant!=null?`<span class="color-cant">${f.cant} u.</span>`:''}
+          <button class="chip-del" onclick="event.stopPropagation();delEstColor('${c.id}','${fid}')">✕</button>
+        </div>`).join('');
+      coloresHtml=`<div class="section-label">Variantes de color${totalCant?` · ${totalCant} u.`:''}</div>
+        <div class="colores-row">${coloresFoto}${chips}
+          <button class="btn-color-add" onclick="openEstColorModal('${c.id}')">+ Color</button>
+          ${c.link_secId&&c.link_itemId?`<button class="btn-color-add" title="Vuelve a traer los colores desde la Orden de Corte de fabrica" onclick="resyncColoresEstampado('${c.id}')">🔄 Traer de Orden de Corte</button>`:''}
+        </div>`;
+    }
+
+    return `<div class="est-card" id="est-card-${c.id}">
+      <div class="est-card-top">
+        <div><div class="est-numero">Corte ${(c.numero||'').replace(/</g,'&lt;')}</div>${c.tela?`<div class="est-tela">${c.tela.replace(/</g,'&lt;')}</div>`:''}</div>
+        <div>
+          <button class="icon-btn" title="Editar" onclick="openEstCorteModal('${c.id}')">✏️</button>
+          <button class="icon-btn" title="Borrar" onclick="delEstCorte('${c.id}')">✕</button>
+        </div>
+      </div>
+      <div class="section-label">Estampas (${estampasEntries.length})</div>
+      <div class="est-grid">${gridItems}${addEstBtn}</div>
+      ${coloresHtml}
+    </div>`;
+  }).join('');
+}
+// ================== FIN ESTAMPAS DTF ==================
 
 function triggerFotoTelaUpload(secId,itemId){
   const input=document.createElement('input');
@@ -1419,6 +1858,10 @@ db.ref('fabrica_v5/sections').on('value',snap=>{
     if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPendientes();
     if(!document.getElementById('tab-galeria').classList.contains('hidden')) renderGaleria();
   });
+  db.ref('fabrica_v5/estampados').on('value',snap=>{
+    estampadosData=snap.val()||{};
+    if(!document.getElementById('tab-estampas').classList.contains('hidden')) renderEstampadosTab();
+  });
   db.ref('fabrica_v5/modelistas').on('value',snap=>{
     const v=snap.val();
     if(v){ modelistasList=Array.isArray(v)?v.filter(Boolean):Object.values(v); }
@@ -2219,7 +2662,7 @@ function umbralAtraso(sec,item,secId){
 }
 
 // Muestra "Ingresó: fecha · hace X días" y "En esta etapa: hace Y días" en la tarjeta
-function procesoInfoHtml(item){
+function procesoInfoHtml(item,secId,itemId){
   const parts=[];
   if(item.fecha_ingreso){
     const d=diasEntre(item.fecha_ingreso);
@@ -2229,8 +2672,15 @@ function procesoInfoHtml(item){
     const d=diasEntre(item.fecha_etapa);
     parts.push(`⏱ En esta etapa hace ${d} día${d!==1?'s':''}`);
   }
-  if(!parts.length) return '';
-  return `<div style="font-size:11px;color:var(--text2);margin-top:4px">${parts.join(' &nbsp;·&nbsp; ')}</div>`;
+  let html='';
+  if(parts.length) html+=`<div style="font-size:11px;color:var(--text2);margin-top:4px">${parts.join(' &nbsp;·&nbsp; ')}</div>`;
+  // Botón/insignia de Estampado DTF: disponible en cualquier etapa del corte, no atado a un paso fijo del flujo.
+  if(secId&&itemId){
+    html+=item.estampado_dtf
+      ? `<div class="estampado-badge" onclick="irAEstampado('${secId}','${itemId}')" title="Tocá para ver/editar en la pestaña Estampas" oncontextmenu="event.preventDefault();desmarcarEstampadoDTF('${secId}','${itemId}')">🎨 En Estampas ✓</div>`
+      : `<button class="btn-sm estampado-btn" onclick="irAEstampado('${secId}','${itemId}')">🎨 Marcar para estampado DTF</button>`;
+  }
+  return html;
 }
 
 function checkListaParaTaller(secId,itemId,ficha,llevaAvios,avios){
@@ -2594,7 +3044,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             <span class="modelista-label">Color:</span>
@@ -2654,7 +3104,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${buildRefLinkHtml(secId,itemId,item,canEdit)}
           ${buildNotasHtml(secId,itemId,item,canEdit)}
@@ -2700,7 +3150,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
@@ -2746,7 +3196,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
@@ -2819,7 +3269,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${item.origen_mejora?`<div style="font-size:11px;background:var(--warn-bg);color:var(--warn-text);border-radius:6px;padding:4px 8px;margin-bottom:6px">🔧 <strong>Viene de una mejora:</strong> ${item.origen_mejora}</div>`:''}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           <div class="idea-tela-row">
             ${item.foto_tela
               ? `<div class="item-photo-wrap small"><img class="item-photo" src="${item.foto_tela}" onclick="openPhotoModal('${item.foto_tela}')">${canEdit?`<button class="photo-edit-btn" onclick="event.stopPropagation();triggerFotoTelaUpload('${secId}','${itemId}')" title="Cambiar tela">✏️</button>`:''}</div>`
@@ -2921,7 +3371,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${enRevision?`<div class="mod-badge">🔁 Modificaciones pendientes</div>`:''}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
@@ -2959,7 +3409,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
@@ -3007,7 +3457,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 6px">
             ${item.ficha_link
@@ -3041,7 +3491,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${resuelta?`<div class="mod-badge" style="background:var(--green-bg);color:var(--green-text)">✓ Resuelta</div>`:''}
           <div style="margin-top:8px">
@@ -3092,7 +3542,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         <div class="item-body">
           ${buildCodeHtml(secId,itemId,item,canEdit)}
           ${buildNameHtml(secId,itemId,item,canEdit)}
-          ${procesoInfoHtml(item)}
+          ${procesoInfoHtml(item,secId,itemId)}
           ${item.numero_corte?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🔢 N° de corte: <strong>${item.numero_corte}</strong></div>`:''}
           ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
           ${item.modelista?`<div style="font-size:11px;color:var(--text2);margin-top:2px">🧵 Moldería: <strong>${item.modelista}</strong></div>`:''}
@@ -3190,7 +3640,7 @@ function buildItem(secId,itemId,item,sec,idx,total){
         ${buildCodeHtml(secId,itemId,item,canEdit)}
         ${buildNameHtml(secId,itemId,item,canEdit)}
         ${item.sub?`<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px">${item.sub}</div>`:''}
-        ${procesoInfoHtml(item)}
+        ${procesoInfoHtml(item,secId,itemId)}
         ${canEdit?buildMarcaHtml(secId,itemId,item):(item.marca?`<div style="font-size:11px;color:var(--text2)">Marca: <strong>${item.marca}</strong></div>`:'')}
         ${secId==='sFIN'?(canEdit?buildCategoriaHtml(secId,itemId,item):(item.categoria?`<div style="font-size:11px;color:var(--text2)">Categoría: <strong>${item.categoria}</strong></div>`:'')):''}
         ${secId==='sFIN'?(canEdit?buildTemporadaHtml(secId,itemId,item):(item.temporada?`<div style="font-size:11px;color:var(--text2)">Temporada: <strong>${item.temporada}</strong></div>`:'')):''}
@@ -4496,7 +4946,7 @@ function fmtTime(ts){
 
 // TABS
 function ocultarTabsMenosActiva(activo){
-  ['tab-diseno','tab-fabrica','tab-pendientes','tab-galeria','tab-actividad'].forEach(id=>{
+  ['tab-diseno','tab-fabrica','tab-pendientes','tab-galeria','tab-actividad','tab-estampas'].forEach(id=>{
     document.getElementById(id).classList.toggle('hidden', id!==activo);
   });
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -4523,6 +4973,11 @@ document.getElementById('tab-btn-actividad').onclick=function(){
   ocultarTabsMenosActiva('tab-actividad');
   this.classList.add('active');
   renderActividad();
+};
+document.getElementById('tab-btn-estampas').onclick=function(){
+  ocultarTabsMenosActiva('tab-estampas');
+  this.classList.add('active');
+  renderEstampadosTab();
 };
 document.getElementById('close-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
 document.getElementById('cancel-modal-edit').onclick=()=>document.getElementById('modal-edit').classList.add('hidden');
