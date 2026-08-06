@@ -244,6 +244,12 @@
   .est-articulo{display:block;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:4px;line-height:1.3}
   .est-cant{display:block;font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;cursor:pointer}
   .est-cant.manual{color:#a21caf}
+  .est-cant-wrap{cursor:pointer;margin-bottom:4px;padding:4px 6px;border-radius:6px}
+  .est-cant-wrap:hover{background:var(--surface2)}
+  .est-color-breakdown{font-size:9px;color:var(--text2);line-height:1.4;margin-top:1px}
+  .est-repartir-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+  .est-repartir-color{font-size:12px}
+  .est-repartir-row input{width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;text-align:right}
   .estado-pill{border:none;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;width:100%}
   .btn-est-add{grid-column:span 2;border:1px dashed var(--border2);background:transparent;border-radius:8px;padding:10px;font-size:12px;color:var(--text2);cursor:pointer}
   .colores-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
@@ -494,6 +500,19 @@
     <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-colores-foto').classList.add('hidden')">Cancelar</button><button class="btn-primary" id="est-colores-foto-ok" onclick="saveEstColoresFoto()">Guardar</button></div>
   </div>
 </div>
+
+<div class="modal-overlay hidden" id="modal-est-repartir">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Repartir por color</span><button class="modal-close" onclick="document.getElementById('modal-est-repartir').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div id="est-repartir-articulo" style="font-size:13px;font-weight:700;margin-bottom:10px"></div>
+      <div id="est-repartir-list"></div>
+      <div class="oc-hint">Dejalo con el número que ya tiene si querés que ese color siga repartiéndose automático entre todas las estampas del corte.</div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById('modal-est-repartir').classList.add('hidden')">Cancelar</button><button class="btn-primary" onclick="saveEstRepartir()">Guardar</button></div>
+  </div>
+</div>
+
 
 
 <!-- Modal notas (lista, un renglón por concepto) -->
@@ -849,23 +868,53 @@ function cycleEstEstado(estId,estampaId){
 function delEstEstampa(estId,estampaId){
   db.ref(`fabrica_v5/estampados/${estId}/estampas/${estampaId}`).remove();
 }
-// Por default la cantidad de cada estampa se reparte pareja entre todas las del corte.
-// Acá se puede fijar una cantidad puntual para una (por ej. si no es 50/50) — el resto sigue
-// repartiéndose automático entre las que no tengan cantidad fija.
-function editEstCant(estId,estampaId){
-  const est=estampadosData[estId].estampas[estampaId];
-  const val=prompt('Cantidad para esta estampa (dejá vacío para que se reparta automático entre las demás):', est.cantManual!=null?est.cantManual:'');
-  if(val===null) return;
-  const trimmed=val.trim();
-  if(trimmed===''){
-    db.ref(`fabrica_v5/estampados/${estId}/estampas/${estampaId}/cantManual`).remove();
-    showToast('↩ Vuelve a repartirse automático');
-    return;
-  }
-  const n=Number(trimmed);
-  if(isNaN(n)||n<0){ showToast('Cantidad inválida'); return; }
-  db.ref(`fabrica_v5/estampados/${estId}/estampas/${estampaId}/cantManual`).set(n);
-  showToast('✓ Cantidad fijada');
+// Reparto por color a mano: abre un campo editable por cada color del corte, precargado con
+// lo que le tocaría automático a esta estampa. Si lo dejás igual, sigue siendo automático
+// (se recalcula solo si cambian las cantidades del corte); si lo cambiás, queda fijo para ese color.
+let repartirCtx=null;
+function openEstRepartirModal(estId,estampaId){
+  const c=estampadosData[estId];
+  const e=c.estampas[estampaId];
+  const coloresArr=Object.entries(c.fotos||{});
+  const estampasEntries=Object.entries(c.estampas||{});
+  const nEst=estampasEntries.length;
+  const idx=estampasEntries.findIndex(([id])=>id===estampaId);
+  const autoVals={};
+  coloresArr.forEach(([fid,f])=>{
+    const q=f.cant||0;
+    const base=nEst?Math.floor(q/nEst):0;
+    const resto=nEst?q%nEst:0;
+    autoVals[fid]=base+(idx<resto?1:0);
+  });
+  repartirCtx={estId,estampaId,coloresArr,autoVals};
+  document.getElementById('est-repartir-articulo').textContent=e.articulo||'(sin nombre)';
+  document.getElementById('est-repartir-list').innerHTML=coloresArr.length
+    ? coloresArr.map(([fid,f])=>{
+        const manual=e.cantPorColor&&e.cantPorColor[fid];
+        const val=manual!=null?manual:autoVals[fid];
+        return `<div class="est-repartir-row">
+          <span class="est-repartir-color">${(f.color||'').replace(/</g,'&lt;')}${f.cant!=null?` <small>(${f.cant} u. total)</small>`:''}</span>
+          <input type="number" min="0" id="rep-in-${fid}" value="${val}">
+        </div>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text2)">Este corte todavía no tiene colores cargados.</div>';
+  document.getElementById('modal-est-repartir').classList.remove('hidden');
+}
+function saveEstRepartir(){
+  if(!repartirCtx) return;
+  const {estId,estampaId,coloresArr,autoVals}=repartirCtx;
+  const updates={};
+  coloresArr.forEach(([fid])=>{
+    const inp=document.getElementById(`rep-in-${fid}`);
+    if(!inp) return;
+    const raw=inp.value.trim();
+    const val=raw===''?autoVals[fid]:Math.max(0,Number(raw)||0);
+    updates[`fabrica_v5/estampados/${estId}/estampas/${estampaId}/cantPorColor/${fid}`]=(val===autoVals[fid])?null:val;
+  });
+  db.ref().update(updates);
+  document.getElementById('modal-est-repartir').classList.add('hidden');
+  showToast('✓ Reparto guardado');
+  repartirCtx=null;
 }
 
 // --- CRUD variante de color (color de prenda → color de estampa → cantidad) ---
@@ -991,21 +1040,28 @@ function renderEstampadosTab(){
     const totalCant=Object.values(c.fotos).reduce((a,f)=>a+(f.cant||0),0);
     const esPendienteUso=(c.numero||'').trim().toUpperCase().includes('PENDIENTE DE USO');
     const estampasEntries=Object.entries(c.estampas);
-    // Cantidad por estampa: si vos le pusiste un número a mano (cantManual), se respeta tal cual.
-    // Lo que queda del total (descontando lo asignado a mano) se reparte parejo entre el resto.
+    const coloresArr=Object.entries(c.fotos||{});
     const nEst=estampasEntries.length;
-    const manualSum=estampasEntries.reduce((s,[,e])=>s+(e.cantManual!=null?Number(e.cantManual):0),0);
-    const autoCount=estampasEntries.filter(([,e])=>e.cantManual==null).length;
-    const restanteParaAuto=Math.max(0,totalCant-manualSum);
-    const cantBase=autoCount?Math.floor(restanteParaAuto/autoCount):0;
-    const cantResto=autoCount?restanteParaAuto%autoCount:0;
-    let autoIdx=0;
-    const gridItems=estampasEntries.map(([eid,e])=>{
+    // Reparto color por color: cada color del corte se divide parejo entre las estampas
+    // (el resto de a 1 empezando por la primera), salvo que hayas fijado un número a mano
+    // para ese color en esa estampa puntual (cantPorColor) — eso se respeta tal cual.
+    const autoSplits={};
+    coloresArr.forEach(([fid,f])=>{
+      const q=f.cant||0;
+      const base=nEst?Math.floor(q/nEst):0;
+      const resto=nEst?q%nEst:0;
+      autoSplits[fid]=estampasEntries.map((_,i)=>base+(i<resto?1:0));
+    });
+    const gridItems=estampasEntries.map(([eid,e],i)=>{
       const s=estLabel(e.estado);
-      const esManual=e.cantManual!=null;
-      let cantEst;
-      if(esManual){ cantEst=Number(e.cantManual); }
-      else { cantEst=cantBase+(autoIdx<cantResto?1:0); autoIdx++; }
+      const perColor={};
+      coloresArr.forEach(([fid])=>{
+        const manual=e.cantPorColor&&e.cantPorColor[fid];
+        perColor[fid]=manual!=null?Number(manual):autoSplits[fid][i];
+      });
+      const total=Object.values(perColor).reduce((a,b)=>a+b,0);
+      const breakdown=coloresArr.filter(([fid])=>perColor[fid]>0)
+        .map(([fid,f])=>`${(f.color||'').replace(/</g,'&lt;')}: ${perColor[fid]}`).join(' · ');
       const photo=e.img?`<img src="${e.img}" onclick="openPhotoModal('${e.img}')">`:`<div class="est-photo-empty" onclick="openEstEstampaModal('${c.id}','${eid}')">📷</div>`;
       return `<div class="est-card-inner">
         <div class="est-photo-wrap">${photo}
@@ -1014,7 +1070,10 @@ function renderEstampadosTab(){
         </div>
         <div class="est-info">
           <span class="est-articulo" onclick="openEstEstampaModal('${c.id}','${eid}')">${(e.articulo||'').replace(/</g,'&lt;')}</span>
-          ${totalCant>0?`<span class="est-cant ${esManual?'manual':''}" title="${esManual?'Cantidad puesta a mano — tocá para cambiarla o borrarla':'Se reparte automático — tocá para poner una cantidad fija'}" onclick="event.stopPropagation();editEstCant('${c.id}','${eid}')">${cantEst} u.${esManual?' ✏️':''}</span>`:''}
+          ${coloresArr.length?`<div class="est-cant-wrap" onclick="event.stopPropagation();openEstRepartirModal('${c.id}','${eid}')" title="Tocá para repartir por color a mano">
+            <span class="est-cant">${total} u.</span>
+            ${breakdown?`<div class="est-color-breakdown">${breakdown}</div>`:''}
+          </div>`:''}
           <button class="estado-pill" style="background:${s.bg};color:${s.color}" title="Tocar para avanzar" onclick="cycleEstEstado('${c.id}','${eid}')">${s.label}</button>
         </div>
       </div>`;
